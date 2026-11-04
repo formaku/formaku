@@ -1,0 +1,2 @@
+@extends('formaku::layout')
+@section('content')<p class="mono text-xs text-secondary mb-5">ZBUDOWANE Z FORMAKU</p><h1 class="text-5xl tracking-tight mb-10">Przestrzeń dla Twoich pomysłów.</h1><div class="grid md:grid-cols-2 gap-6">@foreach($items as $item)<a href="/p/{{ $item->published_slug }}" class="p-8 bg-base-100 border border-base-300 rounded-xl"><h2 class="text-2xl">{{ $item->published_title }}</h2><p class="mt-4 text-primary">Zobacz więcej →</p></a>@endforeach</div>{{ $items->links() }}@endsection

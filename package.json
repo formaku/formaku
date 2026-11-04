@@ -1,0 +1,30 @@
+{
+  "name": "formaku-workspace",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vue-tsc --noEmit && vite build",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "vue": "^3.5.0",
+    "reka-ui": "^2.0.0",
+    "@tiptap/vue-3": "^3.0.0",
+    "@tiptap/starter-kit": "^3.0.0",
+    "@tiptap/pm": "^3.0.0",
+    "lucide-vue-next": "^0.575.0"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "typescript": "^5.9.0",
+    "vue-tsc": "^3.0.0",
+    "tailwindcss": "^4.0.0",
+    "@tailwindcss/vite": "^4.0.0",
+    "daisyui": "^5.0.0",
+    "@playwright/test": "^1.56.0",
+    "@fontsource/inter": "^5.0.0",
+    "@fontsource/jetbrains-mono": "^5.0.0"
+  }
+}

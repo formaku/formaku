@@ -1,0 +1,2 @@
+@extends('formaku::layout')
+@section('content')<a href="/portal" class="text-primary">← Wszystkie zgłoszenia</a><article class="mt-8 bg-base-100 border border-base-300 rounded-xl p-8"><span class="badge badge-outline">{{$record['state']}}</span><h1 class="text-3xl mt-6">{{$record['data']['title']??'Zgłoszenie'}}</h1><p class="mt-5 whitespace-pre-wrap">{{$record['data']['description']??''}}</p></article>@endsection

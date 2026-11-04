@@ -1,0 +1,18 @@
+import { defineConfig, devices } from "@playwright/test";
+export default defineConfig({
+  testDir: "tests/browser",
+  webServer: {
+    command: "php apps/starter/artisan serve --host=127.0.0.1 --port=8765",
+    url: "http://127.0.0.1:8765/login",
+    reuseExistingServer: !process.env.CI,
+  },
+  use: {
+    baseURL: process.env.FORMAKU_TEST_URL ?? "http://127.0.0.1:8765",
+    trace: "retain-on-failure",
+  },
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "firefox", use: { ...devices["Desktop Firefox"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+  ],
+});

@@ -1,0 +1,44 @@
+name: formaku
+services:
+  web:
+    image: ${FORMAKU_IMAGE:-formaku:local}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports: ["127.0.0.1:8080:8080"]
+    env_file: .env.docker
+    volumes: ["uploads:/app/storage/app"]
+    depends_on:
+      database:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/up"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+  worker:
+    image: ${FORMAKU_IMAGE:-formaku:local}
+    command: ["php", "artisan", "queue:work", "--tries=1", "--timeout=90"]
+    env_file: .env.docker
+    volumes: ["uploads:/app/storage/app"]
+    depends_on: [web]
+  scheduler:
+    image: ${FORMAKU_IMAGE:-formaku:local}
+    command: ["php", "artisan", "schedule:work"]
+    env_file: .env.docker
+    volumes: ["uploads:/app/storage/app"]
+    depends_on: [web]
+  database:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: formaku
+      POSTGRES_USER: formaku
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD}
+    volumes: ["database:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U formaku"]
+      interval: 5s
+      retries: 10
+volumes:
+  uploads:
+  database:

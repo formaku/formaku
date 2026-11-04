@@ -1,0 +1,24 @@
+{
+  "name": "formaku/cms",
+  "description": "Schema-driven Laravel CMS and application builder",
+  "license": "MIT",
+  "version": "0.1.0",
+  "require": {
+    "php": "^8.4",
+    "illuminate/support": "^13.0",
+    "illuminate/database": "^13.0",
+    "illuminate/validation": "^13.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Formaku\\Cms\\": "src/"
+    }
+  },
+  "extra": {
+    "laravel": {
+      "providers": [
+        "Formaku\\Cms\\FormakuServiceProvider"
+      ]
+    }
+  }
+}

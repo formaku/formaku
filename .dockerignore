@@ -1,0 +1,13 @@
+**/.env
+**/.env.*
+!**/.env.example
+**/node_modules
+**/vendor
+**/.git
+**/database/*.sqlite*
+**/storage/logs/*
+**/storage/app/*
+**/storage/framework/*
+**/bootstrap/cache/*.php
+**/test-results
+**/playwright-report

@@ -1,0 +1,2 @@
+@extends('formaku::layout')
+@section('content')<h1 class="text-3xl mb-5">Potwierdź adres e-mail</h1><p>Otwórz odnośnik w wiadomości, aby aktywować konto.</p><p role="status">{{session('status')}}</p><form method="post" action="/email/verification-notification">@csrf<button class="btn mt-5">Wyślij wiadomość ponownie</button></form>@endsection

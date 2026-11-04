@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+read -r action image release extra <<< "${SSH_ORIGINAL_COMMAND:-}"
+[[ -z "${extra:-}" && "$action" == deploy ]] || exit 2
+[[ "$image" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ ]] || exit 2
+[[ "$release" =~ ^[a-f0-9-]{36}$ ]] || exit 2
+exec sudo /usr/bin/systemd-run --quiet --collect --wait --unit="formaku-$release" /usr/local/sbin/formaku-deployctl deploy "$image" "$release"

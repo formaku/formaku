@@ -1,0 +1,39 @@
+name: Deploy existing image
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Full ghcr.io image with sha256 digest
+        required: true
+        type: string
+      release_id:
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: formaku-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy through host controller
+        env:
+          IMAGE: ${{ inputs.image }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ vars.DEPLOY_HOST }}
+          USER: ${{ vars.DEPLOY_USER }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ ]]
+          [[ "$RELEASE_ID" =~ ^[a-f0-9-]{36}$ ]]
+          [[ "$HOST" =~ ^[a-zA-Z0-9.-]+$ && "$USER" =~ ^[a-z_][a-z0-9_-]*$ ]]
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/deploy ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy -o BatchMode=yes -o StrictHostKeyChecking=yes "$USER@$HOST" "deploy $IMAGE $RELEASE_ID"

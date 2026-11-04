@@ -1,0 +1,85 @@
+name: CI
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  php:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ['8.4', '8.5']
+        database: [pgsql, mysql]
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: formaku_test
+          POSTGRES_USER: formaku
+          POSTGRES_PASSWORD: testing
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U formaku" --health-interval 5s --health-retries 10
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_DATABASE: formaku_test
+          MYSQL_USER: formaku
+          MYSQL_PASSWORD: testing
+          MYSQL_ROOT_PASSWORD: testing-root
+        ports: ['3306:3306']
+        options: --health-cmd "mysqladmin ping -h localhost" --health-interval 5s --health-retries 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: pdo_pgsql, pdo_mysql
+      - run: composer install --no-interaction --prefer-dist
+        working-directory: apps/starter
+      - run: php artisan test
+        working-directory: apps/starter
+        env:
+          DB_CONNECTION: ${{ matrix.database }}
+          DB_HOST: 127.0.0.1
+          DB_PORT: ${{ matrix.database == 'pgsql' && '5432' || '3306' }}
+          DB_DATABASE: formaku_test
+          DB_USERNAME: formaku
+          DB_PASSWORD: testing
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+
+  browser:
+    runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      DB_CONNECTION: sqlite
+      DB_DATABASE: /tmp/formaku-e2e.sqlite
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.5'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: composer install --no-interaction --prefer-dist
+        working-directory: apps/starter
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - run: |
+          cp apps/starter/.env.example apps/starter/.env
+          php apps/starter/artisan key:generate
+          touch /tmp/formaku-e2e.sqlite
+          php apps/starter/artisan migrate --force
+          php apps/starter/artisan formaku:install
+          php scripts/e2e-fixtures.php
+      - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npx playwright test
