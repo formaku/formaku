@@ -115,14 +115,18 @@ class AssistantTest extends TestCase
         $admin = $this->admin();
         $collection = $this->pages();
         $headers = $this->bearer($this->exchange($this->start($admin, $collection)));
-        $data = ['title' => 'Kontakt', 'slug' => 'kontakt', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Pierwszy szkic']]]];
+        $data = ['title' => 'Kontakt', 'slug' => 'kontakt', 'blocks' => [
+            ['type' => 'hero', 'props' => ['title' => 'Pierwszy szkic']],
+            ['type' => 'hero', 'props' => ['title' => 'Drugi blok']],
+        ]];
         $input = ['request_id' => (string) Str::uuid(), 'data' => $data];
         $id = $this->postJson(self::API.'/pages', $input, $headers)->assertCreated()->assertJsonPath('version', 1)->json('id');
         $path = self::API.'/pages/'.$id;
         $this->postJson(self::API.'/pages', $input, $headers)->assertOk()->assertJsonPath('id', $id);
         $this->postJson(self::API.'/pages', array_replace($input, ['data' => ['title' => 'Different']]), $headers)->assertConflict();
         $this->getJson(self::API.'/pages', $headers)->assertJsonCount(1, 'items')->assertJsonPath('items.0.draft_title', 'Kontakt');
-        $this->getJson($path, $headers)->assertJsonPath('data', $data);
+        $response = $this->getJson($path, $headers)->assertOk();
+        $this->assertEquals($data, $response->json('data'));
         $this->postJson($path.'/publish', ['version' => 1], $headers)->assertForbidden();
         $this->get('/p/kontakt')->assertNotFound();
 

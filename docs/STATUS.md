@@ -34,7 +34,7 @@ This is a working **0.1.0 alpha**, not completion of the full accepted v1 plan.
 - Registered extension contracts are present; complete developer examples and ResourceAdapter/ActionHandler UI integration still need delivery.
 - GitHub project snapshot PR creation, build/deploy status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
 - Composer split-release automation, Packagist registration, full PL/EN manuals, public synthetic demo and release/security review.
-- Reference 2-vCPU/4-GB p95 benchmark and PHP 8.4 matrix execution (workflow prepared; local PHP is 8.5).
+- Reference 2-vCPU/4-GB p95 benchmark and confirmation of the remote GitHub CI matrix on the published commit.
 
 ## External setup still needed
 
@@ -47,3 +47,4 @@ The pre-existing docs/commerce documents were preserved unchanged and remain out
 - Built the Linux AMD64 container locally from a clean archive of `340828e1d32ca676ae527900ba30e9b3d1756cc3`. The local image ID is `sha256:d0f0afa687d202453923e080a1b729e8e4524ef870b7a6eb53716c97ff579491`. Use the registry digest reported by the release workflow for public distribution.
 - In a temporary container running as `www-data` (UID 33), SQLite migrations completed and the project test fixtures created the demo. The health check, login page, published demo page and bundled JavaScript each returned HTTP 200. The admin bootstrap API returned HTTP 401 to a guest.
 - Composer and npm audits reported no known advisories for the locked production dependency sets at the time of the check. GitHub CI and GHCR publication remain pending.
+- The 20-test alpha suite passed on PHP 8.5.11 with PostgreSQL 17.11 and MySQL 8.4.13. The development suite with website assistant pairing passed 27 tests and 168 assertions on PHP 8.4.27 and 8.5.11 with both databases, and on PHP 8.5.11 with SQLite.
