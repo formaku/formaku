@@ -13,6 +13,7 @@ cd apps/starter
 composer install
 cp .env.example .env
 php artisan key:generate
+touch database/database.sqlite
 php artisan migrate
 cd ../..
 npm ci --ignore-scripts
@@ -24,7 +25,7 @@ php artisan formaku:demo
 php artisan serve
 ```
 
-Open `/formaku`. The administrator command asks for a password; no production credentials are included. Run `php artisan queue:work --tries=1 --timeout=90` and `php artisan schedule:work` for AI, scheduled publication and notification delivery.
+Open `/formaku` and sign in with the administrator account you created. Use a password of at least 12 characters. The demo seeds example collections and publishes `/p/start` on a fresh installation. Run `php artisan queue:work --tries=1 --timeout=90` and `php artisan schedule:work` in separate terminals for AI, scheduled publication and notification delivery.
 
 ## Package integration
 

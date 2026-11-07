@@ -2,11 +2,13 @@
 
 ## Uruchomienie
 
-Zainstaluj starter według README. Utwórz administratora komendą `formaku:admin`, a przykładowe kolekcje przez `formaku:demo`. Konto demonstracyjne nie powstaje automatycznie.
+Zainstaluj starter według [instrukcji uruchomienia](../../README.md#run-locally). Utwórz administratora komendą `formaku:admin` i ustaw hasło o długości co najmniej 12 znaków. Na świeżej instalacji `formaku:demo` tworzy przykładowe kolekcje i publikuje stronę `/p/start`. Do panelu `/formaku` zaloguj się na własne konto administratora.
 
 ## Praca
 
 Wybierz kolekcję i dodaj rekord. Zapis tworzy nową rewizję. W treściach poprzednia publikacja pozostaje widoczna do użycia „Opublikuj treść”. Podgląd wymaga uprawnień panelu. Historia pozwala przywrócić rewizję do szkicu. Konflikt zapisu wymaga ponownego pobrania i porównania zmian.
+
+Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera.
 
 ## Buduj
 
@@ -14,7 +16,7 @@ Utwórz kolekcję danych lub treści, nadaj stabilne klucze i dodaj pola. Dla pr
 
 ## Portal
 
-Po włączeniu rejestracji użytkownik tworzy konto klienta i potwierdza e-mail. Klient widzi własne zgłoszenia; personel obsługuje je z panelu. Notatki prywatne nie trafiają do odpowiedzi klienta. Poczta wymaga skonfigurowanego transportu i działającej kolejki oraz schedulera.
+Po włączeniu rejestracji użytkownik tworzy konto klienta i potwierdza e-mail. Klient składa zgłoszenie w `/portal` i widzi własne zgłoszenia. Personel obsługuje je w panelu i może przypisać zgłoszenie pracownikowi w trakcie zmiany statusu. Notatki prywatne nie trafiają do odpowiedzi klienta. Poczta wymaga skonfigurowanego transportu oraz działającej kolejki i schedulera.
 
 ## AI
 
@@ -22,7 +24,7 @@ Administrator ustawia klucz i model na serwerze. W zakładce AI wybierz dostawc�
 
 ## Wydania
 
-Wskaż pełny SHA zatwierdzonego commita. „Zbuduj wydanie” uruchamia workflow w skonfigurowanym repozytorium GitHub. Link prowadzi do rzeczywistego przebiegu Actions. Samo przyjęcie żądania nie oznacza zbudowania ani wdrożenia obrazu. Wdrożenie istniejącego obrazu jest osobnym workflow opisanym w docs/DEPLOYMENT.md.
+Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie” wysyła żądanie uruchomienia workflow w skonfigurowanym repozytorium GitHub. Link otwiera listę GitHub Actions. Odszukaj przebieg po identyfikatorze wydania i sprawdź jego wynik oraz digest obrazu w podsumowaniu. Wdrożenie obrazu po digescie odbywa się w osobnym workflow opisanym w [instrukcji wdrożenia](../DEPLOYMENT.md).
 
 ## English quick guide
 

@@ -35,6 +35,10 @@ jobs:
           extensions: pdo_pgsql, pdo_mysql
       - run: composer install --no-interaction --prefer-dist
         working-directory: apps/starter
+      - run: |
+          cp .env.example .env
+          php artisan key:generate --no-interaction
+        working-directory: apps/starter
       - run: php artisan test
         working-directory: apps/starter
         env:
