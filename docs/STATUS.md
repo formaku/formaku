@@ -1,4 +1,4 @@
-# Implementation status — 2026-11-04
+# Implementation status
 
 This is a working **0.1.0 alpha**, not completion of the full accepted v1 plan.
 
@@ -38,6 +38,12 @@ This is a working **0.1.0 alpha**, not completion of the full accepted v1 plan.
 
 ## External setup still needed
 
-The formaku organization now exists on GitHub, owned by lukasz5. Repository creation is in progress; no code has been pushed. No VPS/domain, production credentials or provider keys were selected or copied from other projects.
+The GitHub repository `formaku/formaku` exists. Publication of the CMS source and its first prerelease requires authenticated write access. The static project website and its bilingual documentation are maintained separately in Forgejo. The static site is assigned to `formaku.eu` on OVH MultiSite. Upload the built files before updating the domain's web DNS records and enabling HTTPS. CMS runtime deployment is a separate operation.
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
+
+## Release candidate verification — 2026-11-07
+
+- Built the Linux AMD64 container locally from a clean archive of `340828e1d32ca676ae527900ba30e9b3d1756cc3`. The local image ID is `sha256:d0f0afa687d202453923e080a1b729e8e4524ef870b7a6eb53716c97ff579491`. Use the registry digest reported by the release workflow for public distribution.
+- In a temporary container running as `www-data` (UID 33), SQLite migrations completed and the project test fixtures created the demo. The health check, login page, published demo page and bundled JavaScript each returned HTTP 200. The admin bootstrap API returned HTTP 401 to a guest.
+- Composer and npm audits reported no known advisories for the locked production dependency sets at the time of the check. GitHub CI and GHCR publication remain pending.
