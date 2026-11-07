@@ -17,6 +17,7 @@ class FormakuServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'formaku');
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../routes/assistant.php');
         $this->publishes([__DIR__.'/../config/formaku.php' => config_path('formaku.php')], 'formaku-config');
         $this->publishes([__DIR__.'/../public' => public_path('vendor/formaku')], 'formaku-assets');
         if ($this->app->runningInConsole()) {

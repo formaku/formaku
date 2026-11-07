@@ -17,6 +17,7 @@ import {
   Check,
   Globe,
   Sparkles,
+  Plug,
   GripVertical,
   Trash2,
   Eye,
@@ -25,6 +26,7 @@ import {
 } from "lucide-vue-next";
 import RichText from "./RichText.vue";
 import BlockEditor from "./BlockEditor.vue";
+import AssistantConnection from "./AssistantConnection.vue";
 type Field = {
   key: string;
   label: string;
@@ -347,6 +349,7 @@ const title = computed(
       schema: "Model kolekcji",
       media: "Biblioteka mediów",
       ai: "Asystent AI",
+      assistant: "Asystent witryny",
       releases: "Wydania aplikacji",
       settings: "Ustawienia",
     })[section.value],
@@ -430,6 +433,13 @@ const title = computed(
             </button></template
           >
           <div class="border-t border-base-300 my-4" />
+          <button
+            v-if="boot?.abilities?.build"
+            class="btn btn-ghost justify-start"
+            @click="navigate('assistant')"
+          >
+            <Plug :size="17" />Asystent witryny
+          </button>
           <button
             class="btn btn-ghost justify-start"
             @click="navigate('releases')"
@@ -1291,6 +1301,11 @@ const title = computed(
               >
             </article>
           </section>
+          <AssistantConnection
+            v-if="section === 'assistant' && boot?.abilities?.build"
+            :base="base"
+            :request="request"
+          />
           <section v-if="section === 'settings'" class="space-y-6">
             <div class="bg-base-100 border border-base-300 rounded-xl p-6">
               <h2 class="text-xl mb-5">Połączenia AI</h2>

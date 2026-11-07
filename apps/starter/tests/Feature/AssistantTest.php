@@ -1,0 +1,227 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\User;
+use Formaku\Cms\Models\Collection;
+use Formaku\Cms\Services\RecordService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use Tests\TestCase;
+
+class AssistantTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private const SETTINGS = '/formaku/api/v1/assistant';
+
+    private const API = '/formaku/assistant/v1';
+
+    public function test_pairing_is_single_use_and_revoked_on_replacement_or_by_the_owner(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $this->getJson(self::SETTINGS)->assertUnauthorized();
+        $this->deleteJson(self::SETTINGS)->assertUnauthorized();
+        $this->actingAs(User::factory()->create())->getJson(self::SETTINGS)->assertForbidden();
+        $this->actingAs($admin)->get(self::SETTINGS.'/adapter')->assertDownload('formaku-assistant.mjs');
+
+        $code = $this->start($admin, $collection);
+        $this->getJson(self::SETTINGS)->assertJsonPath('connection.status', 'pending')->assertDontSee($code);
+        $this->getJson(self::API.'/connection')->assertUnauthorized();
+        $token = $this->exchange($code);
+        $this->postJson(self::API.'/exchange', ['code' => $code])->assertUnauthorized();
+        $this->getJson(self::SETTINGS)->assertJsonPath('connection.status', 'active')->assertDontSee($token);
+
+        $connection = DB::table('formaku_assistants')->first();
+        $this->assertNull($connection->pairing_hash);
+        $this->assertSame(hash('sha256', $token), $connection->token_hash);
+
+        $this->actingAs($this->admin())->deleteJson(self::SETTINGS)->assertOk();
+        $this->getJson(self::API.'/connection', $this->bearer($token))->assertOk();
+        $replacement = $this->start($admin, $collection);
+        $this->getJson(self::API.'/connection', $this->bearer($token))->assertUnauthorized();
+        $this->deleteJson(self::SETTINGS)->assertOk();
+        $this->postJson(self::API.'/exchange', ['code' => $replacement])->assertUnauthorized();
+        $this->getJson(self::SETTINGS)->assertJsonPath('connection', null);
+    }
+
+    public function test_codes_and_tokens_expire_and_access_follows_current_permissions(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $expiredCode = $this->start($admin, $collection);
+        $this->travel(5)->minutes();
+        $this->postJson(self::API.'/exchange', ['code' => $expiredCode])->assertUnauthorized();
+
+        $token = $this->exchange($this->start($admin, $collection, true));
+        $headers = $this->bearer($token);
+        $this->getJson(self::API.'/connection', $headers)->assertOk()->assertJsonPath('can_publish', true);
+
+        config(['formaku.authorize' => fn (User $user, string $ability) => $user->role === 'admin' && $ability !== 'publish']);
+        $this->getJson(self::API.'/connection', $headers)->assertOk()->assertJsonPath('can_publish', false);
+        $this->postJson(self::SETTINGS.'/pairing', ['collection_id' => $collection->id, 'can_publish' => true])->assertForbidden();
+
+        $admin->forceFill(['role' => 'editor'])->save();
+        $this->getJson(self::API.'/connection', $headers)->assertUnauthorized();
+        $admin->forceFill(['role' => 'admin'])->save();
+        $this->travel(30)->days();
+        $this->getJson(self::API.'/connection', $headers)->assertUnauthorized();
+    }
+
+    public function test_connection_owner_can_revoke_after_losing_builder_access(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection)));
+
+        $admin->forceFill(['role' => 'editor'])->save();
+        $this->getJson(self::SETTINGS)->assertForbidden();
+        $this->getJson(self::API.'/connection', $headers)->assertUnauthorized();
+        $this->deleteJson(self::SETTINGS)->assertOk();
+
+        $admin->forceFill(['role' => 'admin'])->save();
+        $this->getJson(self::API.'/connection', $headers)->assertUnauthorized();
+    }
+
+    public function test_only_eligible_collections_and_the_paired_collection_are_accessible(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $other = $this->pages();
+        $private = $this->pages(public: false);
+        $internalField = $this->pages(privateField: true);
+        $this->actingAs($admin)->getJson(self::SETTINGS)->assertJsonCount(2, 'collections');
+        foreach ([$private, $internalField] as $denied) {
+            $this->postJson(self::SETTINGS.'/pairing', ['collection_id' => $denied->id, 'can_publish' => false])->assertUnprocessable();
+        }
+
+        $otherPage = app(RecordService::class)->save($other, null, ['title' => 'Outside scope'], 0, $admin->id);
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection, true)));
+        $this->getJson(self::API.'/pages', $headers)->assertOk()->assertJsonCount(0, 'items');
+        $this->getJson(self::API.'/pages/'.$otherPage->id, $headers)->assertNotFound();
+        $this->putJson(self::API.'/pages/'.$otherPage->id, ['version' => 1, 'data' => ['title' => 'Outside']], $headers)->assertNotFound();
+        $this->postJson(self::API.'/pages/'.$otherPage->id.'/publish', ['version' => 1], $headers)->assertNotFound();
+        auth()->forgetGuards();
+        $this->getJson('/formaku/api/v1/bootstrap', $headers)->assertUnauthorized();
+
+        $collection->update(['definition' => array_replace($collection->definition, ['public' => false])]);
+        $this->getJson(self::API.'/pages', $headers)->assertForbidden();
+    }
+
+    public function test_agent_creates_edits_and_publishes_versioned_content(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection)));
+        $data = ['title' => 'Kontakt', 'slug' => 'kontakt', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Pierwszy szkic']]]];
+        $input = ['request_id' => (string) Str::uuid(), 'data' => $data];
+        $id = $this->postJson(self::API.'/pages', $input, $headers)->assertCreated()->assertJsonPath('version', 1)->json('id');
+        $path = self::API.'/pages/'.$id;
+        $this->postJson(self::API.'/pages', $input, $headers)->assertOk()->assertJsonPath('id', $id);
+        $this->postJson(self::API.'/pages', array_replace($input, ['data' => ['title' => 'Different']]), $headers)->assertConflict();
+        $this->getJson(self::API.'/pages', $headers)->assertJsonCount(1, 'items')->assertJsonPath('items.0.draft_title', 'Kontakt');
+        $this->getJson($path, $headers)->assertJsonPath('data', $data);
+        $this->postJson($path.'/publish', ['version' => 1], $headers)->assertForbidden();
+        $this->get('/p/kontakt')->assertNotFound();
+
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection, true)));
+        $data['blocks'][0]['props']['title'] = 'Zaktualizowana treść';
+        $update = ['version' => 1, 'data' => $data];
+        $this->putJson($path, $update, $headers)->assertOk()->assertJsonPath('version', 2);
+        $this->putJson($path, $update, $headers)->assertConflict();
+        $this->postJson($path.'/publish', ['version' => 1], $headers)->assertConflict();
+        $this->postJson($path.'/publish', ['version' => 2], $headers)->assertOk()
+            ->assertJsonPath('public_path', '/p/kontakt')->assertJsonPath('has_unpublished_changes', false);
+        $this->get('/p/kontakt')->assertOk()->assertSee('Zaktualizowana treść');
+        $events = DB::table('formaku_events')->where('record_id', $id)->orderBy('id')->get();
+        $this->assertSame(['saved', 'saved', 'published'], $events->pluck('type')->all());
+        $this->assertSame($admin->id, $events->last()->actor_id);
+        $this->assertArrayHasKey('assistant_connection_id', json_decode($events->last()->payload, true));
+    }
+
+    public function test_agent_cannot_save_broken_blocks_or_publish_over_an_existing_slug(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection, true)));
+        $input = ['request_id' => (string) Str::uuid(), 'data' => ['title' => 'Draft', 'slug' => 'kontakt']];
+        $bad = $input;
+        $bad['data']['blocks'] = [['type' => 'hero', 'props' => ['title' => ['invalid']]]];
+        $this->postJson(self::API.'/pages', $bad, $headers)->assertUnprocessable()->assertJsonValidationErrors('data.blocks');
+
+        $first = $this->postJson(self::API.'/pages', $input, $headers)->assertCreated()->json('id');
+        $this->postJson(self::API.'/pages/'.$first.'/publish', ['version' => 1], $headers)->assertOk();
+        $input['request_id'] = (string) Str::uuid();
+        $second = $this->postJson(self::API.'/pages', $input, $headers)->assertCreated()->json('id');
+        $this->postJson(self::API.'/pages/'.$second.'/publish', ['version' => 1], $headers)->assertConflict();
+        $this->getJson(self::API.'/pages/'.$second, $headers)->assertJsonPath('published_slug', null)->assertJsonPath('version', 1);
+    }
+
+    public function test_agent_cannot_overwrite_a_draft_scheduled_for_publication(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $record = app(RecordService::class)->save($collection, null, ['title' => 'Scheduled'], 0, $admin->id);
+        $this->actingAs($admin)->postJson('/formaku/api/v1/records/'.$record->id.'/schedule', [
+            'version' => $record->version,
+            'publish_at' => now()->addDay()->toDateTimeString(),
+        ])->assertOk();
+        $record->refresh();
+
+        foreach ([false, true] as $canPublish) {
+            $headers = $this->bearer($this->exchange($this->start($admin, $collection, $canPublish)));
+            $this->putJson(self::API.'/pages/'.$record->id, [
+                'version' => $record->version,
+                'data' => ['title' => 'Replacement'],
+            ], $headers)->assertConflict();
+        }
+
+        $unchanged = $record->fresh();
+        $this->assertEquals($record->publish_at, $unchanged->publish_at);
+        $this->assertSame($record->draft_id, $unchanged->draft_id);
+        $this->assertSame($record->version, $unchanged->version);
+    }
+
+    private function admin(): User
+    {
+        return User::factory()->create(['role' => 'admin']);
+    }
+
+    private function pages(bool $public = true, bool $privateField = false): Collection
+    {
+        return Collection::create([
+            'key' => 'pages_'.Str::lower(Str::random(8)),
+            'kind' => 'content',
+            'name' => 'Pages',
+            'definition' => [
+                'public' => $public,
+                'fields' => [
+                    ['key' => 'title', 'type' => 'text', 'label' => 'Tytuł', 'required' => true, 'private' => $privateField],
+                    ['key' => 'slug', 'type' => 'text', 'label' => 'Adres'],
+                    ['key' => 'blocks', 'type' => 'richtext', 'label' => 'Bloki'],
+                ],
+            ],
+        ]);
+    }
+
+    private function start(User $admin, Collection $collection, bool $publish = false): string
+    {
+        $response = $this->actingAs($admin)->postJson(self::SETTINGS.'/pairing', ['collection_id' => $collection->id, 'can_publish' => $publish])
+            ->assertCreated();
+        $this->assertStringContainsString('no-store', $response->headers->get('Cache-Control'));
+
+        return $response->json('code');
+    }
+
+    private function exchange(string $code): string
+    {
+        return $this->postJson(self::API.'/exchange', ['code' => $code])->assertOk()->json('access_token');
+    }
+
+    private function bearer(string $token): array
+    {
+        return ['Authorization' => 'Bearer '.$token];
+    }
+}

@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\DB;
 
 class RecordService
 {
-    public function save(Collection $c, ?Record $record, array $data, int $expected, int $actor): Record
+    public function save(Collection $c, ?Record $record, array $data, int $expected, int $actor, ?string $assistantId = null): Record
     {
-        return DB::transaction(function () use ($c, $record, $data, $expected, $actor) {
+        return DB::transaction(function () use ($c, $record, $data, $expected, $actor, $assistantId) {
             $record = $record ? Record::lockForUpdate()->findOrFail($record->id) : new Record(['collection_id' => $c->id, 'owner_id' => $actor, 'state' => $c->definition['states'][0] ?? 'new']);
             abort_unless((int) $record->version === $expected, 409, 'Record changed. Reload and compare.');
             $data = app(SchemaValidator::class)->record($c->definition, $data);
@@ -35,15 +35,15 @@ class RecordService
                 }
             }
             $record->update(['publish_at' => null, 'draft_id' => $rev->id, 'version' => $record->version + 1]);
-            $this->event($record, $actor, 'saved');
+            $this->event($record, $actor, 'saved', $assistantId);
 
             return $record->fresh();
         });
     }
 
-    public function publish(Record $record, int $expected, int $actor): Record
+    public function publish(Record $record, int $expected, int $actor, ?string $assistantId = null): Record
     {
-        return DB::transaction(function () use ($record, $expected, $actor) {
+        return DB::transaction(function () use ($record, $expected, $actor, $assistantId) {
             $r = Record::lockForUpdate()->findOrFail($record->id);
             abort_unless((int) $r->version === $expected, 409);
             $c = Collection::findOrFail($r->collection_id);
@@ -56,7 +56,7 @@ class RecordService
             $slug = $data['slug'] ?? ('page-'.$r->id);
             abort_unless(preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug), 422, 'Invalid slug');
             $r->update(['published_id' => $rev->id, 'published_slug' => $slug, 'published_title' => $data['title'] ?? $data['name'] ?? $slug, 'search_text' => implode(' ', array_filter($data, 'is_string')), 'version' => $r->version + 1, 'publish_at' => null]);
-            $this->event($r, $actor, 'published');
+            $this->event($r, $actor, 'published', $assistantId);
 
             return $r->fresh();
         });
@@ -80,8 +80,13 @@ class RecordService
         });
     }
 
-    private function event(Record $r, int $actor, string $type): void
+    private function event(Record $r, int $actor, string $type, ?string $assistantId = null): void
     {
-        DB::table('formaku_events')->insert(['record_id' => $r->id, 'actor_id' => $actor, 'type' => $type, 'payload' => json_encode(['version' => $r->version, 'state' => $r->state]), 'created_at' => now(), 'updated_at' => now()]);
+        $payload = ['version' => $r->version, 'state' => $r->state];
+        if ($assistantId !== null) {
+            $payload['assistant_connection_id'] = $assistantId;
+        }
+
+        DB::table('formaku_events')->insert(['record_id' => $r->id, 'actor_id' => $actor, 'type' => $type, 'payload' => json_encode($payload), 'created_at' => now(), 'updated_at' => now()]);
     }
 }

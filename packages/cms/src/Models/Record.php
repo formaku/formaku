@@ -3,6 +3,7 @@
 namespace Formaku\Cms\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Record extends Model
 {
@@ -13,4 +14,9 @@ class Record extends Model
     protected $attributes = ['version' => 0, 'state' => 'new'];
 
     protected $casts = ['publish_at' => 'datetime'];
+
+    public function draft(): BelongsTo
+    {
+        return $this->belongsTo(Revision::class, 'draft_id');
+    }
 }
