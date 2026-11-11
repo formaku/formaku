@@ -102,9 +102,10 @@ export function blockMoveDestinations(
   const original = blockAt(blocks, source);
   if (!original) return [];
 
-  const subtreeDepth = blockSubtreeDepth(original.block);
+  const { block: sourceBlock, siblings: sourceList } = original;
+  const subtreeDepth = blockSubtreeDepth(sourceBlock);
   const destinations: BlockMoveDestination[] = [];
-  if (canAppendBlock(original.siblings, blocks, subtreeDepth)) {
+  if (canAppendBlock(sourceList, blocks, subtreeDepth)) {
     destinations.push({ path: [], type: null });
   }
 
@@ -112,9 +113,9 @@ export function blockMoveDestinations(
     if (parentPath.length + subtreeDepth >= maxBlockDepth) return;
 
     siblings.forEach((block, index) => {
-      if (block === original.block || !isLayoutBlock(block.type)) return;
+      if (block === sourceBlock || !isLayoutBlock(block.type)) return;
       const path = [...parentPath, index];
-      if (canAppendBlock(original.siblings, block.children, path.length + subtreeDepth)) {
+      if (canAppendBlock(sourceList, block.children, path.length + subtreeDepth)) {
         destinations.push({ path, type: block.type });
       }
       if (Array.isArray(block.children)) visitLayouts(block.children, path);
