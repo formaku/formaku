@@ -4,7 +4,7 @@
 
 ## 0.1.0-alpha.23 — 2026-11-12
 
-Install `formaku/cms` in an existing Laravel 13 application from the Composer ZIP and SHA-256 checksum attached to the release. The archive includes the compiled panel. Panel fonts now load relative to the published CSS, including under `/vendor/formaku/`. This release adds no database migrations.
+Install `formaku/cms` in an existing Laravel 13 application from the Composer ZIP and SHA-256 checksum attached to the release. The archive includes the compiled panel and third-party license notices. Panel fonts now load relative to the published CSS, including under `/vendor/formaku/`. This release adds no database migrations.
 
 ## 0.1.0-alpha.22 — 2026-11-11
 

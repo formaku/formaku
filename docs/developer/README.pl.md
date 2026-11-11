@@ -16,7 +16,7 @@ php artisan formaku:install
 php artisan migrate
 ```
 
-Na macOS w poleceniu sprawdzającym sumę użyj `shasum -a 256 -c`. Zachowaj ZIP pod tą samą ścieżką względną w środowiskach, w których uruchamiasz `composer install`. Archiwum zawiera zbudowane zasoby i fonty panelu.
+Na macOS w poleceniu sprawdzającym sumę użyj `shasum -a 256 -c`. Zachowaj ZIP pod tą samą ścieżką względną w środowiskach, w których uruchamiasz `composer install`. Archiwum zawiera zbudowane zasoby, fonty panelu i informacje o ich licencjach.
 
 Skonfiguruj guard aplikacji i funkcję `authorize` w `config/formaku.php` zgodnie z politykami aplikacji. Otwórz `/formaku` jako uprawniony użytkownik. Włącz publiczne trasy Formaku, gdy chcesz przez nie publikować treści.
 

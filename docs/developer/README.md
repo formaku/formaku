@@ -16,7 +16,7 @@ php artisan formaku:install
 php artisan migrate
 ```
 
-On macOS, use `shasum -a 256 -c` in the checksum command. Keep the ZIP available at the same relative path in environments where you run `composer install`. The archive includes the compiled panel assets and fonts.
+On macOS, use `shasum -a 256 -c` in the checksum command. Keep the ZIP available at the same relative path in environments where you run `composer install`. The archive includes the compiled panel assets, fonts and their license notices.
 
 Configure the host guard and the `authorize` callback in `config/formaku.php` using your application's policies, then open `/formaku` as an authorized user. Leave public Formaku routes disabled until you want to publish content through them.
 
