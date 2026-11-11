@@ -13,7 +13,7 @@ This is **0.1.0-alpha.16**. The remaining v1 work is listed below.
 - Public/private uploads, owner/staff file authorization; server-side OpenAI/Gemini adapters, queued proposals, cancellation and applying a page proposal as a draft.
 - Staff can browse the media library by page, choose files for record fields and edit filenames and alternative text. Public media metadata requires publishing permission. Media usage lists accessible records with references in their current draft, published revision, or both.
 - Definition-only project import/export with format version and conflict checks.
-- Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel. The MCP adapter can validate a draft with built-in blocks, return its preview path, read templates in that collection, and read the optional public Commerce catalog.
+- Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel. The MCP adapter can validate a draft with built-in blocks, return its preview path, read templates in that collection, and read the optional public Commerce catalog. Pairing can print a stdio configuration for clients other than Codex.
 - Public content collections can map non-private text fields to the SEO title and description of published revisions.
 - Administrators can configure header and footer links, plain footer text, and a light or dark theme in the shared site layout. Draft previews use the selected theme.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
