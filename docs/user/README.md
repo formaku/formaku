@@ -22,7 +22,7 @@ Po włączeniu rejestracji użytkownik tworzy konto klienta i potwierdza e-mail.
 
 Administrator ustawia klucz i model na serwerze. W zakładce AI wybierz dostawcę i opisz stronę. Odśwież stan zadania po wykonaniu przez worker. Gotową propozycję można zastosować jako nowy szkic, poprawić i osobno opublikować. Klucze nie są widoczne w panelu ani w eksporcie.
 
-## Asystent witryny w wersji rozwojowej
+## Asystent witryny od wersji 0.1.0-alpha.2
 
 W istniejącej instalacji uruchom migracje przed użyciem asystenta. W menu panelu wybierz „Asystent witryny”, wskaż publiczną kolekcję treści bez pól prywatnych i relacji, a następnie pobierz adapter i wygeneruj kod. W katalogu pobranego adaptera uruchom polecenie pokazane w panelu i wpisz kod w terminalu. Po ponownym uruchomieniu Codexa możesz poprosić go o utworzenie lub edycję szkicu w tej kolekcji.
 

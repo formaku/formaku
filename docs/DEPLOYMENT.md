@@ -12,6 +12,41 @@ To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY
 
 ## Run the alpha locally with Docker Compose
 
+These instructions apply to `v0.1.0-alpha.2`. For `v0.1.0-alpha`, use the [first alpha instructions](#run-the-first-alpha-with-docker-compose).
+
+```sh
+git clone --branch v0.1.0-alpha.2 --single-branch https://github.com/formaku/formaku.git
+cd formaku
+cp .env.docker.example .env.docker
+```
+
+Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local. Build the tagged source, then initialize the local database and start the stack.
+
+```sh
+docker compose --env-file .env.docker build web
+docker compose --env-file .env.docker up -d --wait database
+docker compose --env-file .env.docker run --rm web php artisan migrate --force
+docker compose --env-file .env.docker up -d --no-build --wait
+docker compose --env-file .env.docker exec web php artisan formaku:admin you@example.com
+```
+
+Use your own email for the administrator and open `http://127.0.0.1:8080/formaku`.
+
+### Upgrade an existing alpha installation
+
+Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.2`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and rebuild the web image. Stop the web, worker and scheduler before running the migration with the new image.
+
+```sh
+docker compose --env-file .env.docker build web
+docker compose --env-file .env.docker stop web worker scheduler
+docker compose --env-file .env.docker run --rm web php artisan migrate --force
+docker compose --env-file .env.docker up -d --no-build --wait
+```
+
+The migration creates two tables for assistant pairing. After the upgrade, verify that published content loads, then configure pairing in the panel if you plan to use it.
+
+## Run the first alpha with Docker Compose
+
 The [v0.1.0-alpha source](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha) includes the Compose configuration. After preparing it, use the public Linux AMD64 image from GHCR or build the tagged source locally.
 
 ```sh

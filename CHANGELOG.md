@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.2 — 2026-11-11
 
-Site assistant pairing for a selected public content collection. The assistant can work with versioned drafts and can publish only when the administrator grants that permission. The starter requires a database migration for the new connection tables.
+Site assistant pairing for a selected public content collection. The assistant can work with versioned drafts and can publish only when the administrator grants that permission. Back up existing installations and run `php artisan migrate --force` before starting the updated services. The migration adds two connection tables.
 
 Docker Compose now checks the queue worker and scheduler processes separately from the web service, so the full stack can start with `docker compose up --wait`.
 
