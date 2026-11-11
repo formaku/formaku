@@ -42,6 +42,19 @@ const seoLabels = {
 } as const;
 type SeoTarget = keyof typeof seoLabels;
 type CollectionSeo = Partial<Record<SeoTarget, string>>;
+type MediaItem = {
+  id: number;
+  name: string;
+  alt: string | null;
+  mime: string;
+  visibility: "public" | "private";
+  size: number;
+};
+type MediaPage = {
+  data: MediaItem[];
+  current_page: number;
+  last_page: number;
+};
 type Collection = {
   id: number;
   key: string;
@@ -68,6 +81,8 @@ const scheduledAt = ref("");
 const draggedBlock = ref<number | null>(null);
 let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
 const relationOptions = ref<Record<string, any[]>>({});
+const media = ref<MediaPage | null>(null);
+const mediaEdit = ref<Pick<MediaItem, "id" | "name"> & { alt: string }>();
 const boot = ref<any>(null),
   section = ref("dashboard"),
   mode = ref("work"),
@@ -76,7 +91,6 @@ const boot = ref<any>(null),
   records = ref<any[]>([]),
   record = ref<any>(null),
   schema = ref<any>(null),
-  media = ref<any[]>([]),
   tasks = ref<any[]>([]),
   releases = ref<any[]>([]),
   error = ref(""),
@@ -301,12 +315,42 @@ async function navigate(s: string) {
   dirty.value = false;
   section.value = s;
   record.value = null;
-  if (s === "media") media.value = (await request("/media")).data;
+  if (s === "media") {
+    mediaEdit.value = undefined;
+    media.value = null;
+    await run(() => loadMedia());
+  }
   if (s === "ai") tasks.value = await request("/ai");
   if (s === "releases") releases.value = await request("/releases");
 }
+async function loadMedia(page = 1) {
+  media.value = await request("/media?page=" + page);
+}
+function changeMediaPage(offset: number) {
+  const currentPage = media.value?.current_page;
+  if (currentPage !== undefined) return run(() => loadMedia(currentPage + offset));
+}
+function editMedia(item: MediaItem) {
+  mediaEdit.value = { id: item.id, name: item.name, alt: item.alt ?? "" };
+}
+async function saveMedia() {
+  const draft = mediaEdit.value;
+  const current = media.value;
+  if (!draft || !current) return;
+
+  await run(async () => {
+    const saved: MediaItem = await request("/media/" + draft.id, "PATCH", {
+      name: draft.name.trim(),
+      alt: draft.alt.trim(),
+    });
+    current.data = current.data.map((item) => (item.id === saved.id ? saved : item));
+    mediaEdit.value = undefined;
+    message.value = "Metadane pliku zapisane.";
+  });
+}
 async function upload(e: Event) {
-  const f = (e.target as HTMLInputElement).files?.[0];
+  const input = e.target as HTMLInputElement;
+  const f = input.files?.[0];
   if (!f) return;
   await run(async () => {
     const d = new FormData();
@@ -323,7 +367,8 @@ async function upload(e: Event) {
       body: d,
     });
     if (!res.ok) throw Error("Nie udało się przesłać pliku");
-    media.value = (await request("/media")).data;
+    input.value = "";
+    await loadMedia();
     message.value = "Plik zapisany.";
   });
 }
@@ -1307,31 +1352,107 @@ const title = computed(
             </div>
           </section>
           <section v-if="section === 'media'">
-            <label class="btn mb-6"
-              >Prześlij plik<input
-                type="file"
-                class="hidden"
-                accept="image/png,image/jpeg,image/webp,application/pdf"
-                @change="upload"
-            /></label>
-            <div class="grid md:grid-cols-3 gap-4">
+            <label class="field-label" for="media-upload">Prześlij plik</label>
+            <input
+              id="media-upload"
+              type="file"
+              class="file-input w-full max-w-sm mb-6"
+              accept="image/png,image/jpeg,image/webp,application/pdf"
+              :disabled="busy || !!mediaEdit"
+              @change="upload"
+            />
+            <p v-if="!boot?.abilities?.publish" class="mb-4 text-sm text-base-content/70">
+              Metadane plików publicznych może zmieniać osoba z prawem do publikacji.
+            </p>
+            <p v-if="media && media.data.length === 0">Biblioteka jest pusta.</p>
+            <div v-if="media" class="grid md:grid-cols-3 gap-4">
               <article
-                v-for="m in media"
+                v-for="m in media.data"
                 :key="m.id"
                 class="bg-base-100 border border-base-300 rounded-xl p-4"
               >
                 <img
                   v-if="m.mime.startsWith('image/')"
                   :src="base + '/media/' + m.id"
-                  :alt="m.alt"
+                  :alt="m.alt ?? ''"
                   class="h-40 object-cover w-full rounded-lg mb-4"
                 />
-                <p class="text-sm">{{ m.name }}</p>
+                <p class="text-sm wrap-anywhere">{{ m.name }}</p>
                 <span class="mono text-xs text-base-content/45"
                   >{{ m.visibility }} · {{ Math.ceil(m.size / 1024) }} KB</span
                 >
+                <form
+                  v-if="mediaEdit && mediaEdit.id === m.id"
+                  class="mt-4 space-y-3"
+                  @submit.prevent="saveMedia"
+                >
+                  <label class="block">
+                    <span class="field-label">Nazwa pliku</span>
+                    <input
+                      v-model="mediaEdit.name"
+                      class="input w-full"
+                      required
+                      maxlength="255"
+                      :disabled="busy"
+                    />
+                  </label>
+                  <label class="block">
+                    <span class="field-label">Tekst alternatywny</span>
+                    <input
+                      v-model="mediaEdit.alt"
+                      class="input w-full"
+                      maxlength="250"
+                      :disabled="busy"
+                    />
+                  </label>
+                  <p v-if="m.visibility === 'public' && m.mime.startsWith('image/')" class="text-xs text-base-content/70">
+                    Tekst alternatywny zmieni się też na opublikowanych stronach używających tego obrazu.
+                  </p>
+                  <div class="flex flex-wrap gap-2">
+                    <button class="btn btn-sm" :disabled="busy || !mediaEdit.name.trim()">
+                      Zapisz metadane
+                    </button>
+                    <button type="button" class="btn btn-sm btn-ghost" :disabled="busy" @click="mediaEdit = undefined">
+                      Anuluj
+                    </button>
+                  </div>
+                </form>
+                <button
+                  v-else-if="m.visibility === 'private' || boot?.abilities?.publish"
+                  type="button"
+                  class="btn btn-sm btn-ghost mt-3 block"
+                  :disabled="busy || !!mediaEdit"
+                  @click="editMedia(m)"
+                >
+                  Edytuj metadane
+                </button>
               </article>
             </div>
+            <nav
+              v-if="media && media.last_page > 1"
+              aria-label="Strony biblioteki mediów"
+              class="mt-6 flex flex-wrap items-center gap-3"
+            >
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  :disabled="busy || !!mediaEdit || media.current_page === 1"
+                  @click="changeMediaPage(-1)"
+                >
+                  Poprzednia
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  :disabled="busy || !!mediaEdit || media.current_page >= media.last_page"
+                  @click="changeMediaPage(1)"
+                >
+                  Następna
+                </button>
+              </div>
+              <span aria-live="polite">Strona {{ media.current_page }} z {{ media.last_page }}</span>
+            </nav>
           </section>
           <section v-if="section === 'ai'" class="space-y-6">
             <div class="bg-base-100 border border-base-300 p-6 rounded-xl">

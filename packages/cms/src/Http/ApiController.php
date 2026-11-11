@@ -117,7 +117,7 @@ class ApiController
 
     public function media()
     {
-        return Media::latest()->paginate(30);
+        return Media::latest()->orderByDesc('id')->paginate(30);
     }
 
     public function upload(Request $r)
@@ -128,6 +128,29 @@ class ApiController
         $path = $f->store('formaku', $disk);
 
         return Media::create(['owner_id' => $r->user()->id, 'disk' => $disk, 'path' => $path, 'name' => $f->getClientOriginalName(), 'mime' => $f->getMimeType(), 'visibility' => $d['visibility'], 'alt' => $d['alt'] ?? '', 'size' => $f->getSize()]);
+    }
+
+    public function updateMedia(Request $request, string $mediaId): Media
+    {
+        $id = filter_var($mediaId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        abort_if($id === false, 404);
+        $media = Media::findOrFail($id);
+        if ($media->visibility === 'public') {
+            $authorize = config('formaku.authorize');
+            abort_unless(is_callable($authorize) && $authorize($request->user(), 'publish'), 403);
+        }
+
+        $metadata = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'not_regex:~[/\\\\[:cntrl:]]~'],
+            'alt' => 'present|nullable|string|max:250',
+        ]);
+
+        $media->update([
+            'name' => $metadata['name'],
+            'alt' => $metadata['alt'] ?? '',
+        ]);
+
+        return $media;
     }
 
     public function export(Request $r)

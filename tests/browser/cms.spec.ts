@@ -14,6 +14,24 @@ test("browser authoring and publication", async ({ page }, info) => {
     path: `test-results/dashboard-${info.project.name}.png`,
     fullPage: true,
   });
+  const originalName = slug + ".png";
+  const updatedName = slug + "-renamed.png";
+  await page.getByRole("button", { name: "Media", exact: true }).click();
+  await page.getByLabel("Prześlij plik").setInputFiles({
+    name: originalName,
+    mimeType: "image/png",
+    buffer: Buffer.from(
+      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jP1sAAAAASUVORK5CYII=",
+      "base64",
+    ),
+  });
+  await expect(page.getByRole("status")).toContainText("Plik zapisany");
+  const card = page.getByRole("article").filter({ hasText: originalName });
+  const thumbnail = card.locator("img");
+  await expect(thumbnail).toHaveAttribute("src", /\/media\/\d+$/);
+  const fileUrl = (await thumbnail.getAttribute("src"))!;
+  const mediaId = fileUrl.split("/").at(-1)!;
+
   await page
     .getByRole("button", { name: "Strony i oferta", exact: true })
     .click();
@@ -24,6 +42,8 @@ test("browser authoring and publication", async ({ page }, info) => {
   await page.getByLabel("Adres URL", { exact: true }).fill(slug);
   await page.getByRole("button", { name: "hero", exact: true }).click();
   await page.getByLabel("title", { exact: true }).fill("Saved draft");
+  await page.getByRole("button", { name: "image", exact: true }).click();
+  await page.getByLabel("media_id", { exact: true }).fill(mediaId);
   await page.getByRole("button", { name: "Zapisz szkic" }).click();
   await expect(page.getByRole("status")).toContainText("Szkic zapisany");
   await page.getByRole("button", { name: "Pokaż podgląd" }).click();
@@ -47,10 +67,23 @@ test("browser authoring and publication", async ({ page }, info) => {
     .getByRole("button", { name: "Opublikuj treść", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText("Treść opublikowana");
+
+  await page.getByRole("button", { name: "Media", exact: true }).click();
+  await card.getByRole("button", { name: "Edytuj metadane" }).click();
+  await card.getByLabel("Nazwa pliku").fill(updatedName);
+  await card.getByLabel("Tekst alternatywny").fill("Przykładowy obraz testowy");
+  await card.getByRole("button", { name: "Zapisz metadane" }).click();
+  await expect(page.getByRole("status")).toContainText("Metadane pliku zapisane");
+  const updatedCard = page.getByRole("article").filter({ hasText: updatedName });
+  await expect(updatedCard.getByRole("img", { name: "Przykładowy obraz testowy" }))
+    .toHaveAttribute("src", fileUrl);
+
   await page.goto("/p/" + slug);
   await expect(
     page.getByRole("heading", { name: "Browser publication" }),
   ).toBeVisible();
+  await expect(page.getByRole("img", { name: "Przykładowy obraz testowy" }))
+    .toHaveAttribute("src", fileUrl);
 });
 test("mobile login stays within viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });

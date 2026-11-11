@@ -343,6 +343,118 @@ class FormakuTest extends TestCase
         $this->actingAs($u)->get('/formaku/media/'.$m->id)->assertOk();
     }
 
+    public function test_publisher_updates_public_media_metadata_without_replacing_the_file(): void
+    {
+        Storage::fake('public');
+        Storage::disk('public')->put('formaku/original.pdf', 'original PDF bytes');
+        $owner = User::factory()->create();
+        $editor = User::factory()->create(['role' => 'editor']);
+        $publisher = User::factory()->create(['role' => 'publisher']);
+        $media = Media::create([
+            'owner_id' => $owner->id,
+            'disk' => 'public',
+            'path' => 'formaku/original.pdf',
+            'name' => 'original.pdf',
+            'mime' => 'application/pdf',
+            'visibility' => 'public',
+            'alt' => 'Old description',
+            'size' => 18,
+        ]);
+
+        $url = '/formaku/api/v1/media/'.$media->id;
+        $this->actingAs($editor)->patchJson($url, ['name' => 'updated.pdf', 'alt' => null])->assertForbidden();
+
+        $this->actingAs($publisher)->patchJson($url, [
+            'name' => 'updated.pdf',
+            'alt' => null,
+            'owner_id' => $editor->id,
+            'disk' => 'local',
+            'path' => 'other.pdf',
+            'mime' => 'text/plain',
+            'visibility' => 'private',
+            'size' => 0,
+        ])->assertOk()->assertJsonPath('name', 'updated.pdf')->assertJsonPath('alt', '');
+
+        $this->assertDatabaseHas('formaku_media', [
+            'id' => $media->id,
+            'owner_id' => $owner->id,
+            'disk' => 'public',
+            'path' => 'formaku/original.pdf',
+            'name' => 'updated.pdf',
+            'mime' => 'application/pdf',
+            'visibility' => 'public',
+            'alt' => '',
+            'size' => 18,
+        ]);
+        $this->get('/formaku/media/'.$media->id)->assertOk()
+            ->assertHeader('Content-Disposition', 'inline; filename=updated.pdf')
+            ->assertStreamedContent('original PDF bytes');
+    }
+
+    public function test_media_metadata_write_requires_staff_and_valid_fields(): void
+    {
+        $owner = User::factory()->create();
+        $media = Media::create([
+            'owner_id' => $owner->id,
+            'disk' => 'local',
+            'path' => 'formaku/private.png',
+            'name' => 'private.png',
+            'mime' => 'image/png',
+            'visibility' => 'private',
+            'size' => 100,
+        ]);
+        $url = '/formaku/api/v1/media/'.$media->id;
+        $missingUrl = '/formaku/api/v1/media/'.($media->id + 1);
+        $metadata = ['name' => 'updated.png', 'alt' => 'Description'];
+
+        $this->patchJson($url, $metadata)->assertUnauthorized();
+        $this->patchJson($missingUrl, $metadata)->assertUnauthorized();
+        $this->actingAs($owner)->patchJson($url, $metadata)->assertForbidden();
+        $this->patchJson($missingUrl, $metadata)->assertForbidden();
+
+        $this->actingAs($this->admin())->patchJson($url, ['name' => ' '])
+            ->assertUnprocessable()->assertJsonValidationErrors(['name', 'alt']);
+        $this->patchJson($missingUrl, $metadata)->assertNotFound();
+        $this->patchJson($url, ['name' => str_repeat('x', 256), 'alt' => str_repeat('x', 251)])
+            ->assertUnprocessable()->assertJsonValidationErrors(['name', 'alt']);
+        foreach (['folder/file.png', 'folder\\file.png', "line\nbreak.png", "control\x7f.png"] as $invalidName) {
+            $this->patchJson($url, ['name' => $invalidName, 'alt' => 'Description'])
+                ->assertUnprocessable()->assertJsonValidationErrors('name');
+        }
+
+        $this->assertDatabaseHas('formaku_media', ['id' => $media->id, 'name' => 'private.png', 'alt' => '']);
+        $this->actingAs(User::factory()->create(['role' => 'editor']))
+            ->patchJson($url, $metadata)->assertOk()->assertJsonPath('alt', 'Description');
+    }
+
+    public function test_media_pagination_orders_files_with_the_same_upload_time_by_id(): void
+    {
+        $staff = $this->admin();
+        $uploadedAt = now();
+        $ids = [];
+        for ($index = 1; $index <= 31; $index++) {
+            $ids[] = Media::create([
+                'owner_id' => $staff->id,
+                'disk' => 'public',
+                'path' => "formaku/file-{$index}.png",
+                'name' => "file-{$index}.png",
+                'mime' => 'image/png',
+                'visibility' => 'public',
+                'size' => 100,
+                'created_at' => $uploadedAt,
+            ])->id;
+        }
+        $expectedOrder = array_reverse($ids);
+
+        $firstPage = $this->actingAs($staff)->getJson('/formaku/api/v1/media')
+            ->assertOk()->assertJsonPath('current_page', 1)->assertJsonPath('last_page', 2);
+        $secondPage = $this->getJson('/formaku/api/v1/media?page=2')
+            ->assertOk()->assertJsonPath('current_page', 2);
+
+        $this->assertSame(array_slice($expectedOrder, 0, 30), array_column($firstPage->json('data'), 'id'));
+        $this->assertSame(array_slice($expectedOrder, 30), array_column($secondPage->json('data'), 'id'));
+    }
+
     public function test_export_excludes_accounts_and_provider_secrets(): void
     {
         $u = $this->admin();
