@@ -23,9 +23,26 @@ test("browser authoring and publication", async ({ page }, info) => {
     .fill("Browser test " + info.project.name);
   await page.getByLabel("Adres URL", { exact: true }).fill(slug);
   await page.getByRole("button", { name: "hero", exact: true }).click();
-  await page.getByLabel("title", { exact: true }).fill("Browser publication");
+  await page.getByLabel("title", { exact: true }).fill("Saved draft");
   await page.getByRole("button", { name: "Zapisz szkic" }).click();
   await expect(page.getByRole("status")).toContainText("Szkic zapisany");
+  await page.getByRole("button", { name: "Pokaż podgląd" }).click();
+  const preview = page.frameLocator('iframe[title="Podgląd zapisanego szkicu"]');
+  await expect(preview.getByRole("heading", { name: "Saved draft" })).toBeVisible();
+  const previewWidth = () =>
+    preview.locator("body").evaluate((body) => body.ownerDocument.defaultView?.innerWidth);
+  await expect.poll(previewWidth).toBe(1280);
+  await page.getByLabel("Szerokość podglądu").selectOption("tablet");
+  await expect.poll(previewWidth).toBe(768);
+  await page.getByLabel("Szerokość podglądu").selectOption("mobile");
+  await expect.poll(previewWidth).toBe(390);
+  await expect(page.getByRole("link", { name: "Podgląd w nowej karcie" }))
+    .toHaveAttribute("href", /\/preview\?version=\d+$/);
+  expect((await page.request.get("/p/" + slug)).status()).toBe(404);
+
+  await page.getByLabel("title", { exact: true }).fill("Browser publication");
+  await page.getByRole("button", { name: "Zapisz szkic" }).click();
+  await expect(preview.getByRole("heading", { name: "Browser publication" })).toBeVisible();
   await page
     .getByRole("button", { name: "Opublikuj treść", exact: true })
     .click();

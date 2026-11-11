@@ -9,6 +9,35 @@ use Illuminate\Validation\ValidationException;
 
 class Renderer
 {
+    /** @return array{title: ?string, description: ?string, html: string} */
+    public function page(array $definition, array $data, ?string $title, string $slug): array
+    {
+        $publicTextKeys = SchemaValidator::publicTextKeys($definition);
+        $seo = $definition['seo'] ?? [];
+        $titleField = isset($data['title']) ? 'title' : 'name';
+        $privateTitle = collect($definition['fields'])->contains(
+            fn ($field) => $field['key'] === $titleField && ($field['private'] ?? false),
+        );
+
+        return [
+            'title' => $this->metadataText($seo['title'] ?? null, $publicTextKeys, $data)
+                ?? ($privateTitle ? $slug : $title),
+            'description' => $this->metadataText($seo['description'] ?? null, $publicTextKeys, $data),
+            'html' => $this->blocks($data['blocks'] ?? []),
+        ];
+    }
+
+    private function metadataText(mixed $key, array $publicTextKeys, array $data): ?string
+    {
+        if (! in_array($key, $publicTextKeys, true) || ! is_string($data[$key] ?? null)) {
+            return null;
+        }
+
+        $text = trim($data[$key]);
+
+        return $text === '' ? null : $text;
+    }
+
     public function rich(array $node, int $depth = 0): string
     {
         if ($depth > 20) {

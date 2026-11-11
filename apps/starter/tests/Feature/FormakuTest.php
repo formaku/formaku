@@ -182,6 +182,12 @@ class FormakuTest extends TestCase
         $data['summary'] = 'Unpublished description';
         $record = $service->save($collection, $record, $data, $record->version, $user->id);
 
+        $preview = $this->get('/formaku/api/v1/records/'.$record->id.'/preview')
+            ->assertOk()->assertHeader('X-Robots-Tag', 'noindex')
+            ->assertSeeHtml('<title>Unpublished description</title>')
+            ->assertSeeHtml('<meta name="description" content="Unpublished description">');
+        $this->assertStringContainsString('no-store', $preview->headers->get('Cache-Control'));
+
         $this->get('/p/metadata')->assertOk()
             ->assertSeeHtml('<title>'.e($published).'</title>')
             ->assertSeeHtml('<meta name="description" content="'.e($published).'">')

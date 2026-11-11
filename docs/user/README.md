@@ -8,6 +8,8 @@ Zainstaluj starter według [instrukcji uruchomienia](../../README.md#run-locally
 
 Wybierz kolekcję i dodaj rekord. Zapis tworzy nową rewizję. W treściach poprzednia publikacja pozostaje widoczna do użycia „Opublikuj treść”. Podgląd wymaga uprawnień panelu. Historia pozwala przywrócić rewizję do szkicu. Konflikt zapisu wymaga ponownego pobrania i porównania zmian.
 
+W wersji rozwojowej po zapisaniu szkicu wybierz **Pokaż podgląd**, aby zobaczyć stronę w panelu. Przełącz szerokość między komputerem (1280 px), tabletem (768 px) i telefonem (390 px). Podgląd korzysta z ostatniego zapisanego szkicu, w tym z jego metadanych SEO. Możesz go też otworzyć w nowej karcie.
+
 Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera.
 
 Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
@@ -45,6 +47,8 @@ Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie”
 ## English quick guide
 
 Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Releases trigger the configured GitHub workflow; actual build/deployment state must be verified in Actions. Customer portal access is scoped to the signed-in owner.
+
+The development version shows the last saved draft, including its SEO metadata, in an embedded preview at desktop, tablet and phone widths. You can also open the preview in a new tab.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 

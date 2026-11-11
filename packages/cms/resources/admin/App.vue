@@ -56,6 +56,13 @@ type Collection = {
   };
 };
 const clone = (v: any) => JSON.parse(JSON.stringify(v));
+const previewWidths = {
+  desktop: "w-[1280px]",
+  tablet: "w-[768px]",
+  mobile: "w-[390px]",
+} as const;
+const previewViewport = ref<keyof typeof previewWidths>("desktop");
+const previewOpen = ref(false);
 const scheduledAt = ref("");
 const draggedBlock = ref<number | null>(null);
 let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
@@ -78,8 +85,7 @@ const boot = ref<any>(null),
   prompt = ref(""),
   provider = ref("openai"),
   commit = ref(""),
-  search = ref(""),
-  viewport = ref("desktop");
+  search = ref("");
 const publicContentSchema = computed(
   () => schema.value?.kind === "content" && schema.value.definition.public,
 );
@@ -115,6 +121,17 @@ const base = (
   document.querySelector('meta[name="formaku-prefix"]') as HTMLMetaElement
 ).content;
 const api = base + "/api/v1";
+const previewUrl = computed(() =>
+  record.value?.id && selected.value?.kind === "content"
+    ? `${api}/records/${record.value.id}/preview?version=${record.value.version}`
+    : null,
+);
+watch(
+  () => record.value?.id,
+  () => {
+    previewOpen.value = false;
+  },
+);
 async function request(path: string, method = "GET", data?: any) {
   const res = await fetch(api + path, {
     method,
@@ -508,7 +525,7 @@ const title = computed(
           </div>
         </div>
       </aside>
-      <main class="lg:col-start-2">
+      <main class="min-w-0 lg:col-start-2">
         <header
           class="h-20 border-b border-base-300 px-6 lg:px-12 flex items-center justify-between"
         >
@@ -1005,16 +1022,27 @@ const title = computed(
                 <button class="btn" @click="choose(selected)">
                   Wróć do listy
                 </button>
-                <div class="flex gap-2 items-center">
+                <div class="flex flex-wrap gap-2 items-center">
                   <span class="text-xs text-base-content/50">{{
                     dirty ? "Niezapisane zmiany" : "Zapisano"
                   }}</span
-                  ><a
-                    v-if="record.id && selected.kind === 'content'"
+                  ><button
+                    v-if="previewUrl"
+                    type="button"
                     class="btn"
-                    :href="api + '/records/' + record.id + '/preview'"
+                    :aria-expanded="previewOpen"
+                    aria-controls="record-preview"
+                    @click="previewOpen = !previewOpen"
+                  >
+                    <Eye :size="16" />
+                    {{ previewOpen ? "Ukryj podgląd" : "Pokaż podgląd" }}
+                  </button><a
+                    v-if="previewUrl"
+                    class="btn"
+                    :href="previewUrl"
                     target="_blank"
-                    ><Eye :size="16" />Podgląd</a
+                    rel="noopener"
+                    >Podgląd w nowej karcie<ArrowUpRight :size="16" /></a
                   ><button class="btn" @click="save" :disabled="busy">
                     <Save :size="16" />Zapisz szkic</button
                   ><button
@@ -1031,6 +1059,48 @@ const title = computed(
                   </button>
                 </div>
               </div>
+              <section
+                v-if="previewOpen && previewUrl"
+                id="record-preview"
+                aria-labelledby="record-preview-heading"
+                class="card card-border mb-6 bg-base-100"
+              >
+                <div class="card-body min-w-0">
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h2 id="record-preview-heading" class="card-title">
+                        Podgląd strony
+                      </h2>
+                      <p class="text-sm text-base-content/70">
+                        Podgląd pokazuje ostatni zapisany szkic. Zapisz zmiany, aby go odświeżyć.
+                      </p>
+                    </div>
+                    <label>
+                      <span class="field-label">Szerokość podglądu</span>
+                      <select class="select select-sm w-auto" v-model="previewViewport">
+                        <option value="desktop">Komputer · 1280 px</option>
+                        <option value="tablet">Tablet · 768 px</option>
+                        <option value="mobile">Telefon · 390 px</option>
+                      </select>
+                    </label>
+                  </div>
+                  <div
+                    class="overflow-x-auto rounded-box border border-base-300 bg-base-200"
+                    role="region"
+                    aria-label="Obszar podglądu strony"
+                    tabindex="0"
+                  >
+                    <iframe
+                      :src="previewUrl"
+                      title="Podgląd zapisanego szkicu"
+                      sandbox="allow-same-origin"
+                      referrerpolicy="no-referrer"
+                      :class="previewWidths[previewViewport]"
+                      class="mx-auto block h-[70vh] max-w-none border-0 bg-base-100"
+                    ></iframe>
+                  </div>
+                </div>
+              </section>
               <div
                 class="space-y-5 bg-base-100 border border-base-300 rounded-xl p-6"
                 @input="dirty = true"
@@ -1086,28 +1156,8 @@ const title = computed(
                   v-if="
                     selected.definition.fields.some((f) => f.key === 'blocks')
                   "
-                  ><div class="flex justify-between items-center">
-                    <h2 class="text-lg">Sekcje strony</h2>
-                    <select
-                      aria-label="Szerokość podglądu"
-                      class="select select-sm w-auto"
-                      v-model="viewport"
-                    >
-                      <option value="desktop">Desktop</option>
-                      <option value="tablet">Tablet</option>
-                      <option value="mobile">Mobile</option>
-                    </select>
-                  </div>
-                  <div
-                    :class="
-                      viewport === 'mobile'
-                        ? 'max-w-[390px]'
-                        : viewport === 'tablet'
-                          ? 'max-w-[768px]'
-                          : ''
-                    "
-                    class="mx-auto space-y-4"
-                  >
+                  ><h2 class="text-lg">Sekcje strony</h2>
+                  <div class="space-y-4">
                     <article
                       v-for="(b, i) in record.data.blocks ?? []"
                       :key="b.uid ?? i"

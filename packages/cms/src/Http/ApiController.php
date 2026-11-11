@@ -106,9 +106,13 @@ class ApiController
 
     public function preview(Record $record, Renderer $renderer)
     {
-        $d = Revision::findOrFail($record->draft_id)->data;
+        $definition = Collection::findOrFail($record->collection_id)->definition;
+        $draft = Revision::where('record_id', $record->id)->findOrFail($record->draft_id)->data;
+        $slug = is_string($draft['slug'] ?? null) ? $draft['slug'] : 'page-'.$record->id;
+        $title = $draft['title'] ?? $draft['name'] ?? $slug;
 
-        return response()->view('formaku::page', ['title' => $d['title'] ?? 'Podgląd', 'html' => $renderer->blocks($d['blocks'] ?? [])])->header('Cache-Control', 'no-store')->header('X-Robots-Tag', 'noindex');
+        return response()->view('formaku::page', $renderer->page($definition, $draft, is_string($title) ? $title : $slug, $slug))
+            ->header('Cache-Control', 'no-store')->header('X-Robots-Tag', 'noindex');
     }
 
     public function media()
