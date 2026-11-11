@@ -19,6 +19,8 @@ Route::prefix(config('formaku.prefix').'/assistant/v1')->group(function () {
     Route::post('/exchange', [AssistantController::class, 'exchange'])->middleware('throttle:10,1,formaku-assistant-exchange');
     Route::middleware(['throttle:120,1,formaku-assistant-api', 'cache.headers:no_store'])->group(function () {
         Route::get('/connection', [AssistantController::class, 'describe']);
+        Route::get('/templates', [AssistantController::class, 'templates']);
+        Route::get('/templates/{template}', [AssistantController::class, 'template'])->whereNumber('template');
         Route::get('/pages', [AssistantController::class, 'pages']);
         Route::post('/pages/validate', [AssistantController::class, 'validateDraft']);
         Route::post('/pages', [AssistantController::class, 'create']);

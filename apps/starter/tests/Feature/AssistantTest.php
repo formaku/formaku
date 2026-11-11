@@ -195,6 +195,50 @@ class AssistantTest extends TestCase
             ->assertJsonPath('public_catalog_path', '/custom-store/public/products');
     }
 
+    public function test_agent_reuses_a_panel_template_only_in_its_paired_collection(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $other = $this->pages();
+        $blocks = [['type' => 'hero', 'props' => ['title' => 'Template headline']]];
+        $records = app(RecordService::class);
+        $source = $records->save($collection, null, ['title' => 'Private draft title', 'blocks' => $blocks], 0, $admin->id);
+        $outside = $records->save($other, null, ['title' => 'Outside', 'blocks' => $blocks], 0, $admin->id);
+        $template = $this->actingAs($admin)->postJson('/formaku/api/v1/records/'.$source->id.'/page-templates', [
+            'name' => 'Offer layout', 'version' => 1,
+        ])->assertCreated()->json('id');
+        $outsideTemplate = $this->postJson('/formaku/api/v1/records/'.$outside->id.'/page-templates', [
+            'name' => 'Outside layout', 'version' => 1,
+        ])->assertCreated()->json('id');
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection)));
+        $endpoint = self::API.'/templates';
+
+        $this->getJson($endpoint)->assertUnauthorized();
+        $this->getJson(self::API.'/connection', $headers)->assertJsonPath('can_read_templates', true);
+        $this->getJson($endpoint, $headers)->assertOk()->assertExactJson([
+            'items' => [['id' => $template, 'name' => 'Offer layout']], 'next_page' => null,
+        ]);
+        $this->getJson($endpoint.'/'.$outsideTemplate, $headers)->assertNotFound();
+        $layout = $this->getJson($endpoint.'/'.$template, $headers)->assertOk()->assertExactJson([
+            'id' => $template, 'name' => 'Offer layout', 'blocks' => $blocks,
+        ])->json('blocks');
+
+        $layout[0]['props']['title'] = 'New offer';
+        $data = ['title' => 'New offer', 'slug' => 'new-offer', 'blocks' => $layout];
+        $this->postJson(self::API.'/pages/validate', ['data' => $data], $headers)->assertOk()->assertJsonPath('valid', true);
+        $this->postJson(self::API.'/pages', ['data' => $data, 'request_id' => (string) Str::uuid()], $headers)
+            ->assertCreated()->assertJsonPath('has_unpublished_changes', true);
+        $this->get('/p/new-offer')->assertNotFound();
+        $this->getJson($endpoint.'/'.$template, $headers)->assertJsonPath('blocks', $blocks);
+
+        $definition = $collection->definition;
+        $definition['fields'][2]['private'] = true;
+        $collection->update(['definition' => $definition]);
+        $this->getJson($endpoint.'/'.$template, $headers)->assertForbidden();
+        $this->deleteJson(self::SETTINGS)->assertOk();
+        $this->getJson($endpoint, $headers)->assertUnauthorized();
+    }
+
     public function test_agent_cannot_save_broken_blocks_or_publish_over_an_existing_slug(): void
     {
         $admin = $this->admin();

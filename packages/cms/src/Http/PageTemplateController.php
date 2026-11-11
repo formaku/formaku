@@ -44,7 +44,7 @@ class PageTemplateController
 
         $template = DB::transaction(function () use ($record, $data, $renderer) {
             $collection = Collection::lockForUpdate()->findOrFail($record->collection_id);
-            abort_unless($this->supportsTemplates($collection), 404);
+            abort_unless(PageTemplate::supportsCollection($collection), 404);
             $current = Record::lockForUpdate()->findOrFail($record->id);
             abort_unless((int) $current->version === (int) $data['version'], 409, 'Record changed. Reload and compare.');
             $blocks = $current->draft?->data['blocks'] ?? [];
@@ -77,16 +77,9 @@ class PageTemplateController
 
     private function checkCanCreateFromTemplate(Request $request, Collection $collection, CollectionAccess $access): void
     {
-        abort_unless($this->supportsTemplates($collection), 404);
+        abort_unless(PageTemplate::supportsCollection($collection), 404);
         $access->check($collection, $request->user(), true);
         abort_if($access->rule($collection, $request->user())['scope'] === 'assigned', 403);
-    }
-
-    private function supportsTemplates(Collection $collection): bool
-    {
-        return $collection->kind === 'content' && collect($collection->definition['fields'] ?? [])->contains(
-            fn (array $field) => $field['key'] === 'blocks' && $field['type'] === 'richtext' && ! ($field['private'] ?? false),
-        );
     }
 
     private function findTemplate(Collection $collection, string $templateId): PageTemplate

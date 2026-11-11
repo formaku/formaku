@@ -3,6 +3,7 @@
 namespace Formaku\Cms\Http;
 
 use Formaku\Cms\Models\Collection;
+use Formaku\Cms\Models\PageTemplate;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
@@ -118,6 +119,7 @@ class AssistantController
             'collection' => $collection->only(['id', 'key', 'name', 'version']),
             'fields' => $collection->definition['fields'],
             'can_validate_draft' => true,
+            'can_read_templates' => PageTemplate::supportsCollection($collection),
             'can_publish' => $canPublish,
             'expires_at' => Carbon::parse($connection->expires_at)->toIso8601String(),
         ];
@@ -136,6 +138,22 @@ class AssistantController
             ->through($this->summary(...));
 
         return response()->json(['items' => $pages->items(), 'next_page' => $pages->hasMorePages() ? $pages->currentPage() + 1 : null]);
+    }
+
+    public function templates(Request $request): JsonResponse
+    {
+        $templates = $this->collectionTemplates($request);
+        $data = $request->validate(['page' => 'sometimes|integer|min:1|max:100000']);
+        $page = $templates->latest('id')->paginate(25, ['id', 'name'], page: (int) ($data['page'] ?? 1));
+
+        return response()->json(['items' => $page->items(), 'next_page' => $page->hasMorePages() ? $page->currentPage() + 1 : null]);
+    }
+
+    public function template(Request $request, int $template): JsonResponse
+    {
+        $layout = $this->collectionTemplates($request)->findOrFail($template);
+
+        return response()->json($layout->only(['id', 'name', 'blocks']));
     }
 
     public function page(Request $request, int $page): JsonResponse
@@ -232,6 +250,14 @@ class AssistantController
     private function records(Collection $collection): Builder
     {
         return Record::where('collection_id', $collection->id);
+    }
+
+    private function collectionTemplates(Request $request): Builder
+    {
+        [, $collection] = $this->connection($request);
+        abort_unless(PageTemplate::supportsCollection($collection), 404);
+
+        return PageTemplate::where('collection_id', $collection->id);
     }
 
     private function summary(Record $record): array

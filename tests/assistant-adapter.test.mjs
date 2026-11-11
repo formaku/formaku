@@ -33,6 +33,12 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
           next_cursor: "page-2",
         }));
         break;
+      case "/cms/assistant/v1/templates":
+        response.end(JSON.stringify({ items: [{ id: 12, name: "Offer layout" }], next_page: null }));
+        break;
+      case "/cms/assistant/v1/templates/12":
+        response.end(JSON.stringify({ id: 12, name: "Offer layout", blocks: [{ type: "hero" }] }));
+        break;
       default:
         response.statusCode = 404;
         response.end("{}");
@@ -79,4 +85,12 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   assert.equal(requests[4].method, "GET");
   assert.equal(requests[4].url.pathname, "/shop/products");
   assert.equal(requests[4].url.searchParams.get("cursor"), "page+1");
+
+  const templates = JSON.parse((await call("formaku_list_templates", { page: 2 })).content[0].text);
+  const template = JSON.parse((await call("formaku_get_template", { id: 12 })).content[0].text);
+  assert.deepEqual(templates.items, [{ id: 12, name: "Offer layout" }]);
+  assert.deepEqual(template.blocks, [{ type: "hero" }]);
+  assert.equal(requests[5].url.searchParams.get("page"), "2");
+  assert.equal(requests[5].authorization, `Bearer ${token}`);
+  assert.equal(requests[6].authorization, `Bearer ${token}`);
 });

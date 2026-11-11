@@ -74,7 +74,9 @@ Kod parowania jest jednorazowy i wygasa po pięciu minutach. Dostęp asystenta w
 
 W instalacji z aktualnym adapterem możesz poprosić agenta o sprawdzenie pól kolekcji i walidację szkicu z wbudowanych bloków przed zapisem. Po zapisaniu otwórz podany przez agenta link do podglądu w przeglądarce, w której masz aktywną sesję Formaku. Jeśli po aktualizacji instalacji brakuje tych narzędzi, pobierz ponownie adapter z panelu, powtórz parowanie i uruchom ponownie klienta MCP.
 
-> Przygotuj szkic strony oferty z nagłówkiem, opisem i przyciskiem kontaktu. Sprawdź dane w Formaku przed zapisem, a potem podaj link do podglądu szkicu.
+Jeśli kolekcja ma zapisane szablony stron, agent może wybrać jeden z nich i użyć jego sekcji w nowym szkicu. Sekcje edytujesz dalej w szkicu.
+
+> Przygotuj szkic strony oferty z szablonu „Oferta”. Dostosuj nagłówek, opis i przycisk kontaktu. Sprawdź dane przed zapisem, a potem podaj link do podglądu szkicu.
 
 Jeżeli instalacja udostępnia publiczny katalog Commerce, agent może oprzeć treść strony na opublikowanych produktach. Katalog zwraca aktualne ceny i dostępność do odczytu. Sprawdzenie szkicu i zapis strony odbywają się w sparowanej kolekcji CMS.
 
