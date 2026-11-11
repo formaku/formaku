@@ -38,7 +38,9 @@ This is a working **0.1.0 alpha**, not completion of the full accepted v1 plan.
 
 ## External setup still needed
 
-The GitHub repository `formaku/formaku` exists. Publication of the CMS source and its first prerelease requires authenticated write access. The static project website and its bilingual documentation are maintained separately in Forgejo. The static site is assigned to `formaku.eu` on OVH MultiSite. Upload the built files before updating the domain's web DNS records and enabling HTTPS. CMS runtime deployment is a separate operation.
+The GitHub repository `formaku/formaku` exists. Publication of the CMS source and its first prerelease requires authenticated write access. CMS runtime deployment is a separate operation.
+
+The static project website and its bilingual documentation are maintained separately in Forgejo. Website revision `4b459ce` is deployed to OVH MultiSite. The authoritative DNS for `formaku.eu` points to the hosting service, and all four HTML routes matched the deployment archive in an HTTP check against that service. OVH accepted the request for a Let's Encrypt certificate for `formaku.eu`. Public HTTPS verification is pending.
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
 
