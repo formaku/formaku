@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.21 — 2026-11-11
+
+The assistant adapter uses same-site public product paths for product calls to action when a compatible Commerce storefront provides them. The catalog reference remains the fallback. This CMS release adds no database migrations.
+
+Pushing an alpha tag after successful CI on main now builds and verifies a public GHCR image and publishes a GitHub prerelease with its digest.
+
 ## 0.1.0-alpha.20 — 2026-11-11
 
 Use the downloaded adapter with `update` and the existing Formaku endpoint to replace the local adapter while keeping the connection and token. The assistant can list published Commerce categories and filter catalog variants by category slug when the host exposes those public endpoints. This CMS release adds no database migrations.
