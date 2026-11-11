@@ -10,6 +10,10 @@ Wybierz kolekcję i dodaj rekord. Zapis tworzy nową rewizję. W treściach popr
 
 Od wersji `0.1.0-alpha.5` po zapisaniu szkicu wybierz **Pokaż podgląd**, aby zobaczyć stronę w panelu. Przełącz szerokość między komputerem (1280 px), tabletem (768 px) i telefonem (390 px). Podgląd korzysta z ostatniego zapisanego szkicu, w tym z jego metadanych SEO. Możesz go też otworzyć w nowej karcie.
 
+### Kontenery i kolumny
+
+W wersji rozwojowej dodaj blok kontenera lub kolumn, a następnie wybierz typ bloku wewnątrz układu. Przyciski przy bloku zmieniają jego kolejność w tym samym układzie albo go usuwają. Kontener może układać treść pionowo, a kolumny mieszczą dwa lub trzy bloki obok siebie przy odpowiedniej szerokości. Na węższej przestrzeni liczba kolumn maleje. Starsze układy bez ustawienia zachowują układ automatyczny.
+
 Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera.
 
 Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
@@ -49,6 +53,8 @@ Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie”
 Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Releases trigger the configured GitHub workflow; actual build/deployment state must be verified in Actions. Customer portal access is scoped to the signed-in owner.
 
 Starting with `0.1.0-alpha.5`, the editor shows the last saved draft, including its SEO metadata, in an embedded preview at desktop, tablet and phone widths. You can also open the preview in a new tab.
+
+The development editor supports adding, reordering and removing blocks within containers and columns. Containers can stack their children, and two- or three-column layouts adjust to available space. Existing layouts without a setting keep their automatic grid.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 

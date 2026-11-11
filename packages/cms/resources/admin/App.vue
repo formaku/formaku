@@ -27,6 +27,7 @@ import {
 import RichText from "./RichText.vue";
 import BlockEditor from "./BlockEditor.vue";
 import AssistantConnection from "./AssistantConnection.vue";
+import { blockEditorKey, createBlock, maxBlocksPerLevel } from "./blocks";
 type Field = {
   key: string;
   label: string;
@@ -283,20 +284,9 @@ async function saveSchema() {
   });
 }
 function addBlock(type: string) {
-  record.value.data.blocks ??= [];
-  record.value.data.blocks.push({
-    uid: crypto.randomUUID(),
-    type,
-    props:
-      type === "text"
-        ? { document: { type: "doc", content: [{ type: "paragraph" }] } }
-        : {
-            title: "Nowa sekcja",
-            text: "",
-            url: "/portal",
-            label: "Zobacz więcej",
-          },
-  });
+  const blocks = (record.value.data.blocks ??= []);
+  if (blocks.length >= maxBlocksPerLevel) return;
+  blocks.push(createBlock(type));
   dirty.value = true;
 }
 function moveBlock(i: number, delta: number) {
@@ -1160,7 +1150,7 @@ const title = computed(
                   <div class="space-y-4">
                     <article
                       v-for="(b, i) in record.data.blocks ?? []"
-                      :key="b.uid ?? i"
+                      :key="blockEditorKey(b)"
                       draggable="true"
                       @dragstart="draggedBlock = Number(i)"
                       @dragover.prevent
@@ -1205,6 +1195,9 @@ const title = computed(
                       v-for="b in boot?.blocks"
                       :key="b"
                       class="btn btn-sm"
+                      :disabled="
+                        (record.data.blocks?.length ?? 0) >= maxBlocksPerLevel
+                      "
                       @click="addBlock(b)"
                     >
                       <Plus :size="14" />{{ b }}

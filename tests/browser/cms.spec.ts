@@ -60,6 +60,70 @@ test("mobile login stays within viewport", async ({ page }) => {
   ).toBeLessThanOrEqual(390);
 });
 
+test("nested blocks keep their order and responsive columns after saving", async ({
+  page,
+}, info) => {
+  const slug = "layout-" + info.project.name + "-" + Date.now();
+  const title = "Nested layout " + slug;
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  const csrf = await page.locator('meta[name="csrf-token"]').getAttribute("content");
+  const collections = await (await page.request.get("/formaku/api/v1/collections")).json();
+  const pages = collections.find((collection: { key: string }) => collection.key === "pages");
+  await expect(await page.request.post(`/formaku/api/v1/collections/${pages.id}/records`, {
+    headers: { "X-CSRF-TOKEN": csrf ?? "" },
+    data: { version: 0, data: { title, slug, blocks: [{ type: "columns", props: [], children: [] }] } },
+  })).toBeOK();
+  await page.getByRole("button", { name: "Strony i oferta", exact: true }).click();
+  await page.getByRole("row").filter({ hasText: title })
+    .getByRole("button", { name: "Edytuj" }).click();
+  await expect(page.getByLabel("Liczba kolumn")).toHaveValue("");
+  await page.getByLabel("Liczba kolumn").selectOption("3");
+
+  const blockType = page.getByLabel("Typ bloku w układzie");
+  const add = page.getByRole("button", { name: "Dodaj blok do układu" });
+  await blockType.selectOption("hero");
+  await add.click();
+  await page.getByRole("article", { name: "Sekcja główna" })
+    .getByLabel("title", { exact: true }).fill("Second child");
+  await blockType.selectOption("cta");
+  await add.click();
+  const callToAction = page.getByRole("article", { name: "Wezwanie do działania" });
+  await callToAction.getByLabel("title", { exact: true }).fill("First child");
+  await callToAction.getByRole("button", { name: "Przesuń blok w górę" }).click();
+  await blockType.selectOption("text");
+  await add.click();
+  await page.getByRole("article", { name: "Tekst" })
+    .getByRole("button", { name: "Usuń blok z układu" }).click();
+  await expect(page.getByRole("article", { name: "Tekst" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Zapisz szkic" }).click();
+  await expect(page.getByRole("status")).toContainText("Szkic zapisany");
+
+  await page.getByRole("button", { name: "Wróć do listy" }).click();
+  await page.getByRole("row").filter({ hasText: title })
+    .getByRole("button", { name: "Edytuj" }).click();
+  await expect(page.getByLabel("Liczba kolumn")).toHaveValue("3");
+  await page.getByRole("button", { name: "Pokaż podgląd" }).click();
+  const preview = page.frameLocator('iframe[title="Podgląd zapisanego szkicu"]');
+  const grid = preview.locator(".block-layout-grid");
+  await expect(grid.locator("h1, h2")).toHaveText(["First child", "Second child"]);
+  const trackCount = () =>
+    grid.evaluate((element) =>
+      getComputedStyle(element).gridTemplateColumns.split(" ").length,
+    );
+  await expect.poll(trackCount).toBe(3);
+  await page.getByLabel("Szerokość podglądu").selectOption("mobile");
+  await expect.poll(trackCount).toBe(1);
+
+  await page.getByRole("button", { name: "Opublikuj treść" }).click();
+  await expect(page.getByRole("status")).toContainText("Treść opublikowana");
+  await page.goto("/p/" + slug);
+  await expect(page.locator(".block-layout-grid h1, .block-layout-grid h2"))
+    .toHaveText(["First child", "Second child"]);
+});
+
 test("collection SEO fields are saved and used on published pages", async ({
   page,
 }, info) => {

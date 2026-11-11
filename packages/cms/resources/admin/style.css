@@ -138,3 +138,31 @@ label {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 1.5rem;
 }
+
+.block-layout-stack {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.block-layout-fixed {
+  display: block;
+  container-type: inline-size;
+}
+
+.block-layout-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.5rem;
+  overflow-wrap: anywhere;
+}
+
+@container (min-width: 26rem) {
+  .block-layout-fixed > .block-layout-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container (min-width: 39rem) {
+  .block-layout-columns-3 > .block-layout-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}

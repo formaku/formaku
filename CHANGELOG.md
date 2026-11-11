@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+The page editor can add, reorder and remove nested blocks inside containers and columns. New layouts can stack blocks or use two or three responsive columns. Layouts saved without a setting keep their automatic grid.
+
 ## 0.1.0-alpha.5 — 2026-11-11
 
 The editor shows the saved draft in an embedded page preview at desktop, tablet and phone widths. The preview uses the public renderer and the saved draft's SEO metadata.

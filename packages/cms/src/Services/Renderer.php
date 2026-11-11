@@ -78,13 +78,27 @@ class Renderer
                 'image' => $this->image($p),
                 'cards' => $this->cards($p),
                 'faq' => $this->faq($p),
-                'container','columns' => '<section class="block-layout">'.$this->blocks($b['children'] ?? [], $depth + 1).'</section>',
+                'container','columns' => $this->layout($type, is_array($p) ? $p : [], $b['children'] ?? [], $depth),
                 'cta' => '<section class="cta-block"><h2>'.e($p['title'] ?? '').'</h2><a href="'.$this->url($p['url'] ?? '/').'">'.e($p['label'] ?? 'Dalej').'</a></section>',
                 default => isset(app(Registry::class)->blocks()[$type]) ? app(Registry::class)->blocks()[$type]->render($p) : throw ValidationException::withMessages(['blocks' => 'Unsupported block type'])
             };
         }
 
         return $html;
+    }
+
+    private function layout(string $type, array $props, array $children, int $depth): string
+    {
+        $content = $this->blocks($children, $depth + 1);
+        if ($type === 'columns' && in_array($props['columns'] ?? null, [2, 3], true)) {
+            $columns = $props['columns'];
+
+            return '<section class="block-layout block-layout-fixed block-layout-columns-'.$columns.'"><div class="block-layout-grid">'.$content.'</div></section>';
+        }
+
+        $class = $type === 'container' && ($props['layout'] ?? null) === 'stack' ? 'block-layout block-layout-stack' : 'block-layout';
+
+        return '<section class="'.$class.'">'.$content.'</section>';
     }
 
     private function image(array $p): string

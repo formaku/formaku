@@ -39,6 +39,42 @@ class FormakuTest extends TestCase
         return app(RecordService::class)->save($c, null, ['title' => 'Published title', 'slug' => 'published', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Original']]]], 0, $u->id);
     }
 
+    public function test_nested_layout_settings_survive_save_preview_and_publication(): void
+    {
+        $user = $this->admin();
+        $collection = $this->collection();
+        $blocks = [
+            ['type' => 'columns', 'children' => [
+                ['type' => 'cta', 'props' => ['title' => 'Legacy layout']],
+            ]],
+            ['type' => 'container', 'props' => ['layout' => 'stack'], 'children' => [
+                ['type' => 'columns', 'props' => ['columns' => 3], 'children' => [
+                    ['type' => 'hero', 'props' => ['title' => 'First child']],
+                    ['type' => 'cta', 'props' => ['title' => 'Second child']],
+                ]],
+            ]],
+        ];
+        $service = app(RecordService::class);
+        $record = $service->save($collection, null, [
+            'title' => 'Layout', 'slug' => 'layout', 'blocks' => $blocks,
+        ], 0, $user->id);
+        $this->assertEquals($blocks, $record->draft->data['blocks']);
+
+        $this->get('/p/layout')->assertNotFound();
+        $preview = $this->actingAs($user)->get('/formaku/api/v1/records/'.$record->id.'/preview')->assertOk();
+        $service->publish($record, $record->version, $user->id);
+        $public = $this->get('/p/layout')->assertOk();
+
+        foreach ([$preview, $public] as $response) {
+            $response->assertSeeHtmlInOrder([
+                '<section class="block-layout">', 'Legacy layout',
+                '<section class="block-layout block-layout-stack">',
+                '<section class="block-layout block-layout-fixed block-layout-columns-3">',
+                'First child', 'Second child',
+            ]);
+        }
+    }
+
     public function test_old_published_slugs_redirect_directly_to_the_current_slug(): void
     {
         $user = $this->admin();
