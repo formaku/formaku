@@ -35,6 +35,12 @@ type Field = {
   private?: boolean;
   options?: string[];
 };
+const seoLabels = {
+  title: "Tytuł SEO",
+  description: "Opis SEO",
+} as const;
+type SeoTarget = keyof typeof seoLabels;
+type CollectionSeo = Partial<Record<SeoTarget, string>>;
 type Collection = {
   id: number;
   key: string;
@@ -46,6 +52,7 @@ type Collection = {
     states?: string[];
     transitions?: { from: string; to: string }[];
     public?: boolean;
+    seo?: CollectionSeo;
   };
 };
 const clone = (v: any) => JSON.parse(JSON.stringify(v));
@@ -73,6 +80,37 @@ const boot = ref<any>(null),
   commit = ref(""),
   search = ref(""),
   viewport = ref("desktop");
+const publicContentSchema = computed(
+  () => schema.value?.kind === "content" && schema.value.definition.public,
+);
+const seoFields = computed<Field[]>(() =>
+  publicContentSchema.value
+    ? schema.value.definition.fields.filter(
+        (field: Field) => field.type === "text" && !field.private,
+      )
+    : [],
+);
+function updateSeoField(target: SeoTarget, field: string) {
+  const definition = schema.value.definition;
+  if (field) {
+    definition.seo ??= {};
+    definition.seo[target] = field;
+  } else if (definition.seo) {
+    delete definition.seo[target];
+    if (!Object.keys(definition.seo).length) delete definition.seo;
+  }
+}
+watch(
+  () => seoFields.value.map((field) => field.key),
+  (eligibleKeys) => {
+    const mapping: CollectionSeo | undefined = schema.value?.definition.seo;
+    if (!mapping) return;
+    for (const target of ["title", "description"] as const) {
+      const field = mapping[target];
+      if (field && !eligibleKeys.includes(field)) updateSeoField(target, "");
+    }
+  },
+);
 const base = (
   document.querySelector('meta[name="formaku-prefix"]') as HTMLMetaElement
 ).content;
@@ -817,6 +855,42 @@ const title = computed(
                 <Plus :size="15" />Dodaj pole
               </button>
             </div>
+            <fieldset
+              v-if="publicContentSchema"
+              class="fieldset bg-base-100 border border-base-300 rounded-xl p-6"
+            >
+              <legend class="fieldset-legend text-lg">Metadane SEO</legend>
+              <p class="text-sm text-base-content/70">
+                Przypisz pola tekstowe używane w metadanych opublikowanych stron.
+              </p>
+              <div class="grid md:grid-cols-2 gap-4">
+                <div v-for="(label, target) in seoLabels" :key="target">
+                  <label class="field-label" :for="'seo-' + target">{{
+                    label
+                  }}</label>
+                  <select
+                    :id="'seo-' + target"
+                    class="select w-full"
+                    :value="schema.definition.seo?.[target] ?? ''"
+                    @change="
+                      updateSeoField(
+                        target,
+                        ($event.target as HTMLSelectElement).value,
+                      )
+                    "
+                  >
+                    <option value="">Bez przypisania</option>
+                    <option
+                      v-for="field in seoFields"
+                      :key="field.key"
+                      :value="field.key"
+                    >
+                      {{ field.label }} ({{ field.key }})
+                    </option>
+                  </select>
+                </div>
+              </div>
+            </fieldset>
             <div
               v-if="schema.kind === 'data'"
               class="bg-base-100 border border-base-300 rounded-xl p-6"

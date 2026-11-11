@@ -42,3 +42,45 @@ test("mobile login stays within viewport", async ({ page }) => {
     await page.evaluate(() => document.documentElement.scrollWidth),
   ).toBeLessThanOrEqual(390);
 });
+
+test("collection SEO fields are saved and used on published pages", async ({
+  page,
+}, info) => {
+  const collectionName = "SEO collection " + info.project.name;
+  const suffix = info.project.name + "_" + Date.now();
+  const slug = "seo-" + suffix.replace("_", "-");
+  const title = "SEO example " + info.project.name;
+
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page
+    .getByLabel("Hasło", { exact: true })
+    .fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  await page.getByRole("button", { name: "Buduj", exact: true }).click();
+  await page.getByRole("button", { name: "Nowa kolekcja" }).click();
+  await page.getByLabel("Nazwa", { exact: true }).fill(collectionName);
+  await page.getByLabel("Identyfikator").fill("seo_" + suffix);
+  await page.getByLabel("Rodzaj").selectOption("content");
+  await page.getByLabel("Opis SEO").selectOption("title");
+  await page.getByRole("button", { name: "Aktywuj konfigurację" }).click();
+
+  const collection = page.getByRole("article").filter({ hasText: collectionName });
+  await collection.getByRole("button", { name: "Edytuj model" }).click();
+  await expect(page.getByLabel("Opis SEO")).toHaveValue("title");
+  await page.getByRole("button", { name: "Buduj", exact: true }).click();
+  await collection.getByRole("button", { name: "Otwórz dane" }).click();
+  await page.getByRole("button", { name: "Dodaj rekord" }).click();
+  await page.getByLabel("Tytuł", { exact: true }).fill(title);
+  await page.getByLabel("Adres URL", { exact: true }).fill(slug);
+  await page.getByRole("button", { name: "Zapisz szkic" }).click();
+  await expect(page.getByRole("status")).toContainText("Szkic zapisany");
+  await page.getByRole("button", { name: "Opublikuj treść" }).click();
+  await expect(page.getByRole("status")).toContainText("Treść opublikowana");
+
+  await page.goto("/p/" + slug);
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute(
+    "content",
+    title,
+  );
+});

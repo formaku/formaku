@@ -8,6 +8,7 @@ use Formaku\Cms\Models\Record;
 use Formaku\Cms\Models\Revision;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
+use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -25,7 +26,30 @@ class PublicController
         abort_unless($c->definition['public'] ?? false, 404);
         $d = Revision::findOrFail($r->published_id)->data;
 
-        return view('formaku::page', ['title' => $r->published_title, 'html' => $renderer->blocks($d['blocks'] ?? [])]);
+        $publicTextKeys = SchemaValidator::publicTextKeys($c->definition);
+        $seo = $c->definition['seo'] ?? [];
+        $titleField = isset($d['title']) ? 'title' : 'name';
+        $privateTitle = collect($c->definition['fields'])->contains(
+            fn ($field) => $field['key'] === $titleField && ($field['private'] ?? false),
+        );
+
+        return view('formaku::page', [
+            'title' => $this->metadataText($seo['title'] ?? null, $publicTextKeys, $d)
+                ?? ($privateTitle ? $slug : $r->published_title),
+            'description' => $this->metadataText($seo['description'] ?? null, $publicTextKeys, $d),
+            'html' => $renderer->blocks($d['blocks'] ?? []),
+        ]);
+    }
+
+    private function metadataText(mixed $key, array $publicTextKeys, array $data): ?string
+    {
+        if (! in_array($key, $publicTextKeys, true) || ! is_string($data[$key] ?? null)) {
+            return null;
+        }
+
+        $text = trim($data[$key]);
+
+        return $text === '' ? null : $text;
     }
 
     public function portal(Request $r)

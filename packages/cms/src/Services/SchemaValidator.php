@@ -25,7 +25,18 @@ class SchemaValidator
             'definition.access.*.scope' => 'required|in:all,own,assigned,none',
             'definition.access.*.write' => 'required|boolean',
             'definition.public' => 'sometimes|boolean',
+            'definition.seo' => 'sometimes|array:title,description',
+            'definition.seo.title' => 'nullable|string|max:49',
+            'definition.seo.description' => 'nullable|string|max:49',
         ])->validate();
+        $publicTextKeys = self::publicTextKeys($d['definition']);
+        foreach (array_filter($d['definition']['seo'] ?? [], fn ($key) => $key !== null) as $attribute => $key) {
+            if ($d['kind'] !== 'content' || ! ($d['definition']['public'] ?? false) || ! in_array($key, $publicTextKeys, true)) {
+                throw ValidationException::withMessages([
+                    'definition.seo.'.$attribute => 'SEO metadata must use a public text field in a public content collection.',
+                ]);
+            }
+        }
         foreach ($d['definition']['transitions'] ?? [] as $transition) {
             if (! in_array($transition['from'], $d['definition']['states'] ?? []) || ! in_array($transition['to'], $d['definition']['states'] ?? [])) {
                 throw ValidationException::withMessages(['definition' => 'Transition references an unknown state.']);
@@ -47,6 +58,14 @@ class SchemaValidator
         }
 
         return $d;
+    }
+
+    /** @return list<string> */
+    public static function publicTextKeys(array $definition): array
+    {
+        return collect($definition['fields'] ?? [])
+            ->filter(fn ($field) => $field['type'] === 'text' && ! ($field['private'] ?? false))
+            ->pluck('key')->values()->all();
     }
 
     public function record(array $schema, array $data): array

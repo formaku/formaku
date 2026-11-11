@@ -39,6 +39,73 @@ class FormakuTest extends TestCase
         return app(RecordService::class)->save($c, null, ['title' => 'Published title', 'slug' => 'published', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Original']]]], 0, $u->id);
     }
 
+    public function test_page_uses_only_published_seo_metadata(): void
+    {
+        $user = $this->admin();
+        $collection = $this->collection();
+        $definition = $collection->definition;
+        $definition['fields'][] = ['key' => 'summary', 'label' => 'Summary', 'type' => 'text'];
+        $definition['seo'] = ['title' => 'summary', 'description' => 'summary'];
+        $this->actingAs($user)->postJson('/formaku/api/v1/collections', [
+            'id' => $collection->id,
+            'version' => $collection->version,
+            'key' => $collection->key,
+            'name' => $collection->name,
+            'kind' => $collection->kind,
+            'definition' => $definition,
+        ])->assertOk()->assertJsonPath('definition.seo.description', 'summary');
+        $collection->refresh();
+        $service = app(RecordService::class);
+        $published = 'Oferta <publiczna> & "warunki"';
+        $data = ['title' => 'Page title', 'slug' => 'metadata', 'summary' => $published];
+        $record = $service->save($collection, null, $data, 0, $user->id);
+        $record = $service->publish($record, $record->version, $user->id);
+        $data['summary'] = 'Unpublished description';
+        $record = $service->save($collection, $record, $data, $record->version, $user->id);
+
+        $this->get('/p/metadata')->assertOk()
+            ->assertSeeHtml('<title>'.e($published).'</title>')
+            ->assertSeeHtml('<meta name="description" content="'.e($published).'">')
+            ->assertDontSee($published, false)
+            ->assertDontSee('Unpublished description');
+
+        $record = $service->publish($record, $record->version, $user->id);
+        $this->get('/p/metadata')->assertSeeHtml('<title>Unpublished description</title>');
+
+        $data['summary'] = '   ';
+        $record = $service->save($collection, $record, $data, $record->version, $user->id);
+        $service->publish($record, $record->version, $user->id);
+        $this->get('/p/metadata')->assertSeeHtml('<title>Page title</title>')
+            ->assertDontSee('name="description"', false);
+    }
+
+    public function test_private_or_non_text_fields_cannot_supply_seo_metadata(): void
+    {
+        $user = $this->admin();
+        $collection = $this->collection();
+        $definition = $collection->definition;
+        $definition['fields'][0]['private'] = true;
+        $definition['seo'] = ['title' => 'title'];
+        $this->actingAs($user)->postJson('/formaku/api/v1/collections', [
+            'id' => $collection->id,
+            'version' => $collection->version,
+            'key' => $collection->key,
+            'name' => $collection->name,
+            'kind' => $collection->kind,
+            'definition' => $definition,
+        ])->assertUnprocessable()->assertJsonValidationErrors('definition.seo.title');
+
+        $record = $this->record($collection, $user);
+        app(RecordService::class)->publish($record, $record->version, $user->id);
+        $this->get('/p/published')->assertSeeHtml('<title>Published title</title>')
+            ->assertDontSee('name="description"', false);
+
+        $definition['seo']['description'] = 'blocks';
+        $collection->update(['definition' => $definition]);
+        $this->get('/p/published')->assertSeeHtml('<title>published</title>')
+            ->assertDontSee('Published title')->assertDontSee('name="description"', false);
+    }
+
     public function test_client_and_guest_cannot_access_admin_api(): void
     {
         $this->getJson('/formaku/api/v1/bootstrap')->assertUnauthorized();
