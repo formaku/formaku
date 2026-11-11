@@ -20,10 +20,25 @@ cd formaku
 cp .env.docker.example .env.docker
 ```
 
-Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local. Build the tagged source, then initialize the local database and start the stack.
+Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local.
+
+On Linux AMD64, pull the public alpha.2 image by digest. Use the same shell for the Compose commands so that they use the selected image.
 
 ```sh
+export FORMAKU_IMAGE=ghcr.io/formaku/formaku@sha256:e46f3e046757c41bdfe58ca4a5d6491c32980e5337b90193440c5d91b569a2c3
+docker pull "$FORMAKU_IMAGE"
+```
+
+To build from the tagged source, use the default local image.
+
+```sh
+unset FORMAKU_IMAGE
 docker compose --env-file .env.docker build web
+```
+
+With either image, initialize the database and start the stack.
+
+```sh
 docker compose --env-file .env.docker up -d --wait database
 docker compose --env-file .env.docker run --rm web php artisan migrate --force
 docker compose --env-file .env.docker up -d --no-build --wait
@@ -34,10 +49,9 @@ Use your own email for the administrator and open `http://127.0.0.1:8080/formaku
 
 ### Upgrade an existing alpha installation
 
-Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.2`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and rebuild the web image. Stop the web, worker and scheduler before running the migration with the new image.
+Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.2`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.2 image as described above. Stop the web, worker and scheduler before running the migration with the new image.
 
 ```sh
-docker compose --env-file .env.docker build web
 docker compose --env-file .env.docker stop web worker scheduler
 docker compose --env-file .env.docker run --rm web php artisan migrate --force
 docker compose --env-file .env.docker up -d --no-build --wait
