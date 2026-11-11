@@ -80,6 +80,8 @@ Od wersji `0.1.0-alpha.17` z aktualnym adapterem możesz poprosić agenta o spra
 
 Jeśli kolekcja ma zapisane szablony stron, agent może wybrać jeden z nich i użyć jego sekcji w nowym szkicu. Sekcje edytujesz dalej w szkicu.
 
+Agent może też ponownie użyć publicznych obrazów z aktualnie opublikowanych wersji stron sparowanej kolekcji. Do bloku obrazu wstawia identyfikator wybranej grafiki.
+
 > Przygotuj szkic strony oferty z szablonu „Oferta”. Dostosuj nagłówek, opis i przycisk kontaktu. Sprawdź dane przed zapisem, a potem podaj link do podglądu szkicu.
 
 Jeżeli instalacja udostępnia publiczny katalog Commerce, agent może oprzeć treść strony na opublikowanych produktach. Katalog zwraca aktualne ceny i dostępność do odczytu. Sprawdzenie szkicu i zapis strony odbywają się w sparowanej kolekcji CMS.

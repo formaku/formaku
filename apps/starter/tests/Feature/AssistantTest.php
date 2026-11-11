@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Formaku\Cms\Contracts\BlockType;
 use Formaku\Cms\Models\Collection;
+use Formaku\Cms\Models\Media;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Registry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -193,6 +194,46 @@ class AssistantTest extends TestCase
         Route::getRoutes()->refreshNameLookups();
         $this->getJson(self::API.'/connection', $headers)->assertOk()
             ->assertJsonPath('public_catalog_path', '/custom-store/public/products');
+    }
+
+    public function test_agent_lists_only_public_images_from_current_publications_in_the_paired_collection(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $other = $this->pages();
+        $makeMedia = fn (string $name, string $visibility = 'public', string $mime = 'image/png'): Media => Media::create([
+            'owner_id' => $admin->id, 'disk' => 'local', 'path' => 'files/'.$name,
+            'name' => $name, 'alt' => 'Alt '.$name, 'mime' => $mime, 'visibility' => $visibility, 'size' => 1,
+        ]);
+        $published = $makeMedia('published.png');
+        $old = $makeMedia('old.png');
+        $draftOnly = $makeMedia('draft.png');
+        $private = $makeMedia('private.png', 'private');
+        $document = $makeMedia('document.pdf', mime: 'application/pdf');
+        $outside = $makeMedia('outside.png');
+        $block = fn (Media $media): array => ['type' => 'image', 'props' => ['media_id' => $media->id]];
+        $records = app(RecordService::class);
+        $data = ['title' => 'Page', 'slug' => 'page', 'blocks' => [$block($old)]];
+        $record = $records->save($collection, null, $data, 0, $admin->id);
+        $record = $records->publish($record, $record->version, $admin->id);
+        $data['blocks'] = [$block($published), $block($private), $block($document), $block($published)];
+        $record = $records->save($collection, $record, $data, $record->version, $admin->id);
+        $record = $records->publish($record, $record->version, $admin->id);
+        $data['blocks'] = [$block($draftOnly)];
+        $records->save($collection, $record, $data, $record->version, $admin->id);
+        $otherRecord = $records->save($other, null, ['title' => 'Other', 'blocks' => [$block($outside)]], 0, $admin->id);
+        $records->publish($otherRecord, $otherRecord->version, $admin->id);
+
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection)));
+        $endpoint = self::API.'/images';
+        $this->getJson($endpoint)->assertUnauthorized();
+        $this->getJson(self::API.'/connection', $headers)->assertJsonPath('can_list_images', true);
+        $this->getJson($endpoint, $headers)->assertOk()->assertExactJson([
+            'items' => [['id' => $published->id, 'alt' => $published->alt, 'public_path' => '/formaku/media/'.$published->id]],
+            'next_page' => null,
+        ]);
+        $this->deleteJson(self::SETTINGS)->assertOk();
+        $this->getJson($endpoint, $headers)->assertUnauthorized();
     }
 
     public function test_agent_reuses_a_panel_template_only_in_its_paired_collection(): void

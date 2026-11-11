@@ -36,6 +36,9 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
       case "/cms/assistant/v1/templates":
         response.end(JSON.stringify({ items: [{ id: 12, name: "Offer layout" }], next_page: null }));
         break;
+      case "/cms/assistant/v1/images":
+        response.end(JSON.stringify({ items: [{ id: 14, alt: "Example", public_path: "/cms/media/14" }], next_page: null }));
+        break;
       case "/cms/assistant/v1/templates/12":
         response.end(JSON.stringify({ id: 12, name: "Offer layout", blocks: [{ type: "hero" }] }));
         break;
@@ -93,4 +96,8 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   assert.equal(requests[5].url.searchParams.get("page"), "2");
   assert.equal(requests[5].authorization, `Bearer ${token}`);
   assert.equal(requests[6].authorization, `Bearer ${token}`);
+  const images = JSON.parse((await call("formaku_list_images", { page: 3 })).content[0].text);
+  assert.deepEqual(images.items, [{ id: 14, alt: "Example", public_path: "/cms/media/14" }]);
+  assert.equal(requests[7].url.searchParams.get("page"), "3");
+  assert.equal(requests[7].authorization, `Bearer ${token}`);
 });

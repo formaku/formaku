@@ -3,6 +3,7 @@
 namespace Formaku\Cms\Http;
 
 use Formaku\Cms\Models\Collection;
+use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\PageTemplate;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Services\RecordService;
@@ -120,6 +121,7 @@ class AssistantController
             'fields' => $collection->definition['fields'],
             'can_validate_draft' => true,
             'can_read_templates' => PageTemplate::supportsCollection($collection),
+            'can_list_images' => true,
             'can_publish' => $canPublish,
             'expires_at' => Carbon::parse($connection->expires_at)->toIso8601String(),
         ];
@@ -147,6 +149,27 @@ class AssistantController
         $page = $templates->latest('id')->paginate(25, ['id', 'name'], page: (int) ($data['page'] ?? 1));
 
         return response()->json(['items' => $page->items(), 'next_page' => $page->hasMorePages() ? $page->currentPage() + 1 : null]);
+    }
+
+    public function images(Request $request): JsonResponse
+    {
+        [, $collection] = $this->connection($request);
+        $data = $request->validate(['page' => 'sometimes|integer|min:1|max:100000']);
+        $publishedMedia = DB::table('formaku_media_usages as usage')
+            ->join('formaku_records as record', 'record.published_id', '=', 'usage.revision_id')
+            ->where('record.collection_id', $collection->id)
+            ->select('usage.media_id');
+        $prefix = $request->getBaseUrl().'/'.trim(config('formaku.prefix').'/media', '/');
+        $images = Media::where('visibility', 'public')->where('mime', 'like', 'image/%')
+            ->whereIn('id', $publishedMedia)->orderByDesc('id')
+            ->simplePaginate(25, ['id', 'alt'], page: (int) ($data['page'] ?? 1))
+            ->through(fn (Media $image): array => [
+                'id' => $image->id,
+                'alt' => $image->alt,
+                'public_path' => $prefix.'/'.$image->id,
+            ]);
+
+        return response()->json(['items' => $images->items(), 'next_page' => $images->hasMorePages() ? $images->currentPage() + 1 : null]);
     }
 
     public function template(Request $request, int $template): JsonResponse
