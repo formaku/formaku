@@ -90,6 +90,8 @@ Jeżeli instalacja udostępnia publiczny katalog Commerce, agent może oprzeć t
 
 Od wersji `0.1.0-alpha.19` agent odczytuje też warianty produktów, jeśli instalacja udostępnia katalog Commerce v2. Wynik obejmuje ich etykiety, SKU, ceny i dostępność. W poleceniu możesz wskazać etykietę lub SKU, żeby dopasować treść oferty do właściwego wariantu.
 
+Jeśli sklep udostępnia publiczne kategorie, możesz poprosić o szkic oferty dla wybranej kategorii. Agent pobierze listę opublikowanych kategorii i zawęzi katalog wariantów do wskazanej pozycji.
+
 ## Wydania
 
 Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie” wysyła żądanie uruchomienia workflow w skonfigurowanym repozytorium GitHub. Link otwiera listę GitHub Actions. Odszukaj przebieg po identyfikatorze wydania i sprawdź jego wynik oraz digest obrazu w podsumowaniu. Wdrożenie obrazu po digescie odbywa się w osobnym workflow opisanym w [instrukcji wdrożenia](../DEPLOYMENT.md).

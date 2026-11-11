@@ -54,6 +54,7 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   const requests = [];
   let catalogPath;
   let variantsPath;
+  let categoriesPath;
   const server = createServer(async (request, response) => {
     const url = new URL(request.url, "http://localhost");
     const body = [];
@@ -62,7 +63,7 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
     response.setHeader("Content-Type", "application/json");
     switch (url.pathname) {
       case "/cms/assistant/v1/connection":
-        response.end(JSON.stringify({ public_catalog_path: catalogPath, public_variants_catalog_path: variantsPath }));
+        response.end(JSON.stringify({ public_catalog_path: catalogPath, public_variants_catalog_path: variantsPath, public_categories_path: categoriesPath }));
         break;
       case "/cms/assistant/v1/pages/validate":
         response.statusCode = 422;
@@ -82,6 +83,9 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
           ],
           next_cursor: "variant-page-2",
         }));
+        break;
+      case "/shop/v2/categories":
+        response.end(JSON.stringify({ data: [{ id: 19, slug: "blue-shoes", name: "Blue shoes", internal: "hidden" }], next_cursor: "category-page-2" }));
         break;
       case "/cms/assistant/v1/templates":
         response.end(JSON.stringify({ items: [{ id: 12, name: "Offer layout" }], next_page: null }));
@@ -164,4 +168,20 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   assert.equal(requests[10].authorization, undefined);
   assert.equal(requests[10].url.pathname, "/shop/v2/products");
   assert.equal(requests[10].url.searchParams.get("cursor"), "variant+1");
+
+  assert.equal((await call("formaku_list_products", { category: "blue-shoes" })).isError, true);
+  assert.equal(requests.length, 12);
+  categoriesPath = "/shop/v2/categories";
+  const categories = JSON.parse((await call("formaku_list_categories", { cursor: "category+1" })).content[0].text);
+  assert.deepEqual(categories.items, [{ id: 19, slug: "blue-shoes", name: "Blue shoes" }]);
+  assert.equal(categories.next_cursor, "category-page-2");
+  assert.equal(requests[13].authorization, undefined);
+  assert.equal(requests[13].url.searchParams.get("cursor"), "category+1");
+
+  assert.equal((await call("formaku_list_products", { category: "blue-shoes&cursor=other" })).isError, true);
+  assert.equal(requests.length, 15);
+  await call("formaku_list_products", { category: "blue-shoes", cursor: "variant+2" });
+  assert.equal(requests[16].authorization, undefined);
+  assert.equal(requests[16].url.searchParams.get("category"), "blue-shoes");
+  assert.equal(requests[16].url.searchParams.get("cursor"), "variant+2");
 });

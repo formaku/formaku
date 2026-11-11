@@ -200,7 +200,13 @@ class AssistantTest extends TestCase
         Route::getRoutes()->refreshNameLookups();
         $this->getJson(self::API.'/connection', $headers)->assertOk()
             ->assertJsonPath('public_catalog_path', '/custom-store/public/products')
-            ->assertJsonPath('public_variants_catalog_path', '/custom-store/v2/products');
+            ->assertJsonPath('public_variants_catalog_path', '/custom-store/v2/products')
+            ->assertJsonMissingPath('public_categories_path');
+
+        Route::get('/custom-store/v2/categories', fn () => ['data' => []])->name('commerce.v2.categories');
+        Route::getRoutes()->refreshNameLookups();
+        $this->getJson(self::API.'/connection', $headers)->assertOk()
+            ->assertJsonPath('public_categories_path', '/custom-store/v2/categories');
     }
 
     public function test_agent_lists_only_public_images_from_current_publications_in_the_paired_collection(): void

@@ -131,6 +131,9 @@ class AssistantController
         if (Route::has('commerce.v2.products')) {
             $description['public_variants_catalog_path'] = $request->getBaseUrl().route('commerce.v2.products', absolute: false);
         }
+        if (Route::has('commerce.v2.categories')) {
+            $description['public_categories_path'] = $request->getBaseUrl().route('commerce.v2.categories', absolute: false);
+        }
 
         return response()->json($description);
     }
