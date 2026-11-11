@@ -10,7 +10,7 @@
 
 For a standalone image build, run **Build Formaku image** on `main` using the full SHA as `source_commit` and a fresh UUID as `release_id`. The run publishes the SHA-tagged image and records the digest in its summary. [Manual workflow dispatch](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
 
-To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY` and a fine-grained `GITHUB_TOKEN` restricted to that repository with Actions write permission. In **Application releases**, dispatch a build using the full source SHA, then choose **Refresh status** in its row to read the matching GitHub Actions run. A run can take a moment to appear. Open the run for its image digest after the build succeeds. Deploying that digest is a separate operation.
+To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY` and a fine-grained `GITHUB_TOKEN` restricted to that repository with Actions write permission. In **Releases**, dispatch a build using the full source SHA, then choose **Refresh status** in its row to read the matching GitHub Actions run. A run can take a moment to appear. The first refresh searches up to 300 recent manual runs of the configured workflow, then later refreshes use the matched run ID. Open the run for its image digest after the build succeeds. Deploying that digest is a separate operation.
 
 ## Run the alpha locally with Docker Compose
 
