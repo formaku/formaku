@@ -134,9 +134,21 @@ test("nested blocks keep their order and responsive columns after saving", async
   await page.getByRole("button", { name: "Zapisz szkic" }).click();
   await expect(page.getByRole("status")).toContainText("Szkic zapisany");
 
-  await page.getByRole("button", { name: "Wróć do listy" }).click();
-  await page.getByRole("row").filter({ hasText: title })
-    .getByRole("button", { name: "Edytuj" }).click();
+  const backToList = page.getByRole("button", { name: "Wróć do listy" });
+  await expect(backToList).toBeEnabled();
+  const reload = Promise.withResolvers<void>();
+  await page.route(`**/formaku/api/v1/collections/${pages.id}/records`, async (route) => {
+    await reload.promise;
+    await route.continue();
+  }, { times: 1 });
+  const savedRow = page.getByRole("row").filter({ hasText: title });
+  await backToList.click();
+  try {
+    await expect(savedRow).toHaveCount(0);
+  } finally {
+    reload.resolve();
+  }
+  await savedRow.getByRole("button", { name: "Edytuj" }).click();
   await expect(page.getByLabel("Liczba kolumn")).toHaveValue("3");
   await page.getByRole("button", { name: "Pokaż podgląd" }).click();
   const preview = page.frameLocator('iframe[title="Podgląd zapisanego szkicu"]');

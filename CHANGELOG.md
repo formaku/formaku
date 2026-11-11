@@ -6,6 +6,8 @@
 
 The media library lets staff edit filenames and alternative text and browse files beyond the first page. A public image's updated alternative text appears on pages that already use it.
 
+The record list waits for refreshed data before opening another draft after a save.
+
 ## 0.1.0-alpha.6 — 2026-11-11
 
 The page editor can add, reorder and remove nested blocks inside containers and columns. New layouts can stack blocks or use two or three responsive columns. Layouts saved without a setting keep their automatic grid.

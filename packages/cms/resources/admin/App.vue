@@ -184,6 +184,7 @@ async function choose(c: Collection) {
   selected.value = c;
   section.value = "records";
   record.value = null;
+  records.value = [];
   dirty.value = false;
   const d = await request("/collections/" + c.id + "/records");
   records.value = d.data;
@@ -1054,7 +1055,7 @@ const title = computed(
             </div>
             <div v-else>
               <div class="flex flex-wrap justify-between gap-3 mb-6">
-                <button class="btn" @click="choose(selected)">
+                <button class="btn" :disabled="busy" @click="run(() => choose(selected!))">
                   Wróć do listy
                 </button>
                 <div class="flex flex-wrap gap-2 items-center">
