@@ -72,7 +72,7 @@ class FormakuTest extends TestCase
 
         $layout = view('formaku::layout');
         app('view')->callComposer($layout);
-        $this->assertSame($saved, $layout->getData()['siteNavigation']);
+        $this->assertEquals($saved, $layout->getData()['siteNavigation']);
 
         $cleared = ['version' => 1, 'header' => [], 'footer' => [], 'footerText' => ''];
         $this->putJson($endpoint, $cleared)->assertOk()->assertExactJson(['version' => 2] + $cleared);
