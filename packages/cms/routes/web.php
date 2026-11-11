@@ -7,6 +7,7 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::get('/bootstrap',[ApiController::class,'bootstrap']);Route::get('/collections',[ApiController::class,'collections']);
   Route::post('/collections',[ApiController::class,'schema'])->middleware(Access::class.':build');
   Route::get('/collections/{collection}/records',[ApiController::class,'records']);Route::post('/collections/{collection}/records',[ApiController::class,'save']);
+  Route::get('/collections/{collection}/relation-options',[ApiController::class,'relationOptions']);
   Route::get('/records/{record}',[ApiController::class,'show']);Route::get('/records/{record}/preview',[ApiController::class,'preview']);
   Route::post('/records/{record}/publish',[ApiController::class,'publish'])->middleware(Access::class.':publish');
   Route::post('/records/{record}/schedule',[ApiController::class,'schedule'])->middleware(Access::class.':publish');

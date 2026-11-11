@@ -478,6 +478,42 @@ class FormakuTest extends TestCase
         $this->getJson('/formaku/api/v1/media')->assertOk()->assertJsonPath('total', 33);
     }
 
+    public function test_relation_options_paginate_and_respect_record_and_field_access(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $other = User::factory()->create(['role' => 'editor']);
+        $collection = Collection::create([
+            'key' => 'relation-target',
+            'name' => 'Relation target',
+            'kind' => 'data',
+            'definition' => [
+                'access' => ['editor' => ['scope' => 'own', 'write' => false]],
+                'fields' => [
+                    ['key' => 'title', 'label' => 'Title', 'type' => 'text', 'private' => true],
+                    ['key' => 'name', 'label' => 'Name', 'type' => 'text'],
+                ],
+            ],
+        ]);
+        $service = app(RecordService::class);
+        $oldest = $service->save($collection, null, ['title' => 'Private title', 'name' => 'First record'], 0, $editor->id);
+        for ($i = 2; $i <= 26; $i++) {
+            $service->save($collection, null, ['title' => 'Private title'], 0, $editor->id);
+        }
+        $hidden = $service->save($collection, null, ['name' => 'Hidden record'], 0, $other->id);
+        $url = "/formaku/api/v1/collections/{$collection->id}/relation-options";
+
+        $this->getJson($url)->assertUnauthorized();
+        $this->actingAs(User::factory()->create())->getJson($url)->assertForbidden();
+        $this->actingAs($editor)->getJson($url.'?'.http_build_query(['selected' => [$oldest->id, $hidden->id]]))
+            ->assertOk()->assertJsonCount(25, 'data')
+            ->assertJsonPath('total', 26)->assertJsonPath('last_page', 2)
+            ->assertJsonPath('data.0.label', '#'.($hidden->id - 1))
+            ->assertJsonCount(1, 'selected')
+            ->assertJsonPath('selected.0', ['id' => $oldest->id, 'label' => 'First record'])
+            ->assertDontSee('Private title')->assertDontSee('Hidden record');
+        $this->getJson($url.'?page=2')->assertOk()->assertJsonPath('data.0.id', $oldest->id);
+    }
+
     public function test_export_excludes_accounts_and_provider_secrets(): void
     {
         $u = $this->admin();

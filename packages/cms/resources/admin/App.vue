@@ -26,6 +26,7 @@ import {
 } from "lucide-vue-next";
 import RichText from "./RichText.vue";
 import BlockEditor from "./BlockEditor.vue";
+import RelationPicker from "./RelationPicker.vue";
 import AssistantConnection from "./AssistantConnection.vue";
 import { blockEditorKey, createBlock, maxBlocksPerLevel } from "./blocks";
 type Field = {
@@ -35,6 +36,7 @@ type Field = {
   required?: boolean;
   private?: boolean;
   options?: string[];
+  target?: number;
 };
 const seoLabels = {
   title: "Tytuł SEO",
@@ -80,7 +82,6 @@ const previewOpen = ref(false);
 const scheduledAt = ref("");
 const draggedBlock = ref<number | null>(null);
 let autosaveTimer: ReturnType<typeof setTimeout> | undefined;
-const relationOptions = ref<Record<string, any[]>>({});
 const media = ref<MediaPage | null>(null);
 const mediaEdit = ref<Pick<MediaItem, "id" | "name"> & { alt: string }>();
 const boot = ref<any>(null),
@@ -188,14 +189,6 @@ async function choose(c: Collection) {
   dirty.value = false;
   const d = await request("/collections/" + c.id + "/records");
   records.value = d.data;
-  for (const f of c.definition.fields) {
-    if (f.type === "relation") {
-      const result = await request(
-        "/collections/" + (f as any).target + "/records",
-      );
-      relationOptions.value[f.key] = result.data;
-    }
-  }
 }
 function contentTemplate() {
   if (schema.value.kind === "content") {
@@ -1142,7 +1135,14 @@ const title = computed(
                 @input="dirty = true"
               >
                 <template v-for="f in selected.definition.fields" :key="f.key"
-                  ><label v-if="f.key !== 'blocks'"
+                  ><RelationPicker
+                    v-if="f.type === 'relation' && f.key !== 'blocks'"
+                    v-model="record.data[f.key]"
+                    :target="f.target"
+                    :label="f.label"
+                    :private-field="f.private"
+                    @update:model-value="dirty = true"
+                  /><label v-else-if="f.key !== 'blocks'"
                     ><span class="field-label"
                       >{{ f.label
                       }}<span v-if="f.private" class="text-secondary">
@@ -1161,19 +1161,6 @@ const title = computed(
                     >
                       <option v-for="o in f.options" :key="o">
                         {{ o }}
-                      </option></select
-                    ><select
-                      v-else-if="f.type === 'relation'"
-                      multiple
-                      class="select w-full min-h-24"
-                      v-model="record.data[f.key]"
-                    >
-                      <option
-                        v-for="item in relationOptions[f.key] ?? []"
-                        :key="item.id"
-                        :value="item.id"
-                      >
-                        {{ item.data.title ?? item.data.name ?? "#" + item.id }}
                       </option></select
                     ><input
                       v-else

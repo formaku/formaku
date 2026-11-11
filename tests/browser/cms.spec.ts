@@ -184,7 +184,7 @@ test("nested blocks keep their order and responsive columns after saving", async
     .toHaveText(["First child", "Second child"]);
 });
 
-test("collection SEO fields are saved and used on published pages", async ({
+test("collection forms save SEO metadata and relations selected across pages", async ({
   page,
 }, info) => {
   const collectionName = "SEO collection " + info.project.name;
@@ -224,4 +224,53 @@ test("collection SEO fields are saved and used on published pages", async ({
     "content",
     title,
   );
+
+  await page.goto("/formaku");
+  const csrf = await page.locator('meta[name="csrf-token"]').getAttribute("content");
+  const post = async (path: string, data: object) => {
+    const response = await page.request.post("/formaku/api/v1" + path, {
+      data, headers: { "X-CSRF-TOKEN": csrf ?? "" },
+    });
+    await expect(response).toBeOK();
+    return response.json();
+  };
+  const nameField = { key: "name", label: "Nazwa", type: "text" };
+  const collections = await (await page.request.get("/formaku/api/v1/collections")).json();
+  const target = collections.find((entry: { key: string }) => entry.key === "relation_targets");
+  const source = await post("/collections", {
+    key: "source_" + suffix,
+    name: "Relation source " + suffix,
+    kind: "data",
+    definition: { fields: [nameField, { key: "links", label: "Powiązane rekordy", type: "relation", target: target.id }] },
+  });
+  const optionsUrl = `/formaku/api/v1/collections/${target.id}/relation-options`;
+  const newest = (await (await page.request.get(optionsUrl)).json()).data[0];
+  const oldest = (await (await page.request.get(optionsUrl + "?page=2")).json()).data[0];
+  await page.reload();
+  await page.getByRole("button", { name: source.name, exact: true }).click();
+  await page.getByRole("button", { name: "Dodaj rekord" }).click();
+  await page.getByLabel("Nazwa", { exact: true }).fill("Source record");
+  const pickerTrigger = page.getByRole("button", { name: "Wybierz rekordy", exact: true });
+  await pickerTrigger.click();
+  const picker = page.getByRole("dialog", { name: "Powiązane rekordy" });
+  await picker.getByRole("checkbox", { name: "Target 26", exact: true }).check();
+  await picker.getByRole("button", { name: "Następna" }).click();
+  await picker.getByRole("checkbox", { name: "Target 1", exact: true }).check();
+  await picker.getByRole("button", { name: "Zastosuj wybór" }).click();
+  await pickerTrigger.click();
+  await expect(picker.getByRole("checkbox", { name: "Target 26", exact: true })).toBeChecked();
+  await picker.getByRole("checkbox", { name: "Target 26", exact: true }).uncheck();
+  await page.keyboard.press("Escape");
+  await expect(picker).toBeHidden();
+
+  const saveResponse = page.waitForResponse((response) =>
+    response.request().method() === "POST" &&
+    response.url().endsWith(`/collections/${source.id}/records`),
+  );
+  await page.getByRole("button", { name: "Zapisz szkic" }).click();
+  const saved = await saveResponse;
+  expect(saved.ok()).toBe(true);
+  const savedIds = (await saved.json()).data.links;
+  expect(savedIds).toEqual(expect.arrayContaining([oldest.id, newest.id]));
+  expect(savedIds).toHaveLength(2);
 });

@@ -1,12 +1,12 @@
 # Implementation status
 
-This is **0.1.0-alpha.8**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.9**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
 - Laravel 13 / PHP 8.4+ Composer package, isolated configuration, opt-in public routing and fail-closed administrative authorization; starter with role-based access.
 - Vue 3 / TypeScript panel with Formaku branding, Reka provider, Tailwind/daisyUI components and locally bundled fonts.
-- Versioned collection definitions, generated record forms/lists, relation storage, basic workflow transitions and assignment.
+- Versioned collection definitions, generated record forms/lists, paginated selection of related records under collection access rules, relation storage, basic workflow transitions and assignment.
 - Revision conflicts (409), immutable content revisions, separate draft/public pointers, public slug isolation, atomic publication, history restoration and scheduled publication API/UI.
 - Canonical JSON renderer, Tiptap rich text, hero/text/CTA/image/cards/FAQ/container/columns blocks; reorder controls and drag/drop; delayed autosave for existing records.
 - Customer login, optional registration, verification and password reset; own-request list and details, private-field filtering; staff-only admin API.
@@ -24,7 +24,7 @@ This is **0.1.0-alpha.8**. The remaining v1 work is listed below.
 
 ## Evidence
 
-- PHP: 38 tests and 296 assertions pass on local SQLite with PHP 8.5.11. This includes media authorization, filename validation and pagination, and a 10,000-record pagination test.
+- PHP: 39 tests and 309 assertions pass on local SQLite with PHP 8.5.11. This includes media authorization, filename validation and pagination, and a 10,000-record pagination test.
 - Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring and publication, media metadata changes on a published page, responsive layouts, SEO and mobile login width.
 - Frontend: vue-tsc and Vite production build pass. A real rendered dashboard screenshot is in test-results/dashboard-chromium.png (ignored build artifact).
 - Docker: image built; Laravel command runs, HTTP login returns 200, runtime UID is 33 (www-data). GitHub CI verifies that the web process, database, queue worker and scheduler start with Compose.
@@ -36,7 +36,7 @@ This is **0.1.0-alpha.8**. The remaining v1 work is listed below.
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
 - Further page composition controls, post templates and menus/footer/theme management.
 - Complete panel PL/EN localization and linked content translation workflow.
-- Media usage tracking, image variants and pickers for media and relation fields in record forms.
+- Media usage tracking, image variants and a picker for media fields in record forms.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
 - Registered extension contracts are present; complete developer examples and ResourceAdapter/ActionHandler UI integration still need delivery.
 - GitHub project snapshot PR creation, build/deploy status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.

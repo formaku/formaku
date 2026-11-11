@@ -61,6 +61,36 @@ class ApiController
         return $this->document($record) + ['history' => Revision::where('record_id', $record->id)->latest('id')->get()];
     }
 
+    public function relationOptions(Request $request, Collection $collection): array
+    {
+        $filters = $request->validate([
+            'selected' => 'sometimes|array|max:100',
+            'selected.*' => 'required|integer|min:1',
+        ]);
+        $labelFields = collect($collection->definition['fields'])
+            ->reject(fn (array $field) => $field['private'] ?? false)
+            ->pluck('key')->all();
+        $labelKeys = array_intersect(['title', 'name'], $labelFields);
+        $query = app(CollectionAccess::class)->query($collection, $request->user())
+            ->select('id', 'draft_id')->with('draft:id,data')->orderByDesc('id');
+        $option = static function (Record $record) use ($labelKeys): array {
+            $data = $record->draft?->data ?? [];
+            foreach ($labelKeys as $key) {
+                if (is_string($data[$key] ?? null) && trim($data[$key]) !== '') {
+                    return ['id' => $record->id, 'label' => $data[$key]];
+                }
+            }
+
+            return ['id' => $record->id, 'label' => '#'.$record->id];
+        };
+        $selected = empty($filters['selected'])
+            ? []
+            : (clone $query)->whereKey($filters['selected'])->get()->map($option)->all();
+
+        return $query->paginate(25)->appends($filters)->through($option)->toArray()
+            + ['selected' => $selected];
+    }
+
     public function save(Request $r, Collection $collection, RecordService $s)
     {
         $d = $r->validate(['id' => 'nullable|integer', 'version' => 'required|integer|min:0', 'data' => 'required|array']);

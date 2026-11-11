@@ -18,6 +18,10 @@ Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go 
 
 Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
 
+### Powiązane rekordy
+
+Od wersji `0.1.0-alpha.9` w polu relacji wybierz **Wybierz rekordy**. Zaznacz rekordy na dowolnej stronie wyników i kliknij **Zastosuj wybór**, a potem zapisz szkic. **Anuluj** lub Esc przywraca poprzedni wybór. Selektor pokazuje tylko rekordy, do których masz dostęp. Zamiast prywatnego tytułu lub nazwy pokazuje dostępną etykietę albo identyfikator. Jeśli utracisz dostęp do powiązanego rekordu, przed zapisem usuń to powiązanie albo odzyskaj dostęp.
+
 ## Biblioteka mediów
 
 Od wersji `0.1.0-alpha.7` otwórz **Media**. Użyj przycisków **Poprzednia** i **Następna**, jeśli biblioteka ma więcej niż jedną stronę. Przy pliku wybierz **Edytuj metadane**, popraw nazwę lub tekst alternatywny i zapisz. Nazwa jest widoczna w bibliotece i używana przy pobieraniu. Adres pliku pozostaje ten sam. Tekst alternatywny publicznego obrazu zmienia się także na opublikowanych stronach, które używają tego obrazu. Edycja metadanych publicznego pliku wymaga prawa do publikacji.
@@ -57,6 +61,8 @@ Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie”
 ## English quick guide
 
 Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Releases trigger the configured GitHub workflow; actual build/deployment state must be verified in Actions. Customer portal access is scoped to the signed-in owner.
+
+Starting with `0.1.0-alpha.9`, choose **Wybierz rekordy** (Choose records) for a relation field. Select records across pages, apply the selection, then save the draft. Cancel or press Escape to keep the previous selection. The picker lists records you can read and omits private titles and names. If you lose access to a linked record, remove the link or regain access before saving.
 
 Starting with `0.1.0-alpha.5`, the editor shows the last saved draft, including its SEO metadata, in an embedded preview at desktop, tablet and phone widths. You can also open the preview in a new tab.
 

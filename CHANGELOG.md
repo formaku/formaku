@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.9 — 2026-11-11
+
+Record forms can select related records across multiple pages. The chooser shows only records the user can read, omits private titles and names, and keeps pending selections when switching pages.
+
 ## 0.1.0-alpha.8 — 2026-11-11
 
 Image blocks can pick public images by filename and thumbnail from a paginated library, including inside containers and columns. Existing image assignments and captions carry over.
