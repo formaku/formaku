@@ -67,6 +67,16 @@ class Renderer
 
     public function blocks(array $blocks, int $depth = 0): string
     {
+        return $this->renderBlocks($blocks, $depth, true);
+    }
+
+    public function validateBuiltInBlocks(array $blocks): void
+    {
+        $this->renderBlocks($blocks, 0, false);
+    }
+
+    private function renderBlocks(array $blocks, int $depth, bool $allowExtensions): string
+    {
         abort_if($depth > 10, 422, 'Block nesting too deep');
         $html = '';
         foreach (array_slice($blocks, 0, 100) as $b) {
@@ -78,18 +88,20 @@ class Renderer
                 'image' => $this->image($p),
                 'cards' => $this->cards($p),
                 'faq' => $this->faq($p),
-                'container','columns' => $this->layout($type, is_array($p) ? $p : [], $b['children'] ?? [], $depth),
+                'container','columns' => $this->layout($type, is_array($p) ? $p : [], $b['children'] ?? [], $depth, $allowExtensions),
                 'cta' => '<section class="cta-block"><h2>'.e($p['title'] ?? '').'</h2><a href="'.$this->url($p['url'] ?? '/').'">'.e($p['label'] ?? 'Dalej').'</a></section>',
-                default => isset(app(Registry::class)->blocks()[$type]) ? app(Registry::class)->blocks()[$type]->render($p) : throw ValidationException::withMessages(['blocks' => 'Unsupported block type'])
+                default => $allowExtensions && isset(app(Registry::class)->blocks()[$type]) ? app(Registry::class)->blocks()[$type]->render($p) : throw ValidationException::withMessages(['blocks' => 'Unsupported block type'])
             };
         }
 
         return $html;
     }
 
-    private function layout(string $type, array $props, array $children, int $depth): string
+    private function layout(string $type, array $props, array $children, int $depth, bool $allowExtensions): string
     {
-        $content = $this->blocks($children, $depth + 1);
+        $content = $allowExtensions
+            ? $this->blocks($children, $depth + 1)
+            : $this->renderBlocks($children, $depth + 1, false);
         if ($type === 'columns' && in_array($props['columns'] ?? null, [2, 3], true)) {
             $columns = $props['columns'];
 

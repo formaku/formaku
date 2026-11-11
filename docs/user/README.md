@@ -72,6 +72,12 @@ W istniejącej instalacji uruchom migracje przed użyciem asystenta. W menu pane
 
 Kod parowania jest jednorazowy i wygasa po pięciu minutach. Dostęp asystenta wygasa po 30 dniach. Prawo do publikacji włączasz osobno podczas parowania. Asystent zgłasza konflikt przy próbie edycji strony z zaplanowaną publikacją. Cofnij połączenie w panelu, gdy przestajesz go używać lub przed zmianą roli użytkownika.
 
+W instalacji z aktualnym adapterem możesz poprosić agenta o sprawdzenie pól kolekcji i walidację szkicu z wbudowanych bloków przed zapisem. Po zapisaniu otwórz podany przez agenta link do podglądu w przeglądarce, w której masz aktywną sesję Formaku. Jeśli po aktualizacji instalacji brakuje tych narzędzi, pobierz ponownie adapter z panelu, powtórz parowanie i uruchom ponownie klienta MCP.
+
+> Przygotuj szkic strony oferty z nagłówkiem, opisem i przyciskiem kontaktu. Sprawdź dane w Formaku przed zapisem, a potem podaj link do podglądu szkicu.
+
+Jeżeli instalacja udostępnia publiczny katalog Commerce, agent może oprzeć treść strony na opublikowanych produktach. Katalog zwraca aktualne ceny i dostępność do odczytu. Sprawdzenie szkicu i zapis strony odbywają się w sparowanej kolekcji CMS.
+
 ## Wydania
 
 Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie” wysyła żądanie uruchomienia workflow w skonfigurowanym repozytorium GitHub. Link otwiera listę GitHub Actions. Odszukaj przebieg po identyfikatorze wydania i sprawdź jego wynik oraz digest obrazu w podsumowaniu. Wdrożenie obrazu po digescie odbywa się w osobnym workflow opisanym w [instrukcji wdrożenia](../DEPLOYMENT.md).

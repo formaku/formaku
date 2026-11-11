@@ -20,6 +20,7 @@ Route::prefix(config('formaku.prefix').'/assistant/v1')->group(function () {
     Route::middleware(['throttle:120,1,formaku-assistant-api', 'cache.headers:no_store'])->group(function () {
         Route::get('/connection', [AssistantController::class, 'describe']);
         Route::get('/pages', [AssistantController::class, 'pages']);
+        Route::post('/pages/validate', [AssistantController::class, 'validateDraft']);
         Route::post('/pages', [AssistantController::class, 'create']);
         Route::get('/pages/{page}', [AssistantController::class, 'page'])->whereNumber('page');
         Route::put('/pages/{page}', [AssistantController::class, 'update'])->whereNumber('page');

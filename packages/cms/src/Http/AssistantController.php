@@ -6,6 +6,7 @@ use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
+use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -112,12 +114,18 @@ class AssistantController
     {
         [$connection, $collection, $canPublish] = $this->connection($request);
 
-        return response()->json([
+        $description = [
             'collection' => $collection->only(['id', 'key', 'name', 'version']),
             'fields' => $collection->definition['fields'],
+            'can_validate_draft' => true,
             'can_publish' => $canPublish,
             'expires_at' => Carbon::parse($connection->expires_at)->toIso8601String(),
-        ]);
+        ];
+        if (Route::has('formaku-commerce.public.products')) {
+            $description['public_catalog_path'] = $request->getBaseUrl().route('formaku-commerce.public.products', absolute: false);
+        }
+
+        return response()->json($description);
     }
 
     public function pages(Request $request): JsonResponse
@@ -165,6 +173,24 @@ class AssistantController
 
             return response()->json($this->summary($record), 201);
         }, 3);
+    }
+
+    public function validateDraft(Request $request, Renderer $renderer, SchemaValidator $schema): JsonResponse
+    {
+        [, $collection] = $this->connection($request);
+        $data = $this->draft($request, $renderer, [], allowExtensions: false)['data'];
+
+        try {
+            $validated = $schema->record($collection->definition, $data);
+        } catch (\TypeError|\ErrorException) {
+            throw ValidationException::withMessages(['data' => 'Nieprawidłowa struktura treści.']);
+        }
+
+        return response()->json([
+            'valid' => true,
+            'collection_version' => $collection->version,
+            'ignored_fields' => array_keys(array_diff_key($data, $validated)),
+        ]);
     }
 
     public function update(Request $request, int $page, RecordService $records, Renderer $renderer): JsonResponse
@@ -217,11 +243,14 @@ class AssistantController
             'published_title' => $record->published_title,
             'published_slug' => $record->published_slug,
             'public_path' => config('formaku.public_routes') && $record->published_slug ? '/p/'.$record->published_slug : null,
+            'draft_preview_path' => $record->draft_id !== null
+                ? request()->getBaseUrl().'/'.trim(config('formaku.prefix').'/api/v1/records/'.$record->id.'/preview', '/')
+                : null,
             'has_unpublished_changes' => $record->draft_id !== $record->published_id,
         ];
     }
 
-    private function draft(Request $request, Renderer $renderer, array $rules): array
+    private function draft(Request $request, Renderer $renderer, array $rules, bool $allowExtensions = true): array
     {
         abort_if(strlen($request->getContent()) > 262144, 413);
         $data = $request->validate($rules + ['data' => 'required|array']);
@@ -231,7 +260,12 @@ class AssistantController
         ]);
 
         try {
-            $renderer->blocks($data['data']['blocks'] ?? []);
+            $blocks = $data['data']['blocks'] ?? [];
+            if ($allowExtensions) {
+                $renderer->blocks($blocks);
+            } else {
+                $renderer->validateBuiltInBlocks($blocks);
+            }
         } catch (\TypeError|\ErrorException) {
             throw ValidationException::withMessages(['data.blocks' => 'Nieprawidłowa struktura bloków.']);
         }

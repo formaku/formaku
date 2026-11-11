@@ -3,10 +3,13 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Formaku\Cms\Contracts\BlockType;
 use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Services\RecordService;
+use Formaku\Cms\Services\Registry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -122,6 +125,9 @@ class AssistantTest extends TestCase
         $input = ['request_id' => (string) Str::uuid(), 'data' => $data];
         $id = $this->postJson(self::API.'/pages', $input, $headers)->assertCreated()->assertJsonPath('version', 1)->json('id');
         $path = self::API.'/pages/'.$id;
+        $preview = '/formaku/api/v1/records/'.$id.'/preview';
+        $this->getJson($path, $headers)->assertJsonPath('draft_preview_path', $preview);
+        $this->get($preview)->assertOk()->assertSee('Pierwszy szkic');
         $this->postJson(self::API.'/pages', $input, $headers)->assertOk()->assertJsonPath('id', $id);
         $this->postJson(self::API.'/pages', array_replace($input, ['data' => ['title' => 'Different']]), $headers)->assertConflict();
         $this->getJson(self::API.'/pages', $headers)->assertJsonCount(1, 'items')->assertJsonPath('items.0.draft_title', 'Kontakt');
@@ -143,6 +149,50 @@ class AssistantTest extends TestCase
         $this->assertSame(['saved', 'saved', 'published'], $events->pluck('type')->all());
         $this->assertSame($admin->id, $events->last()->actor_id);
         $this->assertArrayHasKey('assistant_connection_id', json_decode($events->last()->payload, true));
+
+        auth()->forgetGuards();
+        $this->getJson($preview, $headers)->assertUnauthorized();
+    }
+
+    public function test_agent_can_validate_a_draft_without_writing_records_or_running_extension_renderers(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $endpoint = self::API.'/pages/validate';
+        $data = ['title' => 'Landing', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Landing']]], 'typo' => 'Ignored'];
+        $this->postJson($endpoint, ['data' => $data])->assertUnauthorized();
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection)));
+        $this->getJson(self::API.'/connection', $headers)->assertJsonPath('can_validate_draft', true);
+
+        $this->postJson($endpoint, ['data' => $data], $headers)->assertOk()
+            ->assertJsonPath('valid', true)->assertJsonPath('collection_version', $collection->version)
+            ->assertJsonPath('ignored_fields', ['typo']);
+        $this->postJson($endpoint, ['data' => ['slug' => 'landing']], $headers)
+            ->assertUnprocessable()->assertJsonValidationErrors('title');
+
+        $extension = $this->createMock(BlockType::class);
+        $extension->method('key')->willReturn('custom');
+        $extension->expects($this->never())->method('render');
+        app(Registry::class)->block($extension);
+        $data['blocks'] = [['type' => 'container', 'children' => [['type' => 'custom']]]];
+        $this->postJson($endpoint, ['data' => $data], $headers)->assertUnprocessable();
+
+        $this->assertDatabaseCount('formaku_records', 0);
+        $this->assertDatabaseCount('formaku_revisions', 0);
+        $this->assertDatabaseCount('formaku_events', 0);
+        $this->deleteJson(self::SETTINGS)->assertOk();
+        $this->postJson($endpoint, ['data' => $data], $headers)->assertUnauthorized();
+    }
+
+    public function test_agent_discovers_the_optional_public_catalog_by_route_name(): void
+    {
+        $headers = $this->bearer($this->exchange($this->start($this->admin(), $this->pages())));
+        $this->getJson(self::API.'/connection', $headers)->assertOk()->assertJsonMissingPath('public_catalog_path');
+
+        Route::get('/custom-store/public/products', fn () => ['data' => []])->name('formaku-commerce.public.products');
+        Route::getRoutes()->refreshNameLookups();
+        $this->getJson(self::API.'/connection', $headers)->assertOk()
+            ->assertJsonPath('public_catalog_path', '/custom-store/public/products');
     }
 
     public function test_agent_cannot_save_broken_blocks_or_publish_over_an_existing_slug(): void
