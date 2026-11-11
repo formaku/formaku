@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.4 — 2026-11-11
 
 Publishing a public page under a new slug now redirects its former URL directly to the current one. Existing installations need the slug redirects migration.
 

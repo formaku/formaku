@@ -12,17 +12,17 @@ To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY
 
 ## Run the alpha locally with Docker Compose
 
-These instructions apply to `v0.1.0-alpha.3`. For `v0.1.0-alpha.2`, see [its Compose guide and image](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.2). For `v0.1.0-alpha`, use the [first alpha instructions](#run-the-first-alpha-with-docker-compose).
+These instructions apply to `v0.1.0-alpha.4`. The [alpha.3](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.3) and [alpha.2](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.2) release notes link to their Compose guides and images. For `v0.1.0-alpha`, use the [first alpha instructions](#run-the-first-alpha-with-docker-compose).
 
 ```sh
-git clone --branch v0.1.0-alpha.3 --single-branch https://github.com/formaku/formaku.git
+git clone --branch v0.1.0-alpha.4 --single-branch https://github.com/formaku/formaku.git
 cd formaku
 cp .env.docker.example .env.docker
 ```
 
 Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local.
 
-On Linux AMD64, copy the full `ghcr.io/formaku/formaku@sha256:…` reference from the [alpha.3 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.3). Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
+On Linux AMD64, copy the full `ghcr.io/formaku/formaku@sha256:…` reference from the [alpha.4 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.4). Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
 
 ```sh
 docker pull "$FORMAKU_IMAGE"
@@ -48,7 +48,7 @@ Use your own email for the administrator and open `http://127.0.0.1:8080/formaku
 
 ### Upgrade an existing alpha installation
 
-Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.3`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.3 image as described above. Stop the web, worker and scheduler before checking and applying any pending migrations with the new image.
+Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.4`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.4 image as described above. Stop the web, worker and scheduler before applying migrations with the new image.
 
 ```sh
 docker compose --env-file .env.docker stop web worker scheduler
@@ -56,9 +56,7 @@ docker compose --env-file .env.docker run --rm web php artisan migrate --force
 docker compose --env-file .env.docker up -d --no-build --wait
 ```
 
-Alpha.3 introduces no database migration. Upgrades from the first alpha still apply the assistant migration introduced in alpha.2. After the upgrade, verify that published pages load and set `APP_URL` to the public base URL for the sitemap.
-
-Development builds after alpha.3 require the slug redirects migration. Run `php artisan migrate --force` before starting the updated services. The migration adds an empty redirect table. Formaku records new URL changes as pages are published after the upgrade.
+Alpha.4 adds an empty redirect table. Existing published addresses stay active, and Formaku records URL changes when pages are published after the upgrade. Upgrades from the first alpha also apply the assistant migration introduced in alpha.2. After the upgrade, verify that published pages load and that `APP_URL` is the public base URL for the sitemap.
 
 ## Run the first alpha with Docker Compose
 

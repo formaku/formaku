@@ -10,7 +10,7 @@ Wybierz kolekcję i dodaj rekord. Zapis tworzy nową rewizję. W treściach popr
 
 Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera.
 
-W wersji rozwojowej publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
+Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
 
 ## Buduj
 
@@ -49,6 +49,8 @@ Work: create and edit collection records; save a draft, inspect its preview and 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 
 The starter serves published public pages at `/sitemap.xml`. Set `APP_URL` to the public base URL, including any subdirectory. Set `FORMAKU_SITEMAP=false` to use a host-managed sitemap. Package integrations can enable the sitemap with the `public_routes` and `sitemap` config options.
+
+Starting with `0.1.0-alpha.4`, publishing a public page under a new URL creates a 301 redirect from its previous URL. Earlier URLs point straight to the current publication. An active publication takes precedence when an old URL is reused. Redirects are unavailable while the collection is private.
 
 ## Dostęp do kolekcji
 
