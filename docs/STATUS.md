@@ -38,9 +38,9 @@ This is a working **0.1.0 alpha**, not completion of the full accepted v1 plan.
 
 ## Public release and documentation
 
-The source is public in [`formaku/formaku`](https://github.com/formaku/formaku). The [`v0.1.0-alpha` prerelease](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha) points to `340828e` and includes GitHub source archives. The [first GitHub CI run](https://github.com/formaku/formaku/actions/runs/43064287179) passed the frontend, browser and PHP 8.4/8.5 jobs with PostgreSQL and MySQL on `bbd1e22`. GHCR publication and CMS runtime deployment remain pending.
+The source is public in [`formaku/formaku`](https://github.com/formaku/formaku). The [`v0.1.0-alpha` prerelease](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha) points to `340828e` and includes GitHub source archives. The [first GitHub CI run](https://github.com/formaku/formaku/actions/runs/43064287179) passed the frontend, browser and PHP 8.4/8.5 jobs with PostgreSQL and MySQL on `bbd1e22`. The [alpha image build](https://github.com/formaku/formaku/actions/runs/43065298102) published to a private GHCR package. Public users can [build the tagged source locally](DEPLOYMENT.md#run-the-alpha-locally-with-docker-compose). CMS runtime deployment remains pending.
 
-The static project website and its bilingual documentation are maintained separately in Forgejo. Website revision `4b459ce` is deployed to OVH MultiSite. The English and Polish home pages and [English](https://formaku.eu/docs/) and [Polish](https://formaku.eu/pl/docs/) documentation matched the deployment archive over public HTTPS.
+The static project website and its bilingual documentation are maintained separately in Forgejo and published on OVH MultiSite. The [English](https://formaku.eu/docs/) and [Polish](https://formaku.eu/pl/docs/) guides link to the tagged alpha.
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
 
