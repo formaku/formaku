@@ -34,13 +34,13 @@ This is a working **0.1.0 alpha**, not completion of the full accepted v1 plan.
 - Registered extension contracts are present; complete developer examples and ResourceAdapter/ActionHandler UI integration still need delivery.
 - GitHub project snapshot PR creation, build/deploy status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
 - Composer split-release automation, Packagist registration, full PL/EN manuals, public synthetic demo and release/security review.
-- Reference 2-vCPU/4-GB p95 benchmark and confirmation of the remote GitHub CI matrix on the published commit.
+- Reference 2-vCPU/4-GB p95 benchmark.
 
-## External setup still needed
+## Public release and documentation
 
-The GitHub repository `formaku/formaku` exists. Publication of the CMS source and its first prerelease requires authenticated write access. CMS runtime deployment is a separate operation.
+The source is public in [`formaku/formaku`](https://github.com/formaku/formaku). The [`v0.1.0-alpha` prerelease](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha) points to `340828e` and includes GitHub source archives. The [first GitHub CI run](https://github.com/formaku/formaku/actions/runs/43064287179) passed the frontend, browser and PHP 8.4/8.5 jobs with PostgreSQL and MySQL on `bbd1e22`. GHCR publication and CMS runtime deployment remain pending.
 
-The static project website and its bilingual documentation are maintained separately in Forgejo. Website revision `4b459ce` is deployed to OVH MultiSite. The authoritative DNS for `formaku.eu` points to the hosting service, and all four HTML routes matched the deployment archive in an HTTP check against that service. OVH accepted the request for a Let's Encrypt certificate for `formaku.eu`. Public HTTPS verification is pending.
+The static project website and its bilingual documentation are maintained separately in Forgejo. Website revision `4b459ce` is deployed to OVH MultiSite. The English and Polish home pages and [English](https://formaku.eu/docs/) and [Polish](https://formaku.eu/pl/docs/) documentation matched the deployment archive over public HTTPS.
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
 
@@ -48,6 +48,6 @@ The pre-existing docs/commerce documents were preserved unchanged and remain out
 
 - Built the Linux AMD64 container locally from a clean archive of `340828e1d32ca676ae527900ba30e9b3d1756cc3`. The local image ID is `sha256:d0f0afa687d202453923e080a1b729e8e4524ef870b7a6eb53716c97ff579491`. Use the registry digest reported by the release workflow for public distribution.
 - In a temporary container running as `www-data` (UID 33), SQLite migrations completed and the project test fixtures created the demo. The health check, login page, published demo page and bundled JavaScript each returned HTTP 200. The admin bootstrap API returned HTTP 401 to a guest.
-- Composer and npm audits reported no known advisories for the locked production dependency sets at the time of the check. GitHub CI and GHCR publication remain pending.
+- Composer and npm audits reported no known advisories for the locked production dependency sets at the time of the check.
 - The 20-test alpha suite passed on PHP 8.5.11 with PostgreSQL 17.11 and MySQL 8.4.13. The development suite with website assistant pairing passed 27 tests and 168 assertions on PHP 8.4.27 and 8.5.11 with both databases, and on PHP 8.5.11 with SQLite.
 - Rehearsed the assistant upgrade locally with a synthetic PostgreSQL 17 backup from the alpha image. After restoring the backup and applying the two-table assistant migration with `8f72976`, the existing published page and its revision number were preserved. Both images served the health check, login, demo page and frontend JavaScript on the migrated database. The assistant image contained the Node adapter and returned HTTP 401 for an unauthenticated assistant connection request. This rehearsal used local containers and synthetic data.
