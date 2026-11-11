@@ -1,0 +1,114 @@
+<?php
+
+namespace Formaku\Cms\Http;
+
+use ErrorException;
+use Formaku\Cms\Models\Collection;
+use Formaku\Cms\Models\PageTemplate;
+use Formaku\Cms\Models\Record;
+use Formaku\Cms\Services\CollectionAccess;
+use Formaku\Cms\Services\Renderer;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use TypeError;
+
+class PageTemplateController
+{
+    public function index(Request $request, Collection $collection, CollectionAccess $access): array
+    {
+        $this->checkCanCreateFromTemplate($request, $collection, $access);
+        $templates = PageTemplate::where('collection_id', $collection->id)->latest('id')->paginate(25, ['id', 'name']);
+
+        return [
+            'data' => $templates->items(),
+            'current_page' => $templates->currentPage(),
+            'last_page' => $templates->lastPage(),
+        ];
+    }
+
+    public function show(Request $request, Collection $collection, string $templateId, CollectionAccess $access): array
+    {
+        $this->checkCanCreateFromTemplate($request, $collection, $access);
+
+        return $this->findTemplate($collection, $templateId)->only(['id', 'name', 'blocks']);
+    }
+
+    public function store(Request $request, Record $record, Renderer $renderer): JsonResponse
+    {
+        $data = $request->validate([
+            'name' => 'required|string|max:100',
+            'version' => 'required|integer|min:1',
+        ]);
+
+        $template = DB::transaction(function () use ($record, $data, $renderer) {
+            $collection = Collection::lockForUpdate()->findOrFail($record->collection_id);
+            abort_unless($this->supportsTemplates($collection), 404);
+            $current = Record::lockForUpdate()->findOrFail($record->id);
+            abort_unless((int) $current->version === (int) $data['version'], 409, 'Record changed. Reload and compare.');
+            $blocks = $current->draft?->data['blocks'] ?? [];
+            abort_if($blocks === [], 422, 'Save at least one block before creating a template.');
+            abort_if(strlen(json_encode($blocks, JSON_THROW_ON_ERROR)) > 256 * 1024, 422, 'Template blocks exceed 256 KiB.');
+            $this->checkBlockList($blocks);
+
+            try {
+                $renderer->blocks($blocks);
+            } catch (TypeError|ErrorException) {
+                throw ValidationException::withMessages(['blocks' => 'Invalid block data.']);
+            }
+
+            return PageTemplate::create([
+                'collection_id' => $collection->id,
+                'name' => $data['name'],
+                'blocks' => $blocks,
+            ]);
+        });
+
+        return response()->json($template->only(['id', 'name']), 201);
+    }
+
+    public function destroy(Collection $collection, string $templateId): array
+    {
+        $this->findTemplate($collection, $templateId)->delete();
+
+        return ['deleted' => true];
+    }
+
+    private function checkCanCreateFromTemplate(Request $request, Collection $collection, CollectionAccess $access): void
+    {
+        abort_unless($this->supportsTemplates($collection), 404);
+        $access->check($collection, $request->user(), true);
+        abort_if($access->rule($collection, $request->user())['scope'] === 'assigned', 403);
+    }
+
+    private function supportsTemplates(Collection $collection): bool
+    {
+        return $collection->kind === 'content' && collect($collection->definition['fields'] ?? [])->contains(
+            fn (array $field) => $field['key'] === 'blocks' && $field['type'] === 'richtext' && ! ($field['private'] ?? false),
+        );
+    }
+
+    private function findTemplate(Collection $collection, string $templateId): PageTemplate
+    {
+        $id = filter_var($templateId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        abort_if($id === false, 404);
+
+        return PageTemplate::where('collection_id', $collection->id)->findOrFail($id);
+    }
+
+    private function checkBlockList(mixed $blocks, int $depth = 0): void
+    {
+        abort_unless(is_array($blocks) && array_is_list($blocks) && count($blocks) <= 100 && $depth <= 10, 422, 'Invalid block list.');
+        foreach ($blocks as $block) {
+            abort_unless(
+                is_array($block) && is_string($block['type'] ?? null) && is_array($block['props'] ?? []),
+                422,
+                'Invalid block data.',
+            );
+            if (isset($block['children'])) {
+                $this->checkBlockList($block['children'], $depth + 1);
+            }
+        }
+    }
+}

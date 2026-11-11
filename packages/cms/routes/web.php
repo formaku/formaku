@@ -1,5 +1,5 @@
 <?php
-use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,SiteNavigationController,SitemapController};
+use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,PageTemplateController,SiteNavigationController,SitemapController};
 Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::get('/',fn()=>view('formaku::admin'))->middleware([ 'auth:'.config('formaku.guard'),Access::class.':work']);
  Route::get('/media/{media}',[PublicController::class,'file']);
@@ -11,6 +11,10 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::put('/site-navigation',[SiteNavigationController::class,'update'])->middleware(Access::class.':build');
   Route::get('/collections/{collection}/records',[ApiController::class,'records']);Route::post('/collections/{collection}/records',[ApiController::class,'save']);
   Route::get('/collections/{collection}/relation-options',[ApiController::class,'relationOptions']);
+  Route::get('/collections/{collection}/page-templates', [PageTemplateController::class, 'index']);
+  Route::get('/collections/{collection}/page-templates/{templateId}', [PageTemplateController::class, 'show'])->whereNumber('templateId');
+  Route::delete('/collections/{collection}/page-templates/{templateId}', [PageTemplateController::class, 'destroy'])->whereNumber('templateId')->middleware(Access::class.':build');
+  Route::post('/records/{record}/page-templates', [PageTemplateController::class, 'store'])->middleware(Access::class.':build');
   Route::get('/records/{record}',[ApiController::class,'show']);Route::get('/records/{record}/preview',[ApiController::class,'preview']);
   Route::post('/records/{record}/publish',[ApiController::class,'publish'])->middleware(Access::class.':publish');
   Route::post('/records/{record}/schedule',[ApiController::class,'schedule'])->middleware(Access::class.':publish');
