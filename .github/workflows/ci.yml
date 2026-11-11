@@ -87,3 +87,37 @@ jobs:
           php scripts/e2e-fixtures.php
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npx playwright test
+
+  compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      COMPOSE_PROJECT_NAME: formaku-ci
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Configure the test stack
+        run: |
+          sed -e "s|^APP_KEY=$|APP_KEY=base64:$(openssl rand -base64 32)|" \
+              -e "s|^DB_PASSWORD=$|DB_PASSWORD=$(openssl rand -hex 24)|" \
+              .env.docker.example > .env.docker
+      - name: Build and start the stack
+        run: |
+          docker compose --env-file .env.docker build web
+          docker compose --env-file .env.docker up -d --wait --wait-timeout 90 database
+          docker compose --env-file .env.docker run --rm web php artisan migrate --force
+          docker compose --env-file .env.docker up -d --no-build --wait --wait-timeout 90
+      - name: Verify the HTTP endpoints
+        run: |
+          curl --fail --silent --show-error http://127.0.0.1:8080/up
+          curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/login
+      - name: Show service logs on failure
+        if: failure()
+        run: docker compose --env-file .env.docker logs --no-color --tail 50
+      - name: Remove the test stack
+        if: always()
+        run: |
+          if [ -f .env.docker ]; then
+            docker compose --env-file .env.docker down --volumes
+          fi
