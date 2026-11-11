@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import MediaPicker from "./MediaPicker.vue";
 import RichText from "./RichText.vue";
 import {
   blockEditorKey,
@@ -181,6 +182,20 @@ function addQuestion() {
         </button>
       </div>
     </template>
+    <template v-else-if="block.type === 'image'">
+      <MediaPicker
+        :selected-id="block.props?.media_id"
+        @select="setBlockProp('media_id', $event)"
+      />
+      <label>
+        <span class="field-label">Podpis obrazu</span>
+        <input
+          class="input w-full"
+          :value="block.props?.caption"
+          @input.stop="updateBlockInput('caption', $event)"
+        />
+      </label>
+    </template>
     <template v-else-if="block.type === 'faq'"
       ><div
         v-for="(item, i) in block.props?.items ?? []"
@@ -207,11 +222,9 @@ function addQuestion() {
       ><label
         v-for="key in block.type === 'hero'
           ? ['eyebrow', 'title', 'text']
-          : block.type === 'image'
-            ? ['media_id', 'caption']
-            : block.type === 'cards'
-              ? ['collection_id']
-              : ['title', 'label', 'url']"
+          : block.type === 'cards'
+            ? ['collection_id']
+            : ['title', 'label', 'url']"
         :key="key"
         ><span class="field-label">{{ key }}</span
         ><input

@@ -21,7 +21,7 @@ test("browser authoring and publication", async ({ page }, info) => {
     name: originalName,
     mimeType: "image/png",
     buffer: Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jP1sAAAAASUVORK5CYII=",
+      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGOQac8EIgYIBQAcKgQxkClVFwAAAABJRU5ErkJggg==",
       "base64",
     ),
   });
@@ -30,7 +30,6 @@ test("browser authoring and publication", async ({ page }, info) => {
   const thumbnail = card.locator("img");
   await expect(thumbnail).toHaveAttribute("src", /\/media\/\d+$/);
   const fileUrl = (await thumbnail.getAttribute("src"))!;
-  const mediaId = fileUrl.split("/").at(-1)!;
 
   await page
     .getByRole("button", { name: "Strony i oferta", exact: true })
@@ -42,13 +41,29 @@ test("browser authoring and publication", async ({ page }, info) => {
   await page.getByLabel("Adres URL", { exact: true }).fill(slug);
   await page.getByRole("button", { name: "hero", exact: true }).click();
   await page.getByLabel("title", { exact: true }).fill("Saved draft");
-  await page.getByRole("button", { name: "image", exact: true }).click();
-  await page.getByLabel("media_id", { exact: true }).fill(mediaId);
+  await page.getByRole("button", { name: "container", exact: true }).click();
+  await page.getByLabel("Typ bloku w układzie").selectOption("image");
+  await page.getByRole("button", { name: "Dodaj blok do układu" }).click();
+  const chooseImage = page.getByRole("button", { name: /^(Wybierz|Zmień) obraz$/ });
+  await chooseImage.click();
+  const picker = page.getByRole("dialog", { name: "Wybierz obraz" });
+  await picker.getByRole("button", { name: originalName, exact: true }).click();
+  await expect(picker).toBeHidden();
+  await page.getByLabel("Podpis obrazu").fill("Browser image caption");
   await page.getByRole("button", { name: "Zapisz szkic" }).click();
   await expect(page.getByRole("status")).toContainText("Szkic zapisany");
   await page.getByRole("button", { name: "Pokaż podgląd" }).click();
   const preview = page.frameLocator('iframe[title="Podgląd zapisanego szkicu"]');
   await expect(preview.getByRole("heading", { name: "Saved draft" })).toBeVisible();
+  const previewImage = preview.locator("figure img");
+  await expect(previewImage).toHaveAttribute("src", fileUrl);
+  await expect.poll(() => previewImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(2);
+  await expect(preview.locator("figcaption")).toHaveText("Browser image caption");
+  await chooseImage.click();
+  await expect(picker).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(picker).toBeHidden();
+  await expect(page.getByRole("button", { name: "Opublikuj treść", exact: true })).toBeEnabled();
   const previewWidth = () =>
     preview.locator("body").evaluate((body) => body.ownerDocument.defaultView?.innerWidth);
   await expect.poll(previewWidth).toBe(1280);

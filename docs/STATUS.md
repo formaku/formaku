@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.7**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.8**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -18,13 +18,13 @@ This is **0.1.0-alpha.7**. The remaining v1 work is listed below.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
 - Publishing a public page under a new slug records a permanent redirect to its current URL.
 - The editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.
-- The editor supports nested blocks with sibling reordering, stacked containers and responsive two- and three-column layouts.
+- The editor supports nested blocks with sibling reordering, stacked containers and responsive two- and three-column layouts. Image blocks pick from the paginated public image library.
 - Docker runtime with PHP/HTTP/queue/scheduler, pinned base-image digests, non-root execution; GitHub build/GHCR and deployment workflow templates with pinned action SHAs.
 - Host deployment/backup helper and restricted SSH-dispatch template. These scripts have only received syntax checks; they are not an accepted production deployment system.
 
 ## Evidence
 
-- PHP: 38 tests and 285 assertions pass on local SQLite with PHP 8.5.11. This includes media authorization, filename validation and pagination, and a 10,000-record pagination test.
+- PHP: 38 tests and 296 assertions pass on local SQLite with PHP 8.5.11. This includes media authorization, filename validation and pagination, and a 10,000-record pagination test.
 - Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring and publication, media metadata changes on a published page, responsive layouts, SEO and mobile login width.
 - Frontend: vue-tsc and Vite production build pass. A real rendered dashboard screenshot is in test-results/dashboard-chromium.png (ignored build artifact).
 - Docker: image built; Laravel command runs, HTTP login returns 200, runtime UID is 33 (www-data). GitHub CI verifies that the web process, database, queue worker and scheduler start with Compose.
@@ -36,7 +36,7 @@ This is **0.1.0-alpha.7**. The remaining v1 work is listed below.
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
 - Further page composition controls, post templates and menus/footer/theme management.
 - Complete panel PL/EN localization and linked content translation workflow.
-- Media usage tracking, image variants and integrated media/relation pickers with pagination.
+- Media usage tracking, image variants and pickers for media and relation fields in record forms.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
 - Registered extension contracts are present; complete developer examples and ResourceAdapter/ActionHandler UI integration still need delivery.
 - GitHub project snapshot PR creation, build/deploy status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
@@ -45,7 +45,7 @@ This is **0.1.0-alpha.7**. The remaining v1 work is listed below.
 
 ## Public release and documentation
 
-The source is public in [`formaku/formaku`](https://github.com/formaku/formaku). [Alpha.2](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.2) points to `7975288`, and the [first prerelease](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha) points to `340828e`. Both Linux AMD64 images are available from [GHCR](https://github.com/formaku/formaku/pkgs/container/formaku). The [Compose guide](DEPLOYMENT.md#run-the-alpha-locally-with-docker-compose) covers both alphas and upgrading an existing installation. CMS runtime deployment remains pending.
+The source is public in [`formaku/formaku`](https://github.com/formaku/formaku). The [GitHub prereleases](https://github.com/formaku/formaku/releases) list tagged source and verified [GHCR](https://github.com/formaku/formaku/pkgs/container/formaku) image digests. The [Compose guide](DEPLOYMENT.md#run-the-alpha-locally-with-docker-compose) covers running this version and upgrading an existing installation. CMS runtime deployment remains pending.
 
 The static project website and its bilingual documentation are maintained separately in Forgejo and published on OVH MultiSite. The [English](https://formaku.eu/docs/) and [Polish](https://formaku.eu/pl/docs/) guides link to the tagged alpha.
 

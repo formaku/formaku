@@ -453,6 +453,29 @@ class FormakuTest extends TestCase
 
         $this->assertSame(array_slice($expectedOrder, 0, 30), array_column($firstPage->json('data'), 'id'));
         $this->assertSame(array_slice($expectedOrder, 30), array_column($secondPage->json('data'), 'id'));
+
+        foreach ([['private', 'image/png', 'hidden.png'], ['public', 'application/pdf', 'manual.pdf']] as [$visibility, $mime, $name]) {
+            Media::create([
+                'owner_id' => $staff->id,
+                'disk' => $visibility === 'public' ? 'public' : 'local',
+                'path' => 'formaku/'.$name,
+                'name' => $name,
+                'mime' => $mime,
+                'visibility' => $visibility,
+                'size' => 100,
+                'created_at' => $uploadedAt,
+            ]);
+        }
+
+        $picker = '/formaku/api/v1/media?kind=public-image';
+        $this->actingAs(User::factory()->create())->getJson($picker)->assertForbidden();
+        $firstImagePage = $this->actingAs(User::factory()->create(['role' => 'editor']))->getJson($picker)
+            ->assertOk()->assertJsonPath('total', 31)->assertJsonPath('last_page', 2);
+        $this->assertStringContainsString('kind=public-image', $firstImagePage->json('next_page_url'));
+        $secondImagePage = $this->getJson($picker.'&page=2')->assertOk()->assertJsonPath('current_page', 2);
+        $this->assertSame(array_slice($expectedOrder, 0, 30), array_column($firstImagePage->json('data'), 'id'));
+        $this->assertSame(array_slice($expectedOrder, 30), array_column($secondImagePage->json('data'), 'id'));
+        $this->getJson('/formaku/api/v1/media')->assertOk()->assertJsonPath('total', 33);
     }
 
     public function test_export_excludes_accounts_and_provider_secrets(): void

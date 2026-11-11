@@ -115,9 +115,15 @@ class ApiController
             ->header('Cache-Control', 'no-store')->header('X-Robots-Tag', 'noindex');
     }
 
-    public function media()
+    public function media(Request $request)
     {
-        return Media::latest()->orderByDesc('id')->paginate(30);
+        $filters = $request->validate(['kind' => 'sometimes|in:public-image']);
+        $query = Media::latest()->orderByDesc('id');
+        if (isset($filters['kind'])) {
+            $query->where('visibility', 'public')->where('mime', 'like', 'image/%');
+        }
+
+        return $query->paginate(30)->appends($filters);
     }
 
     public function upload(Request $r)
