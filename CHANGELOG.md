@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.0-alpha.5 — 2026-11-11
 
 The editor shows the saved draft in an embedded page preview at desktop, tablet and phone widths. The preview uses the public renderer and the saved draft's SEO metadata.
 

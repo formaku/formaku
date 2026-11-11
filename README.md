@@ -2,7 +2,7 @@
 
 Project website and documentation are at [formaku.eu](https://formaku.eu/). Formaku is developed by [Strefa Badań](https://strefabadan.pl/).
 
-An open-source Laravel CMS and schema-driven application builder. **0.1.0-alpha.4**.
+An open-source Laravel CMS and schema-driven application builder. **0.1.0-alpha.5**.
 
 Vue 3 administration, server-rendered pages, versioned records, a customer portal and Docker delivery. MIT licensed. One installation hosts one application.
 
@@ -45,7 +45,7 @@ docker compose --env-file .env.docker run --rm web php artisan migrate --force
 docker compose --env-file .env.docker up -d
 ```
 
-The same image runs web, queue and scheduler. Local port is 8080. Existing installations need the slug redirects migration when upgrading to alpha.4. See [deployment and upgrade instructions](docs/DEPLOYMENT.md), [user manual](docs/user/README.md), and [implementation status](docs/STATUS.md).
+The same image runs web, queue and scheduler. Local port is 8080. Upgrades from versions before alpha.4 still apply the slug redirects migration. See [deployment and upgrade instructions](docs/DEPLOYMENT.md), [user manual](docs/user/README.md), and [implementation status](docs/STATUS.md).
 
 ## Tests
 

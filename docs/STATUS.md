@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.4**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.5**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -16,7 +16,7 @@ This is **0.1.0-alpha.4**. The remaining v1 work is listed below.
 - Public content collections can map non-private text fields to the SEO title and description of published revisions.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
 - Publishing a public page under a new slug records a permanent redirect to its current URL.
-- Development version: the editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.
+- The editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.
 - Docker runtime with PHP/HTTP/queue/scheduler, pinned base-image digests, non-root execution; GitHub build/GHCR and deployment workflow templates with pinned action SHAs.
 - Host deployment/backup helper and restricted SSH-dispatch template. These scripts have only received syntax checks; they are not an accepted production deployment system.
 
