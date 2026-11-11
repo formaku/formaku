@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from "./locale";
 import { computed, onBeforeUnmount, ref, useId } from "vue";
 import { FileText } from "lucide-vue-next";
 
@@ -15,7 +16,7 @@ const props = defineProps<{
 }>();
 const emit = defineEmits<{ select: [id: number | undefined] }>();
 const isFilePicker = computed(() => props.mode === "file");
-const title = computed(() => isFilePicker.value ? "Wybierz plik" : "Wybierz obraz");
+const title = computed(() => isFilePicker.value ? t("Wybierz plik") : t("Wybierz obraz"));
 const prefix = (
   document.querySelector('meta[name="formaku-prefix"]') as HTMLMetaElement
 ).content;
@@ -95,9 +96,9 @@ onBeforeUnmount(() => controller?.abort());
       {{ title }}
     </button>
     <template v-if="props.selectedId">
-      <span class="text-sm text-base-content/70">{{ isFilePicker ? "Plik przypisany" : "Obraz przypisany" }}</span>
+      <span class="text-sm text-base-content/70">{{ isFilePicker ? t("Plik przypisany") : t("Obraz przypisany") }}</span>
       <button type="button" class="btn btn-sm btn-ghost" @click="removeMedia">
-        {{ isFilePicker ? "Usuń przypisanie pliku" : "Usuń przypisanie obrazu" }}
+        {{ isFilePicker ? t("Usuń przypisanie pliku") : t("Usuń przypisanie obrazu") }}
       </button>
     </template>
   </div>
@@ -112,17 +113,17 @@ onBeforeUnmount(() => controller?.abort());
         <header class="flex flex-wrap items-center justify-between gap-2">
           <h2 :id="headingId" class="text-lg font-semibold">{{ title }}</h2>
           <button type="button" class="btn btn-sm" autofocus @click="closePicker">
-            Anuluj
+            {{ t("Anuluj") }}
           </button>
         </header>
-        <p v-if="loading" role="status">{{ isFilePicker ? "Wczytywanie plików…" : "Wczytywanie obrazów…" }}</p>
+        <p v-if="loading" role="status">{{ isFilePicker ? t("Wczytywanie plików…") : t("Wczytywanie obrazów…") }}</p>
         <div v-else-if="failedPage !== null" class="alert alert-error">
-          <span role="alert">{{ isFilePicker ? "Nie udało się wczytać plików." : "Nie udało się wczytać obrazów." }}</span>
+          <span role="alert">{{ isFilePicker ? t("Nie udało się wczytać plików.") : t("Nie udało się wczytać obrazów.") }}</span>
           <button type="button" class="btn btn-sm" @click="loadPage(failedPage)">
-            Spróbuj ponownie
+            {{ t("Spróbuj ponownie") }}
           </button>
         </div>
-        <p v-else-if="page && page.data.length === 0">{{ isFilePicker ? "Brak plików." : "Brak publicznych obrazów." }}</p>
+        <p v-else-if="page && page.data.length === 0">{{ isFilePicker ? t("Brak plików.") : t("Brak publicznych obrazów.") }}</p>
         <div v-if="page?.data.length" class="grid grid-cols-2 gap-3 sm:grid-cols-3">
           <button
             v-for="file in page.data"
@@ -148,13 +149,13 @@ onBeforeUnmount(() => controller?.abort());
             </span>
             <span class="w-full wrap-anywhere">{{ file.name }}</span>
             <span v-if="isFilePicker" :id="`${headingId}-file-${file.id}`" class="badge badge-sm">
-              {{ file.visibility === "public" ? "Publiczny" : "Prywatny" }}
+              {{ file.visibility === "public" ? t("Publiczny") : t("Prywatny") }}
             </span>
           </button>
         </div>
         <nav
           v-if="page && page.last_page > 1"
-          :aria-label="isFilePicker ? 'Strony plików' : 'Strony obrazów'"
+          :aria-label="isFilePicker ? t('Strony plików') : t('Strony obrazów')"
           class="flex flex-wrap items-center gap-2"
         >
           <button
@@ -163,16 +164,16 @@ onBeforeUnmount(() => controller?.abort());
             :disabled="loading || page.current_page <= 1"
             @click="loadPage(page.current_page - 1)"
           >
-            Poprzednia
+            {{ t("Poprzednia") }}
           </button>
-          <span aria-live="polite">Strona {{ page.current_page }} z {{ page.last_page }}</span>
+          <span aria-live="polite">{{ t("Strona") }} {{ page.current_page }} z {{ page.last_page }}</span>
           <button
             type="button"
             class="btn btn-sm"
             :disabled="loading || page.current_page >= page.last_page"
             @click="loadPage(page.current_page + 1)"
           >
-            Następna
+            {{ t("Następna") }}
           </button>
         </nav>
       </div>

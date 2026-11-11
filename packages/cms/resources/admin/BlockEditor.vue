@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from "./locale";
 import { computed, ref } from "vue";
 import MediaPicker from "./MediaPicker.vue";
 import RichText from "./RichText.vue";
@@ -91,7 +92,7 @@ function addQuestion() {
     />
     <template v-else-if="isLayoutBlock(block.type)">
       <label v-if="block.type === 'columns'">
-        <span class="field-label">Liczba kolumn</span>
+        <span class="field-label">{{ t("Liczba kolumn") }}</span>
         <select
           class="select select-sm max-w-full"
           :value="
@@ -106,13 +107,13 @@ function addQuestion() {
             )
           "
         >
-          <option value="">Automatycznie</option>
-          <option value="2">Dwie kolumny</option>
-          <option value="3">Trzy kolumny</option>
+          <option value="">{{ t("Automatycznie") }}</option>
+          <option value="2">{{ t("Dwie kolumny") }}</option>
+          <option value="3">{{ t("Trzy kolumny") }}</option>
         </select>
       </label>
       <label v-else>
-        <span class="field-label">Układ kontenera</span>
+        <span class="field-label">{{ t("Układ kontenera") }}</span>
         <select
           class="select select-sm max-w-full"
           :value="block.props?.layout === 'stack' ? 'stack' : ''"
@@ -123,25 +124,25 @@ function addQuestion() {
             )
           "
         >
-          <option value="">Automatycznie</option>
-          <option value="stack">Pionowo</option>
+          <option value="">{{ t("Automatycznie") }}</option>
+          <option value="stack">{{ t("Pionowo") }}</option>
         </select>
       </label>
       <article
         v-for="(item, index) in block.children ?? []"
         :key="blockEditorKey(item)"
-        :aria-label="blockLabels[item.type as keyof typeof blockLabels] ?? item.type"
+        :aria-label="t(blockLabels[item.type as keyof typeof blockLabels] ?? item.type)"
         class="space-y-3 rounded-box border border-base-300 p-2 sm:p-3"
       >
         <div class="flex flex-wrap items-center justify-between gap-2">
           <span class="text-sm font-semibold">
-            {{ blockLabels[item.type as keyof typeof blockLabels] ?? item.type }}
+            {{ t(blockLabels[item.type as keyof typeof blockLabels] ?? item.type) }}
           </span>
           <div class="flex gap-1">
             <button
               class="btn btn-xs"
               type="button"
-              aria-label="Przesuń blok w górę"
+              :aria-label='t("Przesuń blok w górę")'
               :disabled="index === 0"
               @click="moveChild(index, -1)"
             >
@@ -150,7 +151,7 @@ function addQuestion() {
             <button
               class="btn btn-xs"
               type="button"
-              aria-label="Przesuń blok w dół"
+              :aria-label='t("Przesuń blok w dół")'
               :disabled="index === (block.children?.length ?? 0) - 1"
               @click="moveChild(index, 1)"
             >
@@ -159,7 +160,7 @@ function addQuestion() {
             <button
               class="btn btn-xs"
               type="button"
-              aria-label="Usuń blok z układu"
+              :aria-label='t("Usuń blok z układu")'
               @click="removeChild(index)"
             >
               ×
@@ -170,15 +171,15 @@ function addQuestion() {
       </article>
       <div v-if="canAddChild" class="flex flex-wrap items-end gap-2">
         <label>
-          <span class="field-label">Typ bloku w układzie</span>
+          <span class="field-label">{{ t("Typ bloku w układzie") }}</span>
           <select class="select select-sm max-w-full" v-model="childType">
             <option v-for="[type, label] in childTypes" :key="type" :value="type">
-              {{ label }}
+              {{ t(label) }}
             </option>
           </select>
         </label>
         <button class="btn btn-sm" type="button" @click="addChild">
-          Dodaj blok do układu
+          {{ t("Dodaj blok do układu") }}
         </button>
       </div>
     </template>
@@ -188,7 +189,7 @@ function addQuestion() {
         @select="setBlockProp('media_id', $event)"
       />
       <label>
-        <span class="field-label">Podpis obrazu</span>
+        <span class="field-label">{{ t("Podpis obrazu") }}</span>
         <input
           class="input w-full"
           :value="block.props?.caption"
@@ -203,10 +204,10 @@ function addQuestion() {
         class="space-y-2"
       >
         <label
-          ><span class="field-label">Pytanie</span
+          ><span class="field-label">{{ t("Pytanie") }}</span
           ><input class="input w-full" v-model="item.question" /></label
         ><label
-          ><span class="field-label">Odpowiedź</span
+          ><span class="field-label">{{ t("Odpowiedź") }}</span
           ><textarea class="textarea w-full" v-model="item.answer" />
         </label>
       </div>
@@ -215,7 +216,7 @@ function addQuestion() {
         type="button"
         @click="addQuestion"
       >
-        Dodaj pytanie
+        {{ t("Dodaj pytanie") }}
       </button></template
     >
     <template v-else

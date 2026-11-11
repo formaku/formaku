@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { t } from "./locale";
 import { computed, onBeforeUnmount, ref, useId } from "vue";
 
 type RecordId = number | string;
@@ -61,7 +62,7 @@ async function loadPage(number: number) {
       `${prefix}/api/v1/collections/${props.target}/relation-options?${query}`,
       { headers: { Accept: "application/json" }, signal: request.signal },
     );
-    if (!response.ok) throw new Error("Nie udało się wczytać rekordów.");
+    if (!response.ok) throw new Error(t("Nie udało się wczytać rekordów."));
 
     const result: RelationPage = await response.json();
     if (controller !== request) return;
@@ -116,7 +117,7 @@ onBeforeUnmount(() => controller?.abort());
 <template>
   <div>
     <span :id="fieldId" class="field-label">
-      {{ label }}<span v-if="privateField" class="text-secondary"> · wewnętrzne</span>
+      {{ label }}<span v-if="privateField" class="text-secondary"> {{ t("· wewnętrzne") }}</span>
     </span>
     <div class="flex flex-wrap items-center gap-3">
       <button
@@ -128,10 +129,10 @@ onBeforeUnmount(() => controller?.abort());
         :disabled="!target"
         @click="openPicker"
       >
-        Wybierz rekordy
+        {{ t("Wybierz rekordy") }}
       </button>
       <span v-if="savedSelection.size" class="text-sm text-base-content/70">
-        Powiązane rekordy: {{ savedSelection.size }}
+        {{ t("Powiązane rekordy:") }} {{ savedSelection.size }}
       </span>
     </div>
   </div>
@@ -144,41 +145,41 @@ onBeforeUnmount(() => controller?.abort());
     >
       <form method="dialog" class="modal-box max-w-2xl space-y-4" @submit.prevent="applySelection">
         <h2 :id="headingId" class="text-lg font-semibold">{{ label }}</h2>
-        <section v-if="selection.size" aria-label="Wybrane rekordy">
-          <p class="field-label">Wybrane rekordy: {{ selection.size }}</p>
+        <section v-if="selection.size" :aria-label='t("Wybrane rekordy")'>
+          <p class="field-label">{{ t("Wybrane rekordy:") }} {{ selection.size }}</p>
           <ul class="max-h-32 space-y-1 overflow-y-auto">
             <li v-for="([id], index) in selection" :key="id" class="flex flex-wrap items-center gap-2">
-              <span class="min-w-0 wrap-anywhere">{{ labels.get(id) ?? `Powiązany rekord ${index + 1}` }}</span>
+              <span class="min-w-0 wrap-anywhere">{{ labels.get(id) ?? t("Powiązany rekord {0}", index + 1) }}</span>
               <button
                 type="button"
                 class="btn btn-xs btn-ghost"
-                :aria-label="`Usuń z wyboru ${labels.get(id) ?? `powiązany rekord ${index + 1}`}`"
+                :aria-label="t('Usuń z wyboru {0}', labels.get(id) ?? t('powiązany rekord {0}', index + 1))"
                 @click="toggleRecord(id, false)"
               >
-                Usuń
+                {{ t("Usuń") }}
               </button>
             </li>
           </ul>
         </section>
-        <p v-if="loading" role="status">Wczytywanie rekordów…</p>
+        <p v-if="loading" role="status">{{ t("Wczytywanie rekordów…") }}</p>
         <div v-else-if="failedPage !== null" class="alert alert-error">
-          <span role="alert">Nie udało się wczytać rekordów.</span>
+          <span role="alert">{{ t("Nie udało się wczytać rekordów.") }}</span>
           <button type="button" class="btn btn-sm" @click="loadPage(failedPage)">
-            Spróbuj ponownie
+            {{ t("Spróbuj ponownie") }}
           </button>
         </div>
-        <p v-else-if="page && page.data.length === 0">Brak dostępnych rekordów.</p>
+        <p v-else-if="page && page.data.length === 0">{{ t("Brak dostępnych rekordów.") }}</p>
         <nav
           v-if="page && page.last_page > 1"
-          aria-label="Strony rekordów"
+          :aria-label='t("Strony rekordów")'
           class="flex flex-wrap items-center gap-2"
         >
           <button type="button" class="btn btn-sm" :disabled="loading || page.current_page <= 1" @click="loadPage(page.current_page - 1)">
-            Poprzednia
+            {{ t("Poprzednia") }}
           </button>
-          <span aria-live="polite">Strona {{ page.current_page }} z {{ page.last_page }}</span>
+          <span aria-live="polite">{{ t("Strona") }} {{ page.current_page }} z {{ page.last_page }}</span>
           <button type="button" class="btn btn-sm" :disabled="loading || page.current_page >= page.last_page" @click="loadPage(page.current_page + 1)">
-            Następna
+            {{ t("Następna") }}
           </button>
         </nav>
         <ul v-if="page?.data.length" class="max-h-64 space-y-1 overflow-y-auto">
@@ -196,8 +197,8 @@ onBeforeUnmount(() => controller?.abort());
           </li>
         </ul>
         <div class="modal-action flex-wrap">
-          <button type="button" class="btn btn-sm" autofocus @click="closePicker">Anuluj</button>
-          <button type="submit" class="btn btn-sm btn-primary">Zastosuj wybór</button>
+          <button type="button" class="btn btn-sm" autofocus @click="closePicker">{{ t("Anuluj") }}</button>
+          <button type="submit" class="btn btn-sm btn-primary">{{ t("Zastosuj wybór") }}</button>
         </div>
       </form>
     </dialog>

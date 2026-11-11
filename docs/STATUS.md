@@ -1,11 +1,11 @@
 # Implementation status
 
-This is **0.1.0-alpha.15**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.16**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
 - Laravel 13 / PHP 8.4+ Composer package, isolated configuration, opt-in public routing and fail-closed administrative authorization; starter with role-based access.
-- Vue 3 / TypeScript panel with Formaku branding, Reka provider, Tailwind/daisyUI components and locally bundled fonts.
+- Vue 3 / TypeScript panel with Formaku branding, Reka provider, Tailwind/daisyUI components and locally bundled fonts. The header offers a Polish/English interface switch remembered by the browser.
 - Versioned collection definitions, generated record forms/lists, paginated selection of related records under collection access rules, relation storage, basic workflow transitions and assignment.
 - Revision conflicts (409), immutable content revisions, separate draft/public pointers, public slug isolation, atomic publication, history restoration and scheduled publication API/UI.
 - Canonical JSON renderer, Tiptap rich text, hero/text/CTA/image/cards/FAQ/container/columns blocks; reorder controls and drag/drop; delayed autosave for existing records.
@@ -36,7 +36,7 @@ This is **0.1.0-alpha.15**. The remaining v1 work is listed below.
 
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
 - Further page composition controls and theme management.
-- Complete panel PL/EN localization and linked content translation workflow.
+- Linked content translation workflow.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
 - ResourceAdapter and ActionHandler integration into the Formaku panel. The [developer examples](developer/README.md) cover registry use from host routes.
 - GitHub project snapshot PR creation, build/deploy status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.

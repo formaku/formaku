@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { locale, t } from "./locale";
 import { computed, onMounted, ref } from "vue";
 
 type Connection = {
@@ -38,7 +39,7 @@ async function run(action: () => Promise<void>) {
   try {
     await action();
   } catch (failure) {
-    error.value = failure instanceof Error ? failure.message : "Operacja nie powiodła się.";
+    error.value = failure instanceof Error ? failure.message : t("Operacja nie powiodła się.");
   } finally {
     busy.value = false;
   }
@@ -77,7 +78,7 @@ function revoke() {
     await props.request("/assistant", "DELETE");
     code.value = "";
     if (settings.value) settings.value.connection = null;
-    message.value = "Dostęp asystenta został cofnięty.";
+    message.value = t("Dostęp asystenta został cofnięty.");
   });
 }
 
@@ -85,10 +86,10 @@ async function copy(value: string) {
   try {
     await navigator.clipboard.writeText(value);
     error.value = "";
-    message.value = "Skopiowano.";
+    message.value = t("Skopiowano.");
   } catch {
     message.value = "";
-    error.value = "Skopiuj tekst ręcznie.";
+    error.value = t("Skopiuj tekst ręcznie.");
   }
 }
 
@@ -99,46 +100,45 @@ onMounted(() => run(refresh));
   <section class="card card-border bg-base-100 max-w-3xl">
     <div class="card-body gap-5">
       <div class="space-y-2">
-        <h2 class="card-title">Połącz własnego asystenta</h2>
+        <h2 class="card-title">{{ t("Połącz własnego asystenta") }}</h2>
         <p>
-          Po sparowaniu zlecisz tworzenie i edycję stron w rozmowie z Codexem.
-          Asystent uzyska dostęp do szkiców w wybranej publicznej kolekcji.
+          {{ t("Po sparowaniu zlecisz tworzenie i edycję stron w rozmowie z Codexem.\n          Asystent uzyska dostęp do szkiców w wybranej publicznej kolekcji.") }}
         </p>
       </div>
 
       <p v-if="error" class="alert alert-error" role="alert">{{ error }}</p>
       <p v-if="message" role="status">{{ message }}</p>
-      <p v-if="busy && !settings" role="status">Sprawdzanie połączenia…</p>
+      <p v-if="busy && !settings" role="status">{{ t("Sprawdzanie połączenia…") }}</p>
 
       <div v-if="connection" class="rounded-box border border-base-300 p-4 space-y-3">
         <div class="sm:flex sm:items-center sm:gap-3">
           <span class="badge badge-outline">{{
-            { pending: "Oczekuje na sparowanie", active: "Połączono", expired: "Dostęp wygasł" }[connection.status]
+            { pending: t("Oczekuje na sparowanie"), active: t("Połączono"), expired: t("Dostęp wygasł") }[connection.status]
           }}</span>
-          <span>{{ collectionName ?? "Kolekcja niedostępna" }} · {{ connection.can_publish ? "Edycja i publikacja" : "Szkice" }}</span>
+          <span>{{ collectionName ?? t("Kolekcja niedostępna") }} · {{ connection.can_publish ? t("Edycja i publikacja") : t("Szkice") }}</span>
         </div>
         <p v-if="connection.status === 'active' && collectionName" class="text-sm">
-          W Codexie możesz teraz napisać „Utwórz szkic strony Kontakt”.
+          {{ t("W Codexie możesz teraz napisać „Utwórz szkic strony Kontakt”.") }}
         </p>
         <p v-if="connection.expires_at" class="text-sm text-base-content/70">
-          Ważność do {{ new Date(connection.expires_at).toLocaleString("pl-PL") }}
+          {{ t("Ważność do") }} {{ new Date(connection.expires_at).toLocaleString(locale) }}
         </p>
         <div class="sm:flex sm:gap-2 space-y-2 sm:space-y-0">
-          <button class="btn btn-sm" :disabled="busy" @click="run(refresh)">Odśwież stan</button>
-          <button class="btn btn-sm btn-error btn-outline" :disabled="busy" @click="revoke">Cofnij dostęp</button>
+          <button class="btn btn-sm" :disabled="busy" @click="run(refresh)">{{ t("Odśwież stan") }}</button>
+          <button class="btn btn-sm btn-error btn-outline" :disabled="busy" @click="revoke">{{ t("Cofnij dostęp") }}</button>
         </div>
       </div>
 
       <ol v-if="settings?.collections.length" class="list-decimal ps-5 space-y-5">
         <li class="space-y-2">
-          <p>Pobierz adapter i otwórz terminal w folderze pobranego pliku. Adapter wymaga Node.js 20 lub nowszego.</p>
-          <a class="btn btn-sm" :href="base + '/api/v1/assistant/adapter'" download>Pobierz adapter MCP</a>
+          <p>{{ t("Pobierz adapter i otwórz terminal w folderze pobranego pliku. Adapter wymaga Node.js 20 lub nowszego.") }}</p>
+          <a class="btn btn-sm" :href="base + '/api/v1/assistant/adapter'" download>{{ t("Pobierz adapter MCP") }}</a>
         </li>
         <li>
           <form class="space-y-3" @submit.prevent="pair">
             <fieldset class="fieldset">
-              <legend class="fieldset-legend">Kolekcja dostępna dla asystenta</legend>
-              <select v-model="collectionId" class="select w-full sm:w-auto" aria-label="Kolekcja dostępna dla asystenta" required>
+              <legend class="fieldset-legend">{{ t("Kolekcja dostępna dla asystenta") }}</legend>
+              <select v-model="collectionId" class="select w-full sm:w-auto" :aria-label='t("Kolekcja dostępna dla asystenta")' required>
                 <option v-for="collection in settings.collections" :key="collection.id" :value="collection.id">
                   {{ collection.name }}
                 </option>
@@ -146,32 +146,32 @@ onMounted(() => run(refresh));
             </fieldset>
             <label v-if="settings.can_publish" class="label text-wrap text-base-content">
               <input v-model="canPublish" type="checkbox" class="checkbox checkbox-sm" />
-              Zezwól asystentowi na publikację na moje polecenie
+              {{ t("Zezwól asystentowi na publikację na moje polecenie") }}
             </label>
             <p class="text-sm text-base-content/70">
-              Kod jest jednorazowy i ważny przez 5 minut. Dostęp trwa 30 dni.
-              {{ connection ? "Nowy kod od razu zastąpi obecne połączenie." : "" }}
+              {{ t("Kod jest jednorazowy i ważny przez 5 minut. Dostęp trwa 30 dni.") }}
+              {{ connection ? t("Nowy kod od razu zastąpi obecne połączenie.") : "" }}
             </p>
-            <button class="btn btn-primary" :disabled="busy || collectionId === null">Wygeneruj kod parowania</button>
+            <button class="btn btn-primary" :disabled="busy || collectionId === null">{{ t("Wygeneruj kod parowania") }}</button>
           </form>
         </li>
         <li class="space-y-3">
-          <p>Uruchom polecenie, wklej kod w terminalu i ponownie otwórz Codex.</p>
+          <p>{{ t("Uruchom polecenie, wklej kod w terminalu i ponownie otwórz Codex.") }}</p>
           <div class="sm:flex sm:gap-2 space-y-2 sm:space-y-0">
-            <input class="input font-mono w-full" aria-label="Polecenie parowania" readonly :value="command" />
-            <button class="btn" @click="copy(command)">Kopiuj polecenie</button>
+            <input class="input font-mono w-full" :aria-label='t("Polecenie parowania")' readonly :value="command" />
+            <button class="btn" @click="copy(command)">{{ t("Kopiuj polecenie") }}</button>
           </div>
           <div v-if="code" class="sm:flex sm:gap-2 space-y-2 sm:space-y-0">
-            <input class="input font-mono w-full" aria-label="Kod parowania" autocomplete="off" readonly :value="code" />
-            <button class="btn" @click="copy(code)">Kopiuj kod</button>
+            <input class="input font-mono w-full" :aria-label='t("Kod parowania")' autocomplete="off" readonly :value="code" />
+            <button class="btn" @click="copy(code)">{{ t("Kopiuj kod") }}</button>
           </div>
-          <p v-if="code" class="text-sm text-base-content/70">Wklej kod tylko w terminalu.</p>
+          <p v-if="code" class="text-sm text-base-content/70">{{ t("Wklej kod tylko w terminalu.") }}</p>
         </li>
       </ol>
       <p v-else-if="settings">
-        Dodaj publiczną kolekcję treści bez pól prywatnych i relacji, aby sparować asystenta.
+        {{ t("Dodaj publiczną kolekcję treści bez pól prywatnych i relacji, aby sparować asystenta.") }}
       </p>
-      <button v-else-if="error" class="btn self-start" @click="run(refresh)">Spróbuj ponownie</button>
+      <button v-else-if="error" class="btn self-start" @click="run(refresh)">{{ t("Spróbuj ponownie") }}</button>
     </div>
   </section>
 </template>

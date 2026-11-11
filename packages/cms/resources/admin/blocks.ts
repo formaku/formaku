@@ -1,3 +1,4 @@
+import { t } from "./locale";
 export const blockLabels = {
   hero: "Sekcja główna",
   text: "Tekst",
@@ -51,10 +52,10 @@ export function createBlock(type: string): Block {
       return {
         ...block,
         props: {
-          title: "Nowa sekcja",
+          title: t("Nowa sekcja"),
           text: "",
           url: "/portal",
-          label: "Zobacz więcej",
+          label: t("Zobacz więcej"),
         },
       };
   }

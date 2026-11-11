@@ -10,6 +10,18 @@ test("browser authoring and publication", async ({ page }, info) => {
   await expect(
     page.getByRole("heading", { name: "Twój warsztat." }),
   ).toBeVisible();
+  await page.getByRole("combobox", { name: "Język panelu" }).selectOption("en");
+  await expect(page.getByRole("heading", { name: "Your workspace." })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "en");
+  await page.reload();
+  await expect(page.getByRole("combobox", { name: "Panel language" })).toHaveValue("en");
+  await page.getByRole("button", { name: "Media", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Media library" })).toBeVisible();
+  await expect(page.getByLabel("Upload file")).toBeVisible();
+  await page.getByRole("combobox", { name: "Panel language" }).selectOption("pl");
+  await expect(page.getByRole("heading", { name: "Biblioteka mediów" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Twój warsztat." })).toBeVisible();
   await page.screenshot({
     path: `test-results/dashboard-${info.project.name}.png`,
     fullPage: true,

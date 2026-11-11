@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.16 — 2026-11-11
+
+The CMS panel can switch between Polish and English. The selected language is remembered in the browser. Content, collection names, and custom field labels retain their original language. This release adds no database migrations.
+
 ## 0.1.0-alpha.15 — 2026-11-11
 
 Administrators can save a draft’s blocks as a template for its collection. Editors with permission to create records can copy the blocks into a new draft, then edit and publish it through the normal workflow. A migration creates the templates table. Bilingual Laravel extension guides include runnable examples for blocks, resources, and actions.
