@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.14**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.15**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -19,14 +19,14 @@ This is **0.1.0-alpha.14**. The remaining v1 work is listed below.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
 - Publishing a public page under a new slug records a permanent redirect to its current URL.
 - The editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.
-- The editor supports nested blocks with sibling reordering, stacked containers and responsive two- and three-column layouts. Image blocks pick from the paginated public image library and can serve smaller WebP variants while retaining the original URL.
+- The editor supports nested blocks with sibling reordering, stacked containers and responsive two- and three-column layouts. Image blocks pick from the paginated public image library and can serve smaller WebP variants while retaining the original URL. Administrators can save a draft’s blocks as a collection template. Editors with create access can use it in a new draft.
 - Docker runtime with PHP/HTTP/queue/scheduler, pinned base-image digests, non-root execution; GitHub build/GHCR and deployment workflow templates with pinned action SHAs.
 - Host deployment/backup helper and restricted SSH-dispatch template. These scripts have only received syntax checks; they are not an accepted production deployment system.
 
 ## Evidence
 
-- PHP: 49 tests and 458 assertions pass on local SQLite with PHP 8.5.11. The suite covers navigation access, address validation, version conflicts, and theme compatibility with existing settings. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4.
-- Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring, media usage, responsive layouts, SEO, related records, private attachments, WebP variants and mobile login width. Chromium also verifies site navigation changes on a published page.
+- PHP: 53 tests and 516 assertions pass on local SQLite with PHP 8.5.11. The suite covers navigation access, address validation, version conflicts, theme compatibility with existing settings, and template access, validation and draft independence. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4.
+- Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring, media usage, responsive layouts, SEO, related records, private attachments, WebP variants and mobile login width. The suite also checks collection templates and their normal publication flow. Chromium verifies site navigation changes on a published page.
 - Frontend: vue-tsc and Vite production build pass. A real rendered dashboard screenshot is in test-results/dashboard-chromium.png (ignored build artifact).
 - Docker: image built; Laravel command runs, HTTP login returns 200, runtime UID is 33 (www-data). GitHub CI verifies that the web process, database, queue worker and scheduler start with Compose.
 - Clean-host Composer integration: installed in a separate unmodified Laravel project; original root route retained, Formaku admin registered, public routes absent by default.
@@ -35,10 +35,10 @@ This is **0.1.0-alpha.14**. The remaining v1 work is listed below.
 ## Remaining accepted v1 work
 
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
-- Further page composition controls, post templates and theme management.
+- Further page composition controls and theme management.
 - Complete panel PL/EN localization and linked content translation workflow.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
-- Registered extension contracts are present; complete developer examples and ResourceAdapter/ActionHandler UI integration still need delivery.
+- ResourceAdapter and ActionHandler integration into the Formaku panel. The [developer examples](developer/README.md) cover registry use from host routes.
 - GitHub project snapshot PR creation, build/deploy status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
 - Composer split-release automation, Packagist registration, full PL/EN manuals, public synthetic demo and release/security review.
 - Reference 2-vCPU/4-GB p95 benchmark.

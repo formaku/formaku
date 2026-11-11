@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 test("browser authoring and publication", async ({ page }, info) => {
   const slug = "browser-" + info.project.name + "-" + Date.now();
   await page.goto("/login");
@@ -230,6 +230,10 @@ test("nested blocks keep their order and responsive columns after saving", async
   await page.goto("/p/" + slug);
   await expect(page.locator(".block-layout-grid h1, .block-layout-grid h2"))
     .toHaveText(["First child", "Second child"]);
+
+  await test.step("copy a page template into a new draft", () =>
+    verifyPageTemplates(page, slug),
+  );
 });
 
 test("collection forms save SEO metadata, related records and a private file", async ({
@@ -354,15 +358,11 @@ test("collection forms save SEO metadata, related records and a private file", a
   expect((await guest.get(fileUrl)).status()).toBe(404);
 });
 
-test("page templates copy only blocks into a new draft", async ({ page }, info) => {
-  const suffix = info.project.name + "-" + Date.now();
+async function verifyPageTemplates(page: Page, suffix: string) {
   const templateName = "Template " + suffix;
   const originalSlug = "template-source-" + suffix;
   const copySlug = "template-copy-" + suffix;
-  await page.goto("/login");
-  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
-  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
-  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  await page.goto("/formaku");
   await page.getByRole("button", { name: "Strony i oferta", exact: true }).click();
   const addRecord = page.getByRole("button", { name: "Dodaj rekord" });
   const title = page.getByLabel("Tytuł", { exact: true });
@@ -411,4 +411,4 @@ test("page templates copy only blocks into a new draft", async ({ page }, info) 
   await expect(status).toContainText("Usunięto szablon strony");
   await expect(chooser.getByRole("option", { name: templateName })).toHaveCount(0);
   await expect(await page.request.get("/p/" + copySlug)).toBeOK();
-});
+}

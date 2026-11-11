@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.15 — 2026-11-11
+
+Administrators can save a draft’s blocks as a template for its collection. Editors with permission to create records can copy the blocks into a new draft, then edit and publish it through the normal workflow. A migration creates the templates table. Bilingual Laravel extension guides include runnable examples for blocks, resources, and actions.
+
 ## 0.1.0-alpha.14 — 2026-11-11
 
 Administrators can choose a light or dark theme for public pages and draft previews in **Ustawienia → Menu i stopka**. Existing site settings default to the light theme.
