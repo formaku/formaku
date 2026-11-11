@@ -16,6 +16,8 @@ Od wersji `0.1.0-alpha.5` po zapisaniu szkicu wybierz **Pokaż podgląd**, aby z
 
 Od wersji `0.1.0-alpha.6` dodaj blok kontenera lub kolumn, a następnie wybierz typ bloku wewnątrz układu. Przyciski przy bloku zmieniają jego kolejność w tym samym układzie albo go usuwają. Kontener może układać treść pionowo, a kolumny mieszczą dwa lub trzy bloki obok siebie przy odpowiedniej szerokości. Na węższej przestrzeni liczba kolumn maleje. Starsze układy bez ustawienia zachowują układ automatyczny.
 
+Kliknij **Powiel blok**, aby dodać kopię bezpośrednio za wybranym blokiem. Możesz powielać bloki na głównym poziomie i wewnątrz układu. Kopia kontenera lub kolumn zawiera wszystkie bloki wewnętrzne. Zmiany w kopii nie modyfikują oryginału, a oba bloki obrazu korzystają z tego samego pliku w bibliotece. Zapisz szkic i sprawdź podgląd przed publikacją.
+
 Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera.
 
 Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
@@ -113,6 +115,8 @@ Starting with `0.1.0-alpha.5`, the editor shows the last saved draft, including 
 Starting with `0.1.0-alpha.6`, the editor supports adding, reordering and removing blocks within containers and columns. Containers can stack their children, and two- or three-column layouts adjust to available space. Existing layouts without a setting keep their automatic grid.
 
 Starting with `0.1.0-alpha.7`, open **Media** to browse the library by page. Choose **Edytuj metadane** (Edit metadata) to update a filename or alternative text. The filename is used in the library and when downloading the file. The URL stays the same. Changes to a public image's alternative text also appear on published pages that use it. Editing public file metadata requires publishing permission.
+
+Choose **Duplicate block** to insert a copy after the selected block at the same level. Duplicating a container or columns copies its nested blocks. You can edit the copy independently. Image blocks keep their existing media references. Save and preview the draft before publishing.
 
 Starting with `0.1.0-alpha.8`, add an image block, including inside a container or columns, and choose **Wybierz obraz** (Choose image). Pick a public image by filename and thumbnail. Browse up to 30 images per page. Cancel or press Escape to keep the current selection. Enter a caption, save the draft and preview the page.
 
