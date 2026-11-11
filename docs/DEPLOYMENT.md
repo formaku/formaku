@@ -12,7 +12,7 @@ To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY
 
 ## Run the alpha locally with Docker Compose
 
-The [v0.1.0-alpha source](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha) is public. The GHCR image requires access to the organization's package. Docker and Compose can build the same tagged source without GHCR credentials.
+The [v0.1.0-alpha source](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha) includes the Compose configuration. After preparing it, use the public Linux AMD64 image from GHCR or build the tagged source locally.
 
 ```sh
 git clone --branch v0.1.0-alpha --single-branch https://github.com/formaku/formaku.git
@@ -39,11 +39,26 @@ YAML
 export COMPOSE_FILE=compose.yaml:compose.alpha.yaml
 ```
 
+On Linux AMD64, pull the [public alpha image](https://github.com/formaku/formaku/pkgs/container/formaku) by its immutable digest. GHCR login is optional for this image.
+
 ```sh
-docker compose --env-file .env.docker build
+export FORMAKU_IMAGE=ghcr.io/formaku/formaku@sha256:18f0d3da2fe702e6d7161c12a28ebfdcfce1c2e7859646a0820eace5f1ffbc72
+docker pull "$FORMAKU_IMAGE"
+```
+
+To build from the tagged source instead, use the default local image.
+
+```sh
+unset FORMAKU_IMAGE
+docker compose --env-file .env.docker build web
+```
+
+With either image, start the database, apply migrations, and start the full stack.
+
+```sh
 docker compose --env-file .env.docker up -d --wait database
 docker compose --env-file .env.docker run --rm web php artisan migrate --force
-docker compose --env-file .env.docker up -d --wait
+docker compose --env-file .env.docker up -d --no-build --wait
 docker compose --env-file .env.docker exec web php artisan formaku:admin you@example.com
 ```
 
@@ -51,7 +66,7 @@ Use your own email for the administrator and open `http://127.0.0.1:8080/formaku
 
 ## Deploy an existing image
 
-VPS: dedicated Linux host with Docker Compose and a configured HTTPS reverse proxy to 127.0.0.1:8080. Run deploy/bootstrap.sh from the reviewed checkout as root. Place runtime settings in /opt/formaku/.env.docker (mode 600); keep APP_KEY stable. Write the approved ghcr.io/owner/repository to /opt/formaku/allowed-image. Configure pull-only registry access and a restricted deployment account. The deploy helper runs only the approved image repository, serializes operations and backs up DB/uploads/runtime settings with AES-256 encryption before migration.
+Use a dedicated Linux host with Docker Compose and an HTTPS reverse proxy to 127.0.0.1:8080. Run deploy/bootstrap.sh from the reviewed checkout as root. Place runtime settings in /opt/formaku/.env.docker (mode 600) and keep APP_KEY stable. Write the approved ghcr.io/owner/repository to /opt/formaku/allowed-image. Use a restricted deployment account and configure pull-only registry access if you deploy a private image. The deploy helper runs only the approved image repository, serializes operations and backs up DB/uploads/runtime settings with AES-256 encryption before migration.
 
 Configure production environment secrets DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS; variables DEPLOY_HOST and DEPLOY_USER. Pin the host key from a separately verified source. Run deploy.yml with the immutable image reference and UUID. No target VPS was selected by the user yet, so no real server has been bootstrapped.
 
