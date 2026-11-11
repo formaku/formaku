@@ -343,6 +343,141 @@ class FormakuTest extends TestCase
         $this->actingAs($u)->get('/formaku/media/'.$m->id)->assertOk();
     }
 
+    public function test_media_usage_follows_current_revisions_and_restored_references(): void
+    {
+        $admin = $this->admin();
+        $media = $this->mediaForUsage($admin);
+        $collection = $this->collection();
+        $definition = $collection->definition;
+        $definition['fields'][] = ['key' => 'attachment', 'label' => 'Attachment', 'type' => 'media'];
+        $collection->update(['definition' => $definition]);
+        $service = app(RecordService::class);
+        $first = $service->save($collection, null, [
+            'title' => 'First publication',
+            'slug' => 'media-usage',
+            'attachment' => (string) $media->id,
+            'blocks' => [
+                ['type' => 'container', 'children' => [
+                    ['type' => 'columns', 'children' => [
+                        ['type' => 'image', 'props' => ['media_id' => '00'.$media->id]],
+                    ]],
+                ]],
+            ],
+        ], 0, $admin->id);
+        $url = '/formaku/api/v1/media/'.$media->id.'/usage';
+        $this->getJson($url)->assertUnauthorized();
+        $this->actingAs($admin)->getJson($url)->assertOk()->assertJsonPath('data.0', [
+            'id' => $first->id,
+            'collection' => $collection->name,
+            'label' => 'First publication',
+            'draft' => true,
+            'published' => false,
+        ]);
+        $this->assertDatabaseCount('formaku_media_usages', 1);
+
+        $published = $service->publish($first, $first->version, $admin->id);
+        $draft = $service->save($collection, $published, [
+            'title' => 'New draft with image',
+            'slug' => 'media-usage',
+            'blocks' => [['type' => 'image', 'props' => ['media_id' => $media->id]]],
+        ], $published->version, $admin->id);
+        $this->getJson($url)->assertOk()->assertJsonPath('total', 1)
+            ->assertJsonPath('data.0.label', 'New draft with image')
+            ->assertJsonPath('data.0.draft', true)->assertJsonPath('data.0.published', true);
+
+        $draft = $service->save($collection, $draft, [
+            'title' => 'Draft without image', 'slug' => 'media-usage',
+        ], $draft->version, $admin->id);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.0.label', 'First publication')
+            ->assertJsonPath('data.0.draft', false)->assertJsonPath('data.0.published', true);
+
+        $published = $service->publish($draft, $draft->version, $admin->id);
+        $this->getJson($url)->assertOk()->assertJsonPath('total', 0);
+        $this->postJson('/formaku/api/v1/records/'.$first->id.'/restore/'.$first->draft_id, [
+            'version' => $published->version,
+        ])->assertOk();
+        $this->getJson($url)->assertOk()->assertJsonPath('data.0.draft', true)
+            ->assertJsonPath('data.0.published', false);
+    }
+
+    public function test_media_usage_scope_filters_records_and_keeps_private_labels_hidden(): void
+    {
+        $editor = User::factory()->create(['role' => 'editor']);
+        $other = User::factory()->create(['role' => 'editor']);
+        $media = $this->mediaForUsage($other);
+        $service = app(RecordService::class);
+        $records = [];
+        foreach (['own', 'assigned', 'none'] as $scope) {
+            $collection = Collection::create([
+                'key' => $scope,
+                'name' => $scope,
+                'kind' => 'data',
+                'definition' => [
+                    'access' => ['editor' => ['scope' => $scope, 'write' => false]],
+                    'fields' => [
+                        ['key' => 'name', 'label' => 'Name', 'type' => 'text', 'private' => true],
+                        ['key' => 'file', 'label' => 'File', 'type' => 'media'],
+                    ],
+                ],
+            ]);
+            $record = $service->save($collection, null, ['name' => 'private label', 'file' => $media->id], 0, $scope === 'own' ? $editor->id : $other->id);
+            if ($scope === 'assigned') {
+                $record->update(['assignee_id' => $editor->id]);
+            }
+            $records[$scope] = $record->id;
+            $service->save($collection, null, ['name' => 'out of scope', 'file' => $media->id], 0, $other->id);
+        }
+
+        $url = '/formaku/api/v1/media/'.$media->id.'/usage';
+        $this->actingAs(User::factory()->create())->getJson($url)->assertForbidden();
+        $this->actingAs($editor)->getJson($url)->assertOk()->assertJsonPath('total', 2)
+            ->assertJsonPath('data.0.id', $records['assigned'])->assertJsonPath('data.0.label', '#'.$records['assigned'])
+            ->assertJsonPath('data.1.id', $records['own'])->assertJsonPath('data.1.label', '#'.$records['own'])
+            ->assertDontSee('private label')->assertDontSee('out of scope');
+    }
+
+    public function test_media_usage_migration_backfills_current_revisions_idempotently(): void
+    {
+        $admin = $this->admin();
+        $media = $this->mediaForUsage($admin);
+        $collection = $this->collection();
+        $definition = $collection->definition;
+        $definition['fields'][] = ['key' => 'attachment', 'label' => 'Attachment', 'type' => 'media'];
+        $collection->update(['definition' => $definition]);
+        DB::table('formaku_schema_versions')->insert([
+            'collection_id' => $collection->id,
+            'version' => $collection->version,
+            'definition' => json_encode($definition, JSON_THROW_ON_ERROR),
+        ]);
+        $service = app(RecordService::class);
+        $old = $service->save($collection, null, ['title' => 'Old', 'attachment' => $media->id], 0, $admin->id);
+        $active = $service->save($collection, $old, ['title' => 'Active', 'attachment' => $media->id], $old->version, $admin->id);
+        array_pop($definition['fields']);
+        $collection->update(['definition' => $definition, 'version' => 2]);
+        DB::table('formaku_media_usages')->delete();
+        $migration = require __DIR__.'/../../../../packages/cms/database/migrations/2026_11_11_210000_create_formaku_media_usages_table.php';
+        $migration->up();
+        $migration->up();
+
+        $this->assertDatabaseCount('formaku_media_usages', 1);
+        $this->assertDatabaseHas('formaku_media_usages', ['revision_id' => $active->draft_id, 'media_id' => $media->id]);
+        $this->actingAs($admin)->getJson('/formaku/api/v1/media/'.$media->id.'/usage')
+            ->assertOk()->assertJsonPath('data.0.label', 'Active');
+    }
+
+    private function mediaForUsage(User $owner): Media
+    {
+        return Media::create([
+            'owner_id' => $owner->id,
+            'disk' => 'public',
+            'path' => 'formaku/image.png',
+            'name' => 'image.png',
+            'mime' => 'image/png',
+            'visibility' => 'public',
+            'size' => 100,
+        ]);
+    }
+
     public function test_publisher_updates_public_media_metadata_without_replacing_the_file(): void
     {
         Storage::fake('public');

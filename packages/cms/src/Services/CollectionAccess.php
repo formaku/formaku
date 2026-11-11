@@ -26,9 +26,38 @@ class CollectionAccess
 
     public function query(Collection $collection, object $user): Builder
     {
-        $query = Record::where('collection_id', $collection->id);
+        return $this->applyScope(
+            Record::where('collection_id', $collection->id),
+            $this->rule($collection, $user)['scope'],
+            $user,
+        );
+    }
 
-        return match ($this->rule($collection, $user)['scope']) {
+    /** @param iterable<Collection> $collections */
+    public function queryAcrossCollections(iterable $collections, object $user): Builder
+    {
+        $collectionIdsByScope = [];
+        foreach ($collections as $collection) {
+            $collectionIdsByScope[$this->rule($collection, $user)['scope']][] = $collection->id;
+        }
+
+        return Record::query()->where(function (Builder $query) use ($collectionIdsByScope, $user) {
+            $query->whereRaw('1 = 0');
+            foreach (['all', 'own', 'assigned'] as $scope) {
+                if (! empty($collectionIdsByScope[$scope])) {
+                    $query->orWhere(fn (Builder $scoped) => $this->applyScope(
+                        $scoped->whereIntegerInRaw('collection_id', $collectionIdsByScope[$scope]),
+                        $scope,
+                        $user,
+                    ));
+                }
+            }
+        });
+    }
+
+    private function applyScope(Builder $query, string $scope, object $user): Builder
+    {
+        return match ($scope) {
             'all' => $query,
             'own' => $query->where('owner_id', $user->getAuthIdentifier()),
             'assigned' => $query->where('assignee_id', $user->getAuthIdentifier()),

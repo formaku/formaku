@@ -27,6 +27,7 @@ import {
 import RichText from "./RichText.vue";
 import BlockEditor from "./BlockEditor.vue";
 import MediaPicker from "./MediaPicker.vue";
+import MediaUsage from "./MediaUsage.vue";
 import RelationPicker from "./RelationPicker.vue";
 import AssistantConnection from "./AssistantConnection.vue";
 import { blockEditorKey, createBlock, maxBlocksPerLevel } from "./blocks";
@@ -1425,6 +1426,7 @@ const title = computed(
                 >
                   Edytuj metadane
                 </button>
+                <MediaUsage :api="api" :id="m.id" :name="m.name" />
               </article>
             </div>
             <nav

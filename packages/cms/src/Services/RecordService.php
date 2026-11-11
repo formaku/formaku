@@ -27,6 +27,7 @@ class RecordService
             }
             $record->save();
             $rev = Revision::create(['record_id' => $record->id, 'schema_version' => $c->version, 'data' => $data, 'author_id' => $actor]);
+            app(MediaUsage::class)->indexRevision($rev->id, $c->definition, $data);
             foreach ($c->definition['fields'] as $f) {
                 if ($f['type'] === 'relation') {
                     foreach (array_unique($data[$f['key']] ?? []) as $id) {

@@ -30,6 +30,8 @@ Od wersji `0.1.0-alpha.8` dodaj blok **Obraz**, także wewnątrz kontenera lub k
 
 Od wersji `0.1.0-alpha.10` w polu mediów rekordu wybierz **Wybierz plik**. Wskaż obraz lub PDF po nazwie i sprawdź oznaczenie **Publiczny** albo **Prywatny**. Biblioteka pokazuje do 30 plików na stronę. **Anuluj** lub Esc zachowuje bieżący wybór. Po wybraniu pliku zapisz szkic. Dostęp do pliku zależy od jego dotychczasowych uprawnień.
 
+Od wersji `0.1.0-alpha.11` kliknij **Użycie pliku** przy pliku w bibliotece. Lista pokazuje dostępne rekordy, które odwołują się do pliku w polu mediów lub bloku obrazu. Oznaczenia **Szkic** i **Publikacja** wskazują bieżące rewizje. Okno pomija starsze rewizje z historii oraz prywatne tytuły i nazwy.
+
 ## Buduj
 
 Utwórz kolekcję danych lub treści, nadaj stabilne klucze i dodaj pola. Dla procesu wskaż stany i dozwolone przejścia. Aktywacja tworzy panel listy i edycji. Usunięcie pola lub zmiana jego typu wymaga migracji przygotowanej w Laravel. Definicje można eksportować i importować w ustawieniach.
@@ -75,6 +77,8 @@ Starting with `0.1.0-alpha.7`, open **Media** to browse the library by page. Cho
 Starting with `0.1.0-alpha.8`, add an image block, including inside a container or columns, and choose **Wybierz obraz** (Choose image). Pick a public image by filename and thumbnail. Browse up to 30 images per page. Cancel or press Escape to keep the current selection. Enter a caption, save the draft and preview the page.
 
 Starting with `0.1.0-alpha.10`, use **Wybierz plik** (Choose file) in a record media field. Browse up to 30 files per page and choose an image or PDF by name and visibility. Cancel or press Escape to keep the current selection. Save the draft after selecting a file. File access follows the existing permissions.
+
+Starting with `0.1.0-alpha.11`, choose **Użycie pliku** (File usage) next to a file in the library. The list shows records you can access that use the file in a media field or image block. Draft and Published labels refer to current revisions. Historical revisions and private titles or names are omitted.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 

@@ -19,4 +19,9 @@ class Record extends Model
     {
         return $this->belongsTo(Revision::class, 'draft_id');
     }
+
+    public function published(): BelongsTo
+    {
+        return $this->belongsTo(Revision::class, 'published_id');
+    }
 }

@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.11 — 2026-11-11
+
+The media library shows where a file appears in current drafts and published revisions that the user can read. An upgrade migration indexes existing references from record fields and image blocks.
+
 ## 0.1.0-alpha.10 — 2026-11-11
 
 Media fields in record forms can select an existing file by name and visibility from the paginated library. Selecting a file keeps its current access permissions.

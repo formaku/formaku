@@ -84,6 +84,13 @@ test("browser authoring and publication", async ({ page }, info) => {
   await expect(page.getByRole("status")).toContainText("Treść opublikowana");
 
   await page.getByRole("button", { name: "Media", exact: true }).click();
+  await card.getByRole("button", { name: "Użycie pliku" }).click();
+  const usage = page.getByRole("dialog", { name: "Użycie pliku" });
+  const usedBy = usage.getByRole("listitem").filter({ hasText: "Browser test " + info.project.name });
+  await expect(usedBy.getByText("Szkic", { exact: true })).toBeVisible();
+  await expect(usedBy.getByText("Publikacja", { exact: true })).toBeVisible();
+  await usage.getByRole("button", { name: "Zamknij" }).click();
+  await expect(usage).toBeHidden();
   await card.getByRole("button", { name: "Edytuj metadane" }).click();
   await card.getByLabel("Nazwa pliku").fill(updatedName);
   await card.getByLabel("Tekst alternatywny").fill("Przykładowy obraz testowy");

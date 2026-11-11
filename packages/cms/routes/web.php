@@ -13,6 +13,7 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::post('/records/{record}/schedule',[ApiController::class,'schedule'])->middleware(Access::class.':publish');
   Route::post('/records/{record}/transition',[ApiController::class,'transition']);Route::post('/records/{record}/restore/{revision}',[ApiController::class,'restore']);
   Route::get('/media',[ApiController::class,'media']);Route::post('/media',[ApiController::class,'upload']);
+  Route::get('/media/{mediaId}/usage',[ApiController::class,'mediaUsage'])->whereNumber('mediaId');
   Route::patch('/media/{mediaId}',[ApiController::class,'updateMedia'])->whereNumber('mediaId');
   Route::get('/project',[ApiController::class,'export'])->middleware(Access::class.':build');Route::post('/project/import',[ApiController::class,'import'])->middleware(Access::class.':build');
   Route::get('/ai',[IntegrationController::class,'tasks']);Route::post('/ai',[IntegrationController::class,'generate'])->middleware('throttle:10,1');Route::post('/ai/{task}/cancel',[IntegrationController::class,'cancel']);

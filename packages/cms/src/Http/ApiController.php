@@ -7,9 +7,11 @@ use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Models\Revision;
 use Formaku\Cms\Services\CollectionAccess;
+use Formaku\Cms\Services\MediaUsage;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\SchemaValidator;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -154,6 +156,15 @@ class ApiController
         }
 
         return $query->paginate(30)->appends($filters);
+    }
+
+    public function mediaUsage(Request $request, string $mediaId, MediaUsage $usage): LengthAwarePaginator
+    {
+        $id = filter_var($mediaId, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        abort_if($id === false, 404);
+        $media = Media::findOrFail($id);
+
+        return $usage->records($media->id, $request->user());
     }
 
     public function upload(Request $r)

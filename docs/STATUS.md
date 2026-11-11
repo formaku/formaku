@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.10**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.11**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -11,7 +11,7 @@ This is **0.1.0-alpha.10**. The remaining v1 work is listed below.
 - Canonical JSON renderer, Tiptap rich text, hero/text/CTA/image/cards/FAQ/container/columns blocks; reorder controls and drag/drop; delayed autosave for existing records.
 - Customer login, optional registration, verification and password reset; own-request list and details, private-field filtering; staff-only admin API.
 - Public/private uploads, owner/staff file authorization; server-side OpenAI/Gemini adapters, queued proposals, cancellation and applying a page proposal as a draft.
-- Staff can browse the media library by page, choose files for record fields and edit filenames and alternative text. Public media metadata requires publishing permission.
+- Staff can browse the media library by page, choose files for record fields and edit filenames and alternative text. Public media metadata requires publishing permission. Media usage lists accessible records with references in their current draft, published revision, or both.
 - Definition-only project import/export with format version and conflict checks.
 - Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel.
 - Public content collections can map non-private text fields to the SEO title and description of published revisions.
@@ -24,8 +24,8 @@ This is **0.1.0-alpha.10**. The remaining v1 work is listed below.
 
 ## Evidence
 
-- PHP: 39 tests and 309 assertions pass on local SQLite with PHP 8.5.11. This includes media authorization, filename validation and pagination, and a 10,000-record pagination test.
-- Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring and publication, media metadata changes on a published page, responsive layouts, SEO and mobile login width.
+- PHP: 42 tests and 341 assertions pass on local SQLite with PHP 8.5.11. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4, including the backfill and record access rules.
+- Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring, media usage in drafts and publications, responsive layouts, SEO, related records, private attachments and mobile login width.
 - Frontend: vue-tsc and Vite production build pass. A real rendered dashboard screenshot is in test-results/dashboard-chromium.png (ignored build artifact).
 - Docker: image built; Laravel command runs, HTTP login returns 200, runtime UID is 33 (www-data). GitHub CI verifies that the web process, database, queue worker and scheduler start with Compose.
 - Clean-host Composer integration: installed in a separate unmodified Laravel project; original root route retained, Formaku admin registered, public routes absent by default.
@@ -36,7 +36,7 @@ This is **0.1.0-alpha.10**. The remaining v1 work is listed below.
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
 - Further page composition controls, post templates and menus/footer/theme management.
 - Complete panel PL/EN localization and linked content translation workflow.
-- Media usage tracking and image variants.
+- Image variants.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
 - Registered extension contracts are present; complete developer examples and ResourceAdapter/ActionHandler UI integration still need delivery.
 - GitHub project snapshot PR creation, build/deploy status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
