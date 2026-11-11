@@ -188,12 +188,19 @@ class AssistantTest extends TestCase
     public function test_agent_discovers_the_optional_public_catalog_by_route_name(): void
     {
         $headers = $this->bearer($this->exchange($this->start($this->admin(), $this->pages())));
-        $this->getJson(self::API.'/connection', $headers)->assertOk()->assertJsonMissingPath('public_catalog_path');
+        $this->getJson(self::API.'/connection', $headers)->assertOk()
+            ->assertJsonMissingPath('public_catalog_path')->assertJsonMissingPath('public_variants_catalog_path');
 
         Route::get('/custom-store/public/products', fn () => ['data' => []])->name('formaku-commerce.public.products');
         Route::getRoutes()->refreshNameLookups();
         $this->getJson(self::API.'/connection', $headers)->assertOk()
-            ->assertJsonPath('public_catalog_path', '/custom-store/public/products');
+            ->assertJsonPath('public_catalog_path', '/custom-store/public/products')->assertJsonMissingPath('public_variants_catalog_path');
+
+        Route::get('/custom-store/v2/products', fn () => ['data' => []])->name('commerce.v2.products');
+        Route::getRoutes()->refreshNameLookups();
+        $this->getJson(self::API.'/connection', $headers)->assertOk()
+            ->assertJsonPath('public_catalog_path', '/custom-store/public/products')
+            ->assertJsonPath('public_variants_catalog_path', '/custom-store/v2/products');
     }
 
     public function test_agent_lists_only_public_images_from_current_publications_in_the_paired_collection(): void

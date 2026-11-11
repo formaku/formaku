@@ -86,6 +86,8 @@ Od wersji `0.1.0-alpha.18` agent może odczytać i ponownie użyć publiczne obr
 
 Jeżeli instalacja udostępnia publiczny katalog Commerce, agent może oprzeć treść strony na opublikowanych produktach. Katalog zwraca aktualne ceny i dostępność do odczytu. Sprawdzenie szkicu i zapis strony odbywają się w sparowanej kolekcji CMS.
 
+Przy dostępności katalogu Commerce v2 agent odczytuje też warianty produktów, w tym ich SKU, ceny i dostępność. W poleceniu możesz wskazać konkretne SKU, żeby dopasować treść oferty do właściwego wariantu.
+
 ## Wydania
 
 Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie” wysyła żądanie uruchomienia workflow w skonfigurowanym repozytorium GitHub. Link otwiera listę GitHub Actions. Odszukaj przebieg po identyfikatorze wydania i sprawdź jego wynik oraz digest obrazu w podsumowaniu. Wdrożenie obrazu po digescie odbywa się w osobnym workflow opisanym w [instrukcji wdrożenia](../DEPLOYMENT.md).

@@ -13,6 +13,7 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   const token = "fma_" + "a".repeat(64);
   const requests = [];
   let catalogPath;
+  let variantsPath;
   const server = createServer(async (request, response) => {
     const url = new URL(request.url, "http://localhost");
     const body = [];
@@ -21,7 +22,7 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
     response.setHeader("Content-Type", "application/json");
     switch (url.pathname) {
       case "/cms/assistant/v1/connection":
-        response.end(JSON.stringify({ public_catalog_path: catalogPath }));
+        response.end(JSON.stringify({ public_catalog_path: catalogPath, public_variants_catalog_path: variantsPath }));
         break;
       case "/cms/assistant/v1/pages/validate":
         response.statusCode = 422;
@@ -31,6 +32,15 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
         response.end(JSON.stringify({
           data: [{ id: 12, sku: "DEMO", name: "Demo", price_minor: 500, currency: "PLN", available: 7, internal: "hidden" }],
           next_cursor: "page-2",
+        }));
+        break;
+      case "/shop/v2/products":
+        response.end(JSON.stringify({
+          data: [
+            { id: 15, product_id: 12, sku: "DEMO-A", name: "Demo", price_minor: "501", currency: "PLN", available: 1 },
+            { id: 16, product_id: 12, sku: "DEMO-B", name: "Demo", price_minor: "805", currency: "PLN", available: 0 },
+          ],
+          next_cursor: "variant-page-2",
         }));
         break;
       case "/cms/assistant/v1/templates":
@@ -100,4 +110,18 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   assert.deepEqual(images.items, [{ id: 14, alt: "Example", public_path: "/cms/media/14" }]);
   assert.equal(requests[7].url.searchParams.get("page"), "3");
   assert.equal(requests[7].authorization, `Bearer ${token}`);
+
+  variantsPath = "//different.invalid/shop/v2/products";
+  assert.equal((await call("formaku_list_products")).isError, true);
+  assert.equal(requests.length, 9);
+  variantsPath = "/shop/v2/products";
+  const variants = JSON.parse((await call("formaku_list_products", { cursor: "variant+1" })).content[0].text);
+  assert.deepEqual(variants.items, [
+    { id: 12, variant_id: 15, sku: "DEMO-A", name: "Demo", price_minor: "501", currency: "PLN", in_stock: true },
+    { id: 12, variant_id: 16, sku: "DEMO-B", name: "Demo", price_minor: "805", currency: "PLN", in_stock: false },
+  ]);
+  assert.equal(variants.next_cursor, "variant-page-2");
+  assert.equal(requests[10].authorization, undefined);
+  assert.equal(requests[10].url.pathname, "/shop/v2/products");
+  assert.equal(requests[10].url.searchParams.get("cursor"), "variant+1");
 });

@@ -128,6 +128,9 @@ class AssistantController
         if (Route::has('formaku-commerce.public.products')) {
             $description['public_catalog_path'] = $request->getBaseUrl().route('formaku-commerce.public.products', absolute: false);
         }
+        if (Route::has('commerce.v2.products')) {
+            $description['public_variants_catalog_path'] = $request->getBaseUrl().route('commerce.v2.products', absolute: false);
+        }
 
         return response()->json($description);
     }
