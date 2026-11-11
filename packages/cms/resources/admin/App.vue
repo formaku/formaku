@@ -61,6 +61,22 @@ type MediaPage = {
   current_page: number;
   last_page: number;
 };
+const releaseStateLabels = {
+  dispatching: "Wysyłanie żądania",
+  requested: "Żądanie przyjęte",
+  unknown: "Stan nieznany",
+  queued: "W kolejce",
+  running: "Budowa w toku",
+  succeeded: "Budowa udana",
+  failed: "Budowa nieudana",
+  cancelled: "Budowa anulowana",
+};
+type Release = {
+  id: string;
+  commit: string;
+  state: keyof typeof releaseStateLabels;
+  run_url: string | null;
+};
 type PageTemplate = { id: number; name: string };
 type PageTemplatePage = {
   data: PageTemplate[];
@@ -103,7 +119,7 @@ const boot = ref<any>(null),
   record = ref<any>(null),
   schema = ref<any>(null),
   tasks = ref<any[]>([]),
-  releases = ref<any[]>([]),
+  releases = ref<Release[]>([]),
   error = ref(""),
   message = ref(""),
   busy = ref(false),
@@ -112,6 +128,8 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+const refreshingReleases = ref(new Set<string>());
+const releaseRefreshErrors = ref(new Set<string>());
 const templateName = ref("");
 const templatePage = ref<PageTemplatePage | null>(null);
 const templateId = ref<number | null>(null);
@@ -469,10 +487,22 @@ async function ai() {
 }
 async function release() {
   await run(async () => {
-    await request("/releases", "POST", { commit: commit.value });
-    releases.value = await request("/releases");
-    message.value = t("Żądanie wysłane. Stan sprawdzisz w GitHub Actions.");
+    const created: Release = await request("/releases", "POST", { commit: commit.value });
+    releases.value = [created, ...releases.value].slice(0, 30);
   });
+}
+async function refreshRelease(id: string) {
+  if (refreshingReleases.value.has(id)) return;
+  refreshingReleases.value.add(id);
+  releaseRefreshErrors.value.delete(id);
+  try {
+    const updated: Release = await request("/releases/" + id + "/refresh", "POST");
+    releases.value = releases.value.map((item) => (item.id === id ? updated : item));
+  } catch {
+    releaseRefreshErrors.value.add(id);
+  } finally {
+    refreshingReleases.value.delete(id);
+  }
 }
 async function exportProject() {
   await run(async () => {
@@ -1702,15 +1732,33 @@ const title = computed(
               :key="r.id"
               class="bg-base-100 p-5 rounded-xl border border-base-300"
             >
-              <span class="badge">{{ r.state }}</span
-              ><span class="mono text-xs ml-3">{{ r.commit.slice(0, 12) }}</span
-              ><a
-                v-if="r.run_url"
-                :href="r.run_url"
-                target="_blank"
-                class="btn btn-sm ml-3"
-                >GitHub Actions</a
-              >
+              <div class="flex flex-wrap items-center gap-3">
+                <span class="badge" role="status">{{ t(releaseStateLabels[r.state] ?? r.state) }}</span>
+                <span class="mono text-xs">{{ r.commit.slice(0, 12) }}</span>
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  :disabled="refreshingReleases.has(r.id)"
+                  @click="refreshRelease(r.id)"
+                >
+                  <span
+                    v-if="refreshingReleases.has(r.id)"
+                    class="loading loading-spinner loading-xs"
+                    aria-hidden="true"
+                  ></span>
+                  {{ refreshingReleases.has(r.id) ? t("Odświeżanie stanu…") : t("Odśwież stan") }}
+                </button>
+                <a
+                  v-if="r.run_url"
+                  :href="r.run_url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="btn btn-sm"
+                >GitHub Actions</a>
+              </div>
+              <p v-if="releaseRefreshErrors.has(r.id)" role="alert" class="mt-3 text-sm text-error">
+                {{ t("Nie udało się odświeżyć stanu budowy. Spróbuj ponownie.") }}
+              </p>
             </article>
           </section>
           <AssistantConnection
