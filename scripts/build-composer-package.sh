@@ -61,6 +61,52 @@ for name in set(editors + fonts):
 
 files.update({f"public/{name}": data for name, data in assets.items()})
 
+# Some dev dependencies contribute fonts or CSS directly to the panel output.
+asset_packages = {
+    "node_modules/@fontsource/inter",
+    "node_modules/@fontsource/jetbrains-mono",
+    "node_modules/daisyui",
+    "node_modules/tailwindcss",
+}
+lock = json.loads(subprocess.check_output(["git", "show", f"{source}:package-lock.json"], cwd=root))
+locked_packages = lock["packages"]
+if not asset_packages <= locked_packages.keys():
+    sys.exit("The npm lockfile must list all bundled font and CSS packages.")
+
+license_name = re.compile(r"(?:licen[cs]es?|copying|notices?|copyright)(?:[. _-].*)?", re.I)
+for location, metadata in sorted(locked_packages.items()):
+    if not location or (metadata.get("dev") and location not in asset_packages):
+        continue
+    package = root / location
+    installed_manifest = package / "package.json"
+    if not installed_manifest.is_file() and metadata.get("optional") and location not in asset_packages:
+        continue
+    if not installed_manifest.is_file():
+        sys.exit(f"Missing npm package {location}. Run npm ci and npm run build first.")
+
+    installed = json.loads(installed_manifest.read_bytes())
+    name, version = installed["name"], installed["version"]
+    if (
+        version != metadata["version"]
+        or not re.fullmatch(r"(?:@[A-Za-z0-9_.-]+/)?[A-Za-z0-9_.-]+", name)
+        or any(part in {".", ".."} for part in name.split("/"))
+        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.+-]*", version)
+    ):
+        sys.exit(f"Unexpected package metadata for {location}. Run npm ci and npm run build first.")
+
+    notices = [
+        path for path in package.iterdir()
+        if license_name.fullmatch(path.name) and path.is_file() and not path.is_symlink()
+    ]
+    if not any(re.match(r"(?:licen[cs]e|copying)", path.name, re.I) and path.stat().st_size for path in notices):
+        sys.exit(f"Missing license for {name}@{version}.")
+    for notice in notices:
+        target = f"licenses/npm/{name}/{version}/{notice.name}"
+        content = notice.read_bytes()
+        if target in files and files[target] != content:
+            sys.exit(f"Conflicting npm license files for {name}@{version}: {notice.name}")
+        files[target] = content
+
 output.mkdir(parents=True, exist_ok=True)
 name = f"formaku-cms-{tag}.zip"
 with TemporaryDirectory(dir=output) as temporary:
