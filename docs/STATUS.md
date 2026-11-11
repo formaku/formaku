@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.2**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.3**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -13,8 +13,8 @@ This is **0.1.0-alpha.2**. The remaining v1 work is listed below.
 - Public/private uploads, owner/staff file authorization; server-side OpenAI/Gemini adapters, queued proposals, cancellation and applying a page proposal as a draft.
 - Definition-only project import/export with format version and conflict checks.
 - Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel.
-- Development version: public content collections can map non-private text fields to the SEO title and description of published revisions.
-- Development version: the starter exposes an XML sitemap based on the configured public URL and published records in public collections.
+- Public content collections can map non-private text fields to the SEO title and description of published revisions.
+- The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
 - Docker runtime with PHP/HTTP/queue/scheduler, pinned base-image digests, non-root execution; GitHub build/GHCR and deployment workflow templates with pinned action SHAs.
 - Host deployment/backup helper and restricted SSH-dispatch template. These scripts have only received syntax checks; they are not an accepted production deployment system.
 
