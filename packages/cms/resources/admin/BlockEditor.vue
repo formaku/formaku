@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { t } from "./locale";
 import { computed, ref } from "vue";
-import { Copy } from "lucide-vue-next";
+import { Copy, Move } from "lucide-vue-next";
 import MediaPicker from "./MediaPicker.vue";
 import RichText from "./RichText.vue";
 import {
@@ -13,12 +13,13 @@ import {
   maxBlocksPerLevel,
   maxLayoutDepth,
   type Block,
+  type BlockPath,
 } from "./blocks";
 
-const props = withDefaults(defineProps<{ block: Block; depth?: number }>(), {
+const props = withDefaults(defineProps<{ block: Block; depth?: number; moveDisabled?: boolean }>(), {
   depth: 0,
 });
-const emit = defineEmits<{ change: [] }>();
+const emit = defineEmits<{ change: []; move: [path: BlockPath, trigger: EventTarget | null] }>();
 const childType = ref("text");
 const childTypes = computed(() =>
   Object.entries(blockLabels).filter(
@@ -147,7 +148,7 @@ function addQuestion() {
           <span class="text-sm font-semibold">
             {{ t(blockLabels[item.type as keyof typeof blockLabels] ?? item.type) }}
           </span>
-          <div class="flex gap-1">
+          <div class="flex flex-wrap gap-1">
             <button
               class="btn btn-xs"
               type="button"
@@ -179,6 +180,17 @@ function addQuestion() {
             <button
               class="btn btn-xs"
               type="button"
+              :aria-label='t("Przenieś blok")'
+              :title='t("Przenieś blok")'
+              aria-haspopup="dialog"
+              :disabled="moveDisabled"
+              @click="emit('move', [index], $event.currentTarget)"
+            >
+              <Move :size="12" aria-hidden="true" />
+            </button>
+            <button
+              class="btn btn-xs"
+              type="button"
               :aria-label='t("Usuń blok z układu")'
               @click="removeChild(index)"
             >
@@ -186,7 +198,13 @@ function addQuestion() {
             </button>
           </div>
         </div>
-        <BlockEditor :block="item" :depth="depth + 1" @change="emit('change')" />
+        <BlockEditor
+          :block="item"
+          :depth="depth + 1"
+          :move-disabled="moveDisabled"
+          @change="emit('change')"
+          @move="(path, trigger) => emit('move', [index, ...path], trigger)"
+        />
       </article>
       <div v-if="canAddChild" class="flex flex-wrap items-end gap-2">
         <label>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { locale, t } from "./locale";
-import { ref, onMounted, computed, onBeforeUnmount, watch } from "vue";
+import { ref, onMounted, computed, nextTick, onBeforeUnmount, watch } from "vue";
 import { TooltipProvider } from "reka-ui";
 import {
   LayoutDashboard,
@@ -22,6 +22,7 @@ import {
   GripVertical,
   Trash2,
   Copy,
+  Move,
   Eye,
   Save,
   LogOut,
@@ -35,9 +36,14 @@ import AssistantConnection from "./AssistantConnection.vue";
 import SiteNavigation from "./SiteNavigation.vue";
 import {
   blockEditorKey,
+  blockLabels,
+  blockMoveDestinations,
   createBlock,
   duplicateBlock,
   maxBlocksPerLevel,
+  moveBlockTo,
+  type Block,
+  type BlockPath,
 } from "./blocks";
 type Field = {
   key: string;
@@ -134,6 +140,16 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+const pageBlocks = computed<Block[]>(() => record.value?.data.blocks ?? []);
+const pageBlocksHeading = ref<HTMLElement | null>(null);
+const blockMoveDialog = ref<HTMLDialogElement | null>(null);
+const blockMoveSource = ref<BlockPath | null>(null);
+const blockMoveDestination = ref<BlockPath | null>(null);
+const availableBlockDestinations = computed(() =>
+  blockMoveSource.value
+    ? blockMoveDestinations(pageBlocks.value, blockMoveSource.value)
+    : [],
+);
 const refreshingReleases = ref(new Set<string>());
 const releaseRefreshErrors = ref(new Set<string>());
 const templateName = ref("");
@@ -148,6 +164,7 @@ const supportsPageTemplates = computed(
     ),
 );
 watch(record, () => {
+  closeBlockMove();
   templateName.value = "";
   templatePage.value = null;
   templateId.value = null;
@@ -414,6 +431,46 @@ function addBlock(type: string) {
 function duplicatePageBlock(index: number) {
   if (duplicateBlock(record.value.data.blocks, index)) dirty.value = true;
 }
+function blockDestinationLabel(path: BlockPath): string {
+  if (path.length === 0) return t("Poziom strony");
+
+  let siblings: Block[] | undefined = pageBlocks.value;
+  return path.map((index) => {
+    const block: Block | undefined = siblings?.[index];
+    siblings = block?.children;
+    const type = block?.type ?? "";
+    const label = blockLabels[type as keyof typeof blockLabels] ?? type;
+    return `${index + 1} · ${t(label)}`;
+  }).join(" / ");
+}
+async function openBlockMove(path: BlockPath, trigger: EventTarget | null) {
+  if (busy.value || blockMoveSource.value) return;
+  if (trigger instanceof HTMLButtonElement) trigger.focus();
+  blockMoveSource.value = path;
+  const source = blockMoveSource.value;
+  await nextTick();
+  if (blockMoveSource.value === source) blockMoveDialog.value?.showModal();
+}
+function closeBlockMove() {
+  blockMoveDialog.value?.close();
+  blockMoveSource.value = null;
+  blockMoveDestination.value = null;
+}
+async function confirmBlockMove() {
+  const source = blockMoveSource.value;
+  const destination = blockMoveDestination.value;
+  if (!source || !destination) return;
+
+  const moved = moveBlockTo(pageBlocks.value, source, destination);
+  closeBlockMove();
+  if (!moved) {
+    error.value = t("Nie można przenieść tego bloku.");
+    return;
+  }
+  dirty.value = true;
+  await nextTick();
+  pageBlocksHeading.value?.focus();
+}
 function moveBlock(i: number, delta: number) {
   const a = record.value.data.blocks,
     j = i + delta;
@@ -526,12 +583,12 @@ async function exportProject() {
   });
 }
 watch(
-  () => record.value?.data,
+  () => [record.value?.data, blockMoveSource.value],
   () => {
     clearTimeout(autosaveTimer);
-    if (record.value?.id && dirty.value && !busy.value)
+    if (record.value?.id && dirty.value && !busy.value && !blockMoveSource.value)
       autosaveTimer = setTimeout(() => {
-        if (dirty.value && !busy.value) void save();
+        if (dirty.value && !busy.value && !blockMoveSource.value) void save();
       }, 1800);
   },
   { deep: true },
@@ -1405,10 +1462,10 @@ const title = computed(
                   v-if="
                     selected.definition.fields.some((f) => f.key === 'blocks')
                   "
-                  ><h2 class="text-lg">{{ t("Sekcje strony") }}</h2>
+                  ><h2 ref="pageBlocksHeading" tabindex="-1" class="text-lg">{{ t("Sekcje strony") }}</h2>
                   <div class="space-y-4">
                     <article
-                      v-for="(b, i) in record.data.blocks ?? []"
+                      v-for="(b, i) in pageBlocks"
                       :key="blockEditorKey(b)"
                       draggable="true"
                       @dragstart="draggedBlock = Number(i)"
@@ -1416,11 +1473,11 @@ const title = computed(
                       @drop.prevent="dropBlock(Number(i))"
                       class="border border-base-300 rounded-xl p-5"
                     >
-                      <div class="flex justify-between items-center mb-4">
+                      <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
                         <span class="mono text-xs text-primary">{{
                           b.type
                         }}</span>
-                        <div class="flex gap-1">
+                        <div class="flex flex-wrap gap-1">
                           <button
                             class="btn btn-xs"
                             @click="moveBlock(Number(i), -1)"
@@ -1446,6 +1503,17 @@ const title = computed(
                           </button
                           ><button
                             class="btn btn-xs"
+                            type="button"
+                            :aria-label='t("Przenieś blok")'
+                            :title='t("Przenieś blok")'
+                            aria-haspopup="dialog"
+                            :disabled="busy"
+                            @click="openBlockMove([i], $event.currentTarget)"
+                          >
+                            <Move :size="12" aria-hidden="true" />
+                          </button
+                          ><button
+                            class="btn btn-xs"
                             @click="
                               record.data.blocks.splice(i, 1);
                               dirty = true;
@@ -1456,7 +1524,12 @@ const title = computed(
                           </button>
                         </div>
                       </div>
-                      <BlockEditor :block="b" @change="dirty = true" />
+                      <BlockEditor
+                        :block="b"
+                        :move-disabled="busy"
+                        @change="dirty = true"
+                        @move="(path, trigger) => openBlockMove([i, ...path], trigger)"
+                      />
                     </article>
                   </div>
                   <div class="flex flex-wrap gap-2">
@@ -1821,6 +1894,40 @@ const title = computed(
           </footer>
         </div>
       </main>
-    </div></TooltipProvider
-  >
+    </div>
+    <Teleport to="body">
+      <dialog
+        ref="blockMoveDialog"
+        class="modal"
+        aria-labelledby="block-move-title"
+        @cancel.prevent="closeBlockMove"
+      >
+        <form class="modal-box space-y-4" @submit.prevent="confirmBlockMove">
+          <h2 id="block-move-title" class="text-lg font-semibold">{{ t("Przenieś blok") }}</h2>
+          <label v-if="availableBlockDestinations.length">
+            <span class="field-label">{{ t("Miejsce docelowe") }}</span>
+            <select v-model="blockMoveDestination" class="select w-full" autofocus>
+              <option :value="null" disabled>{{ t("Wybierz miejsce docelowe") }}</option>
+              <option
+                v-for="destination in availableBlockDestinations"
+                :key="destination.path.join('.')"
+                :value="destination.path"
+              >
+                {{ blockDestinationLabel(destination.path) }}
+              </option>
+            </select>
+          </label>
+          <p v-else>{{ t("Brak dostępnych miejsc docelowych.") }}</p>
+          <div class="modal-action">
+            <button type="button" class="btn" :autofocus="!availableBlockDestinations.length" @click="closeBlockMove">
+              {{ t("Anuluj") }}
+            </button>
+            <button v-if="availableBlockDestinations.length" type="submit" class="btn" :disabled="!blockMoveDestination">
+              {{ t("Przenieś") }}
+            </button>
+          </div>
+        </form>
+      </dialog>
+    </Teleport>
+  </TooltipProvider>
 </template>
