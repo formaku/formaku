@@ -10,7 +10,7 @@ On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.24' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.25' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -19,12 +19,12 @@ Configure the host guard and the `authorize` callback in `config/formaku.php` us
 
 ### Install from a local ZIP
 
-On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.24.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.24). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
+On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.25.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.25). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.24.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.25.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.24' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.25' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```

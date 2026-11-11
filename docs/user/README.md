@@ -18,6 +18,8 @@ Od wersji `0.1.0-alpha.6` dodaj blok kontenera lub kolumn, a następnie wybierz 
 
 Kliknij **Powiel blok**, aby dodać kopię bezpośrednio za wybranym blokiem. Możesz powielać bloki na głównym poziomie i wewnątrz układu. Kopia kontenera lub kolumn zawiera wszystkie bloki wewnętrzne. Zmiany w kopii nie modyfikują oryginału, a oba bloki obrazu korzystają z tego samego pliku w bibliotece. Zapisz szkic i sprawdź podgląd przed publikacją.
 
+Kliknij **Przenieś blok** i wybierz **Poziom strony**, kontener albo kolumny. Blok trafia na koniec wybranej listy razem z zawartością. Okno pokazuje tylko miejsca, które mogą go przyjąć. Po przeniesieniu możesz zmienić kolejność w nowej liście, zapisać szkic i sprawdzić podgląd.
+
 Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera.
 
 Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
@@ -117,6 +119,8 @@ Starting with `0.1.0-alpha.6`, the editor supports adding, reordering and removi
 Starting with `0.1.0-alpha.7`, open **Media** to browse the library by page. Choose **Edytuj metadane** (Edit metadata) to update a filename or alternative text. The filename is used in the library and when downloading the file. The URL stays the same. Changes to a public image's alternative text also appear on published pages that use it. Editing public file metadata requires publishing permission.
 
 Choose **Duplicate block** to insert a copy after the selected block at the same level. Duplicating a container or columns copies its nested blocks. You can edit the copy independently. Image blocks keep their existing media references. Save and preview the draft before publishing.
+
+Choose **Move block** and select **Page level**, a container, or columns. The editor appends the block and its contents to the destination. The list shows only destinations that can accept the block. Reorder it in the destination as needed, then save and preview the draft.
 
 Starting with `0.1.0-alpha.8`, add an image block, including inside a container or columns, and choose **Wybierz obraz** (Choose image). Pick a public image by filename and thumbnail. Browse up to 30 images per page. Cancel or press Escape to keep the current selection. Enter a caption, save the draft and preview the page.
 

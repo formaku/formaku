@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.25 — 2026-11-12
+
+Move page blocks between the page level, containers, and columns. The editor shows valid destinations and places the moved block last in the selected list, preserving its content and nested blocks. This release adds no database migrations.
+
 ## 0.1.0-alpha.24 — 2026-11-12
 
 Duplicate a block in the page editor, including a container or columns with their nested blocks. The copy appears after the source block and can be edited independently. Image blocks in the copy reference the same media files. This release adds no database migrations.
