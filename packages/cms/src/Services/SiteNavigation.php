@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class SiteNavigation
 {
-    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'} */
+    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark', brand?: array{preset: string, accent: ?string, font: string, logoId: ?int}} */
     public function current(): array
     {
         $row = $this->row()->first();
@@ -24,12 +24,16 @@ class SiteNavigation
     }
 
     /**
-     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme?: 'light'|'dark'}  $settings
-     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'}
+     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme?: 'light'|'dark', brand?: array{preset: string, accent: ?string, font: string, logoId: ?int}}  $settings
+     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark', brand?: array{preset: string, accent: ?string, font: string, logoId: ?int}}
      */
     public function save(int $version, array $settings): array
     {
-        $settings['theme'] ??= $this->current()['theme'];
+        $current = $this->current();
+        $settings['theme'] ??= $current['theme'];
+        if (! array_key_exists('brand', $settings) && isset($current['brand'])) {
+            $settings['brand'] = $current['brand'];
+        }
 
         $updated = $this->row()->where('version', $version)->increment('version', 1, [
             'settings' => json_encode($settings, JSON_THROW_ON_ERROR),

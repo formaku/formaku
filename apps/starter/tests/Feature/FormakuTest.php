@@ -106,6 +106,31 @@ class FormakuTest extends TestCase
         $this->get('/formaku')->assertOk()->assertSeeHtml('data-theme="light"');
     }
 
+    public function test_brand_kit_is_versioned_and_shared_with_the_public_renderer(): void
+    {
+        $user = $this->admin();
+        $record = $this->record($this->collection(), $user);
+        app(RecordService::class)->publish($record, $record->version, $user->id);
+        $endpoint = '/formaku/api/v1/site-navigation';
+        $settings = ['version' => 0, 'header' => [], 'footer' => [], 'footerText' => ''];
+        $brand = ['preset' => 'journal', 'accent' => '#456ABC', 'font' => 'serif', 'logoId' => null];
+
+        $this->actingAs($user)->putJson($endpoint, ['brand' => ['accent' => '#123; color:red'] + $brand] + $settings)
+            ->assertUnprocessable()->assertJsonValidationErrors('brand.accent');
+        $this->putJson($endpoint, ['brand' => ['logoId' => 9999] + $brand] + $settings)
+            ->assertUnprocessable()->assertJsonValidationErrors('brand.logoId');
+        $this->putJson($endpoint, ['brand' => $brand] + $settings)
+            ->assertOk()->assertJsonPath('brand', $brand);
+        $this->putJson($endpoint, ['brand' => $brand] + $settings)->assertConflict();
+        $this->putJson($endpoint, ['version' => 1] + $settings)
+            ->assertOk()->assertJsonPath('brand', $brand);
+
+        $this->get('/p/published')->assertOk()->assertSeeHtml('data-brand-preset="journal"')
+            ->assertSeeHtml('data-brand-font="serif"')->assertSeeHtml('--formaku-accent:#456ABC');
+        $this->get('/formaku/api/v1/records/'.$record->id.'/preview')->assertOk()
+            ->assertSeeHtml('data-brand-preset="journal"');
+    }
+
     public function test_site_navigation_settings_require_builder_access(): void
     {
         $endpoint = '/formaku/api/v1/site-navigation';

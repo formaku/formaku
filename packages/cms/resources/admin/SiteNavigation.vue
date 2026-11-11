@@ -3,6 +3,11 @@ import { t } from "./locale";
 import { computed, onMounted, ref, watch } from "vue";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-vue-next";
 
+import MediaPicker from "./MediaPicker.vue";
+
+type Brand = { preset: "default" | "studio" | "journal" | "store"; accent: string | null; font: "default" | "sans" | "serif"; logoId: number | null };
+const defaultBrand: Brand = { preset: "default", accent: null, font: "default", logoId: null };
+
 type Link = { label: string; url: string };
 type Navigation = {
   version: number;
@@ -10,9 +15,11 @@ type Navigation = {
   footer: Link[];
   footerText: string;
   theme: "light" | "dark";
+  brand?: Brand;
 };
 type EditableLink = Link & { key: number };
-type EditableNavigation = Omit<Navigation, "header" | "footer"> & {
+type EditableNavigation = Omit<Navigation, "header" | "footer" | "brand"> & {
+  brand: Brand;
   header: EditableLink[];
   footer: EditableLink[];
 };
@@ -42,6 +49,7 @@ function payload(source: EditableNavigation): Navigation {
     footer: serializeLinks(source.footer),
     footerText: source.footerText,
     theme: source.theme,
+    brand: { ...source.brand, accent: source.brand.accent || null },
   };
 }
 
@@ -52,6 +60,7 @@ function applySettings(result: Navigation) {
   const editableLinks = (links: Link[]) => links.map((link) => ({ ...link, key: nextKey++ }));
   const current = {
     ...result,
+    brand: { ...defaultBrand, ...result.brand },
     header: editableLinks(result.header),
     footer: editableLinks(result.footer),
   };
@@ -133,6 +142,36 @@ onMounted(load);
             <option value="dark">{{ t("Ciemny") }}</option>
           </select>
         </label>
+        <fieldset class="fieldset rounded-box border border-base-300 p-4" :disabled="busy">
+          <legend class="fieldset-legend">Brand Kit</legend>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <label class="block">
+              <span class="field-label">{{ t("Styl marki") }}</span>
+              <select v-model="settings.brand.preset" class="select w-full">
+                <option value="default">{{ t("Domyślny") }}</option>
+                <option value="studio">{{ t("Studio usługowe") }}</option>
+                <option value="journal">{{ t("Publikacja ekspercka") }}</option>
+                <option value="store">{{ t("Sklep produktowy") }}</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="field-label">{{ t("Krój pisma") }}</span>
+              <select v-model="settings.brand.font" class="select w-full">
+                <option value="default">{{ t("Domyślny") }}</option>
+                <option value="sans">{{ t("Bezszeryfowy") }}</option>
+                <option value="serif">{{ t("Szeryfowy") }}</option>
+              </select>
+            </label>
+            <label class="block">
+              <span class="field-label">{{ t("Kolor akcentu") }}</span>
+              <input v-model.trim="settings.brand.accent" class="input w-full" pattern="#[a-fA-F0-9]{6}" maxlength="7" placeholder="#24594D" />
+            </label>
+            <div>
+              <span class="field-label">{{ t("Logo witryny") }}</span>
+              <MediaPicker mode="image" :selected-id="settings.brand.logoId" @select="settings.brand.logoId = $event ?? null" />
+            </div>
+          </div>
+        </fieldset>
         <p class="text-sm text-base-content/70">{{ t("Użyj ścieżki, np. /p/kontakt, albo pełnego adresu HTTP lub HTTPS.") }}</p>
         <fieldset
           v-for="group in linkGroups"

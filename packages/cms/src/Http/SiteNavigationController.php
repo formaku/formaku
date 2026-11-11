@@ -5,6 +5,7 @@ namespace Formaku\Cms\Http;
 use Closure;
 use Formaku\Cms\Services\SiteNavigation;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class SiteNavigationController
 {
@@ -19,6 +20,12 @@ class SiteNavigationController
             'version' => 'required|integer|min:0',
             'footerText' => 'present|nullable|string|max:500',
             'theme' => 'sometimes|required|string|in:light,dark',
+            'brand' => 'sometimes|required|array:preset,accent,font,logoId',
+            'brand.preset' => 'required_with:brand|in:default,studio,journal,store',
+            'brand.accent' => ['nullable', 'regex:/^#[a-fA-F0-9]{6}$/D'],
+            'brand.font' => 'required_with:brand|in:default,sans,serif',
+            'brand.logoId' => ['nullable', 'integer', Rule::exists('formaku_media', 'id')
+                ->where('visibility', 'public')->whereIn('mime', ['image/jpeg', 'image/png', 'image/webp', 'image/gif'])],
         ];
         foreach (['header', 'footer'] as $area) {
             $rules[$area] = 'present|array|list|max:12';
@@ -36,6 +43,10 @@ class SiteNavigationController
         $version = (int) $data['version'];
         unset($data['version']);
         $data['footerText'] ??= '';
+        if (isset($data['brand'])) {
+            $data['brand']['accent'] ??= null;
+            $data['brand']['logoId'] = isset($data['brand']['logoId']) ? (int) $data['brand']['logoId'] : null;
+        }
 
         return $navigation->save($version, $data);
     }
