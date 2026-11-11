@@ -6,6 +6,19 @@ These examples target Formaku v0.1.0-alpha.14 and its Laravel 13 starter. Use a 
 
 ## Install in an existing Laravel app
 
+On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https://formaku.eu/composer/packages.json) and install the release.
+
+```sh
+composer repo add formaku composer https://formaku.eu/composer
+composer require 'formaku/cms:0.1.0-alpha.23' --prefer-dist
+php artisan formaku:install
+php artisan migrate
+```
+
+Configure the host guard and the `authorize` callback in `config/formaku.php` using your application's policies, then open `/formaku` as an authorized user. Leave public Formaku routes disabled until you want to publish content through them.
+
+### Install from a local ZIP
+
 On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.23.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.23). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
@@ -18,7 +31,6 @@ php artisan migrate
 
 On macOS, use `shasum -a 256 -c` in the checksum command. Keep the ZIP available at the same relative path in environments where you run `composer install`. The archive includes the compiled panel assets, fonts and their license notices.
 
-Configure the host guard and the `authorize` callback in `config/formaku.php` using your application's policies, then open `/formaku` as an authorized user. Leave public Formaku routes disabled until you want to publish content through them.
 
 ## Register the extensions
 

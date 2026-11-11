@@ -31,7 +31,7 @@ Open `/formaku` and sign in with the administrator account you created. Use a pa
 
 ## Package integration
 
-`packages/cms` is the `formaku/cms` Composer package. [Install the release ZIP](docs/developer/README.md#install-in-an-existing-laravel-app) in an existing Laravel 13 app. It defaults to denying administrative access and disabling public routes. Set the `authorize` callable and host guard in `config/formaku.php`. Publish assets with `php artisan formaku:install`, then run migrations. The starter provides its own login and customer account routes; the package does not replace host authentication. See the [Laravel extension examples](docs/developer/README.md) or the [Polish guide](docs/developer/README.pl.md) to register a block and call a resource or action from a host route.
+`packages/cms` is the `formaku/cms` Composer package. [Install from the Formaku Composer repository](docs/developer/README.md#install-in-an-existing-laravel-app) in an existing Laravel 13 app. It defaults to denying administrative access and disabling public routes. Set the `authorize` callable and host guard in `config/formaku.php`. Publish assets with `php artisan formaku:install`, then run migrations. The starter provides its own login and customer account routes; the package does not replace host authentication. See the [Laravel extension examples](docs/developer/README.md) or the [Polish guide](docs/developer/README.pl.md) to register a block and call a resource or action from a host route.
 
 ## Docker
 
