@@ -4,7 +4,7 @@
 
 ## 0.1.0-alpha.16 — 2026-11-11
 
-The CMS panel can switch between Polish and English. The selected language is remembered in the browser. Content, collection names, and custom field labels retain their original language. This release adds no database migrations.
+The CMS panel can switch between Polish and English. The selected language is remembered in the browser. Content, collection names, and custom field labels retain their original language. Paired assistants can validate drafts made with built-in blocks before saving, return a draft preview path, and reuse page templates from the paired collection. When the host exposes the public Commerce catalog, the MCP adapter can read products without sending the CMS token. This release adds no database migrations.
 
 ## 0.1.0-alpha.15 — 2026-11-11
 

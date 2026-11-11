@@ -6,6 +6,8 @@ Zainstaluj starter według [instrukcji uruchomienia](../../README.md#run-locally
 
 ## Praca
 
+Od wersji `0.1.0-alpha.16` wybierz **Polski** lub **English** w polu języka w nagłówku panelu. Przeglądarka zapamięta wybór. Treści, nazwy kolekcji i własne etykiety pól zachowają swój język.
+
 Wybierz kolekcję i dodaj rekord. Zapis tworzy nową rewizję. W treściach poprzednia publikacja pozostaje widoczna do użycia „Opublikuj treść”. Podgląd wymaga uprawnień panelu. Historia pozwala przywrócić rewizję do szkicu. Konflikt zapisu wymaga ponownego pobrania i porównania zmian.
 
 Od wersji `0.1.0-alpha.5` po zapisaniu szkicu wybierz **Pokaż podgląd**, aby zobaczyć stronę w panelu. Przełącz szerokość między komputerem (1280 px), tabletem (768 px) i telefonem (390 px). Podgląd korzysta z ostatniego zapisanego szkicu, w tym z jego metadanych SEO. Możesz go też otworzyć w nowej karcie.
@@ -97,6 +99,10 @@ Starting with `0.1.0-alpha.6`, the editor supports adding, reordering and removi
 Starting with `0.1.0-alpha.7`, open **Media** to browse the library by page. Choose **Edytuj metadane** (Edit metadata) to update a filename or alternative text. The filename is used in the library and when downloading the file. The URL stays the same. Changes to a public image's alternative text also appear on published pages that use it. Editing public file metadata requires publishing permission.
 
 Starting with `0.1.0-alpha.8`, add an image block, including inside a container or columns, and choose **Wybierz obraz** (Choose image). Pick a public image by filename and thumbnail. Browse up to 30 images per page. Cancel or press Escape to keep the current selection. Enter a caption, save the draft and preview the page.
+
+Starting with `0.1.0-alpha.16`, choose **Polski** or **English** in the panel header. The browser remembers the choice. Content, collection names, and custom field labels keep their original language.
+
+A paired assistant can validate a draft made with built-in blocks before saving and return a link to its preview after saving. Open the link in a browser signed in to Formaku. The assistant can copy blocks from a template in the paired collection. When the installation exposes the public Commerce catalog, it can also read product names, current prices, and availability. Download the updated adapter from the panel to use the new tools.
 
 Starting with `0.1.0-alpha.10`, use **Wybierz plik** (Choose file) in a record media field. Browse up to 30 files per page and choose an image or PDF by name and visibility. Cancel or press Escape to keep the current selection. Save the draft after selecting a file. File access follows the existing permissions.
 
