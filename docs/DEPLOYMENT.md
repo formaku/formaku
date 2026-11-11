@@ -12,17 +12,17 @@ To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY
 
 ## Run the alpha locally with Docker Compose
 
-These instructions apply to `v0.1.0-alpha.11`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
+These instructions apply to `v0.1.0-alpha.12`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
 
 ```sh
-git clone --branch v0.1.0-alpha.11 --single-branch https://github.com/formaku/formaku.git
+git clone --branch v0.1.0-alpha.12 --single-branch https://github.com/formaku/formaku.git
 cd formaku
 cp .env.docker.example .env.docker
 ```
 
 Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local.
 
-On Linux AMD64, copy the full `ghcr.io/formaku/formaku@sha256:…` reference from the [alpha.11 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.11). Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
+On Linux AMD64, copy the full `ghcr.io/formaku/formaku@sha256:…` reference from the [alpha.12 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.12). Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
 
 ```sh
 docker pull "$FORMAKU_IMAGE"
@@ -48,7 +48,7 @@ Use your own email for the administrator and open `http://127.0.0.1:8080/formaku
 
 ### Upgrade an existing alpha installation
 
-Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.11`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.11 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
+Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.12`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.12 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
 
 ```sh
 docker compose --env-file .env.docker stop web worker scheduler
@@ -56,9 +56,19 @@ docker compose --env-file .env.docker run --rm web php artisan migrate --force
 docker compose --env-file .env.docker up -d --no-build --wait
 ```
 
-Alpha.11 adds a media usage migration. It indexes existing references from current drafts and published revisions. Allow it to finish before starting the updated services and check **Media → Użycie pliku** for a file referenced by an existing record. Existing layouts without explicit column or stacking settings retain their automatic grid. Upgrades from before alpha.4 still apply its redirect table migration. Existing published addresses stay active, and Formaku records URL changes when pages are published after the upgrade. Upgrades from the first alpha also apply the assistant migration introduced in alpha.2. After the upgrade, verify that published pages load and that `APP_URL` is the public base URL for the sitemap.
+Alpha.12 adds no database migration. Upgrades from alpha.10 or earlier still require the alpha.11 media usage migration. It indexes existing references from current drafts and published revisions. Allow it to finish before starting the updated services and check **Media → Użycie pliku** for a file referenced by an existing record. Existing layouts without explicit column or stacking settings retain their automatic grid. Upgrades from before alpha.4 still apply its redirect table migration. Existing published addresses stay active, and Formaku records URL changes when pages are published after the upgrade. Upgrades from the first alpha also apply the assistant migration introduced in alpha.2. After the upgrade, verify that published pages load and that `APP_URL` is the public base URL for the sitemap.
 
 If you revert to alpha.10 and it accepts new writes while the alpha.11 migration remains applied, rebuild the usage index before re-upgrading. With writes stopped, use the alpha.11 image to roll back just its media usage migration, then apply it again. The rollback drops the derived index and the migration repopulates it from the current revisions.
+
+### Generate variants for existing public images
+
+The Docker image includes GD with WebP support. Public JPEG, PNG and WebP uploads can produce 480 px and 960 px variants when the original is larger. To process existing uploads after starting the updated stack, run:
+
+```sh
+docker compose --env-file .env.docker exec web php artisan formaku:media-variants
+```
+
+Check an existing published page that uses a public image. Its image block retains the original URL and includes the variants that were generated. On a custom Laravel host, enable GD with WebP support and the EXIF extension for JPEG handling. Files that cannot be resized without changing their appearance continue to use the original.
 
 ## Run the first alpha with Docker Compose
 

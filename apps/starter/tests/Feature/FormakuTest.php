@@ -8,9 +8,11 @@ use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Services\AiGateway;
+use Formaku\Cms\Services\MediaVariants;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
@@ -341,6 +343,117 @@ class FormakuTest extends TestCase
         $this->get('/formaku/media/'.$m->id)->assertNotFound();
         $this->actingAs(User::factory()->create())->get('/formaku/media/'.$m->id)->assertNotFound();
         $this->actingAs($u)->get('/formaku/media/'.$m->id)->assertOk();
+    }
+
+    public function test_public_image_upload_generates_responsive_webp_variants_and_keeps_the_original(): void
+    {
+        $variants = app(MediaVariants::class);
+        if (! $variants->canGenerate()) {
+            $this->markTestSkipped('GD with WebP support is unavailable.');
+        }
+        Storage::fake('public');
+        $source = $this->transparentPng(1024);
+        $uploaded = $this->actingAs($this->admin())->post('/formaku/api/v1/media', [
+            'file' => UploadedFile::fake()->createWithContent('original.png', $source),
+            'visibility' => 'public',
+            'alt' => 'Test alt',
+        ], ['Accept' => 'application/json'])->assertCreated();
+        $media = Media::findOrFail($uploaded->json('id'));
+        $url = '/formaku/media/'.$media->id;
+
+        $this->get($url)->assertOk()->assertStreamedContent($source);
+        foreach ([480 => 60, 960 => 120] as $width => $height) {
+            $bytes = $this->get("$url/variants/$width")->assertOk()->assertHeader('Content-Type', 'image/webp')
+                ->assertHeader('X-Content-Type-Options', 'nosniff')->streamedContent();
+            $dimensions = getimagesizefromstring($bytes);
+            $this->assertSame([$width, $height], array_slice($dimensions, 0, 2));
+            $image = imagecreatefromstring($bytes);
+            $this->assertSame(127, imagecolorsforindex($image, imagecolorat($image, 0, 0))['alpha']);
+        }
+        $this->get("$url/variants/720")->assertNotFound();
+        $blocks = [['type' => 'image', 'props' => ['media_id' => $media->id, 'caption' => 'Test caption']]];
+        $html = app(Renderer::class)->blocks($blocks);
+        $this->assertStringContainsString('src="'.$url.'"', $html);
+        $this->assertStringContainsString('srcset="'.$url.'/variants/480 480w, '.$url.'/variants/960 960w, '.$url.' 1024w"', $html);
+        $this->assertStringContainsString('alt="Test alt"><figcaption>Test caption</figcaption>', $html);
+
+        Storage::disk('public')->delete($variants->availablePath($media, 480), $variants->availablePath($media, 960));
+        $this->assertStringNotContainsString('srcset=', app(Renderer::class)->blocks($blocks));
+        $this->get("$url/variants/480")->assertNotFound();
+        $this->get($url)->assertOk()->assertStreamedContent($source);
+    }
+
+    public function test_media_variants_command_backfills_without_upscaling_or_exposing_private_files(): void
+    {
+        $variants = app(MediaVariants::class);
+        if (! $variants->canGenerate()) {
+            $this->markTestSkipped('GD with WebP support is unavailable.');
+        }
+        Storage::fake('public');
+        Storage::fake('local');
+        $owner = $this->admin();
+        $large = $this->transparentPng(800);
+        $legacy = $this->variantSource($owner, 'legacy.png', $large);
+        $small = $this->variantSource($owner, 'small.png', $this->transparentPng(320));
+        $private = $this->variantSource($owner, 'private.png', $large, 'private');
+        $disguised = $this->variantSource($owner, 'disguised.png', '%PDF-1.4');
+
+        $this->artisan('formaku:media-variants')->expectsOutput('Checked 3 public images. Generated 1 WebP variants.')->assertSuccessful();
+        $this->artisan('formaku:media-variants')->expectsOutput('Checked 3 public images. Generated 0 WebP variants.')->assertSuccessful();
+        $this->assertSame(['original' => 800, 'variants' => [480]], $variants->available($legacy));
+        $this->get('/formaku/media/'.$legacy->id.'/variants/960')->assertNotFound();
+        $this->get('/formaku/media/'.$legacy->id)->assertOk()->assertStreamedContent($large);
+        foreach ([$small, $private, $disguised] as $media) {
+            $this->assertNull($variants->available($media));
+            $this->get('/formaku/media/'.$media->id.'/variants/480')->assertNotFound();
+        }
+        $this->get('/formaku/media/'.$private->id)->assertNotFound();
+        $this->actingAs($owner)->get('/formaku/media/'.$private->id)->assertOk()->assertStreamedContent($large);
+        $this->get('/formaku/media/'.$private->id.'/variants/480')->assertNotFound();
+    }
+
+    public function test_media_variants_keep_jpegs_with_nondefault_exif_orientation_as_originals(): void
+    {
+        $variants = app(MediaVariants::class);
+        if (! $variants->canGenerate() || ! function_exists('exif_read_data')) {
+            $this->markTestSkipped('GD with WebP and EXIF support is unavailable.');
+        }
+        Storage::fake('public');
+        $image = imagecreatetruecolor(640, 100);
+        ob_start();
+        imagejpeg($image);
+        $jpeg = ob_get_clean();
+        $exif = hex2bin('4578696600004d4d002a00000008000101120003000000010006000000000000');
+        $rotated = substr($jpeg, 0, 2)."\xff\xe1".pack('n', strlen($exif) + 2).$exif.substr($jpeg, 2);
+        $owner = $this->admin();
+        $regular = $this->variantSource($owner, 'regular.jpg', $jpeg, mime: 'image/jpeg');
+        $oriented = $this->variantSource($owner, 'oriented.jpg', $rotated, mime: 'image/jpeg');
+
+        $this->assertSame(1, $variants->generate($regular));
+        $this->assertSame(0, $variants->generate($oriented));
+        $this->get('/formaku/media/'.$oriented->id.'/variants/480')->assertNotFound();
+        $this->get('/formaku/media/'.$oriented->id)->assertOk()->assertStreamedContent($rotated);
+    }
+
+    private function transparentPng(int $width): string
+    {
+        $image = imagecreatetruecolor($width, 128);
+        imagealphablending($image, false);
+        imagesavealpha($image, true);
+        imagefill($image, 0, 0, imagecolorallocatealpha($image, 0, 0, 0, 127));
+        imagefilledrectangle($image, intdiv($width, 2), 0, $width - 1, 127, imagecolorallocate($image, 255, 0, 0));
+        ob_start();
+        imagepng($image);
+
+        return ob_get_clean();
+    }
+
+    private function variantSource(User $owner, string $name, string $bytes, string $visibility = 'public', string $mime = 'image/png'): Media
+    {
+        $disk = $visibility === 'public' ? 'public' : 'local';
+        Storage::disk($disk)->put($name, $bytes);
+
+        return Media::create(['owner_id' => $owner->id, 'disk' => $disk, 'path' => $name, 'name' => $name, 'mime' => $mime, 'visibility' => $visibility, 'size' => strlen($bytes)]);
     }
 
     public function test_media_usage_follows_current_revisions_and_restored_references(): void

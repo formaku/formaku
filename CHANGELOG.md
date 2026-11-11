@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.12 — 2026-11-11
+
+Public image blocks can serve 480 px and 960 px WebP variants without upscaling. The original URL remains available. Generate variants for existing public images with `php artisan formaku:media-variants`.
+
 ## 0.1.0-alpha.11 — 2026-11-11
 
 The media library shows where a file appears in current drafts and published revisions that the user can read. An upgrade migration indexes existing references from record fields and image blocks.

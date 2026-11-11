@@ -32,6 +32,8 @@ Od wersji `0.1.0-alpha.10` w polu mediów rekordu wybierz **Wybierz plik**. Wska
 
 Od wersji `0.1.0-alpha.11` kliknij **Użycie pliku** przy pliku w bibliotece. Lista pokazuje dostępne rekordy, które odwołują się do pliku w polu mediów lub bloku obrazu. Oznaczenia **Szkic** i **Publikacja** wskazują bieżące rewizje. Okno pomija starsze rewizje z historii oraz prywatne tytuły i nazwy.
 
+Od wersji `0.1.0-alpha.12` blok obrazu udostępnia mniejsze warianty WebP, jeśli zostały wygenerowane dla publicznego pliku. Przeglądarka dobiera wariant do miejsca na stronie. Adres oryginału, podpis i tekst alternatywny pozostają dostępne. Aby przetworzyć wcześniejsze pliki, użyj [instrukcji wdrożenia](../DEPLOYMENT.md#generate-variants-for-existing-public-images).
+
 ## Buduj
 
 Utwórz kolekcję danych lub treści, nadaj stabilne klucze i dodaj pola. Dla procesu wskaż stany i dozwolone przejścia. Aktywacja tworzy panel listy i edycji. Usunięcie pola lub zmiana jego typu wymaga migracji przygotowanej w Laravel. Definicje można eksportować i importować w ustawieniach.
@@ -79,6 +81,8 @@ Starting with `0.1.0-alpha.8`, add an image block, including inside a container 
 Starting with `0.1.0-alpha.10`, use **Wybierz plik** (Choose file) in a record media field. Browse up to 30 files per page and choose an image or PDF by name and visibility. Cancel or press Escape to keep the current selection. Save the draft after selecting a file. File access follows the existing permissions.
 
 Starting with `0.1.0-alpha.11`, choose **Użycie pliku** (File usage) next to a file in the library. The list shows records you can access that use the file in a media field or image block. Draft and Published labels refer to current revisions. Historical revisions and private titles or names are omitted.
+
+Starting with `0.1.0-alpha.12`, image blocks can offer smaller WebP variants of public images. The original URL, caption and alternative text remain available. See the [deployment guide](../DEPLOYMENT.md#generate-variants-for-existing-public-images) to process existing files.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 

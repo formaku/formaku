@@ -6,12 +6,14 @@ use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Models\Revision;
+use Formaku\Cms\Services\MediaVariants;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PublicController
 {
@@ -76,5 +78,17 @@ class PublicController
         }
 
         return Storage::disk($media->disk)->response($media->path, $media->name, ['X-Content-Type-Options' => 'nosniff', 'Content-Security-Policy' => "default-src 'none'; sandbox"]);
+    }
+
+    public function mediaVariant(Media $media, int $width, MediaVariants $variants): StreamedResponse
+    {
+        $path = $variants->availablePath($media, $width);
+        abort_if($path === null, 404);
+
+        return Storage::disk($media->disk)->response($path, null, [
+            'Content-Type' => 'image/webp',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "default-src 'none'; sandbox",
+        ]);
     }
 }

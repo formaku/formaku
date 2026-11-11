@@ -3,6 +3,7 @@ use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,
 Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::get('/',fn()=>view('formaku::admin'))->middleware([ 'auth:'.config('formaku.guard'),Access::class.':work']);
  Route::get('/media/{media}',[PublicController::class,'file']);
+ Route::get('/media/{media}/variants/{width}',[PublicController::class,'mediaVariant'])->whereIn('width', ['480', '960']);
  Route::prefix('api/v1')->middleware(Access::class.':work')->group(function(){
   Route::get('/bootstrap',[ApiController::class,'bootstrap']);Route::get('/collections',[ApiController::class,'collections']);
   Route::post('/collections',[ApiController::class,'schema'])->middleware(Access::class.':build');

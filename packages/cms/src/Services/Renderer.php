@@ -108,7 +108,15 @@ class Renderer
             return '';
         }
 
-        return '<figure><img loading="lazy" src="/'.e(trim(config('formaku.prefix'), '/')).'/media/'.$m->id.'" alt="'.e($m->alt).'"><figcaption>'.e($p['caption'] ?? '').'</figcaption></figure>';
+        $url = rtrim('/'.trim(config('formaku.prefix'), '/'), '/').'/media/'.$m->id;
+        $responsive = '';
+        if ($available = app(MediaVariants::class)->available($m)) {
+            $sources = array_map(fn (int $width) => "$url/variants/$width {$width}w", $available['variants']);
+            $sources[] = $url.' '.$available['original'].'w';
+            $responsive = ' srcset="'.e(implode(', ', $sources)).'" sizes="(max-width: 1152px) 100vw, 1152px"';
+        }
+
+        return '<figure><img loading="lazy" src="'.e($url).'"'.$responsive.' alt="'.e($m->alt).'"><figcaption>'.e($p['caption'] ?? '').'</figcaption></figure>';
     }
 
     private function cards(array $p): string

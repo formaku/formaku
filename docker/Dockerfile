@@ -12,7 +12,7 @@ COPY apps/starter apps/starter
 WORKDIR /src/apps/starter
 RUN composer install --no-dev --prefer-dist --no-interaction --no-scripts --optimize-autoloader && rm vendor/formaku/cms && cp -a /src/packages/cms vendor/formaku/cms
 FROM dunglas/frankenphp:1-php8.5-bookworm@sha256:924b91db4f9aa1e6b1e40b8065ebe4ed6205cce7fe47fa49b55759143f09165d AS runtime
-RUN install-php-extensions pdo_pgsql pdo_mysql intl zip pcntl opcache
+RUN install-php-extensions pdo_pgsql pdo_mysql intl zip pcntl opcache gd exif
 WORKDIR /app
 COPY --from=dependencies /src/apps/starter /app
 COPY --from=assets /src/packages/cms/public /app/vendor/formaku/cms/public

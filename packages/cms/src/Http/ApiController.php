@@ -8,12 +8,14 @@ use Formaku\Cms\Models\Record;
 use Formaku\Cms\Models\Revision;
 use Formaku\Cms\Services\CollectionAccess;
 use Formaku\Cms\Services\MediaUsage;
+use Formaku\Cms\Services\MediaVariants;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class ApiController
 {
@@ -167,14 +169,21 @@ class ApiController
         return $usage->records($media->id, $request->user());
     }
 
-    public function upload(Request $r)
+    public function upload(Request $r, MediaVariants $variants): Media
     {
         $d = $r->validate(['file' => 'required|file|max:10240|mimes:jpg,jpeg,png,webp,pdf', 'visibility' => 'required|in:public,private', 'alt' => 'nullable|string|max:250']);
         $f = $r->file('file');
         $disk = $d['visibility'] === 'public' ? 'public' : 'local';
         $path = $f->store('formaku', $disk);
 
-        return Media::create(['owner_id' => $r->user()->id, 'disk' => $disk, 'path' => $path, 'name' => $f->getClientOriginalName(), 'mime' => $f->getMimeType(), 'visibility' => $d['visibility'], 'alt' => $d['alt'] ?? '', 'size' => $f->getSize()]);
+        $media = Media::create(['owner_id' => $r->user()->id, 'disk' => $disk, 'path' => $path, 'name' => $f->getClientOriginalName(), 'mime' => $f->getMimeType(), 'visibility' => $d['visibility'], 'alt' => $d['alt'] ?? '', 'size' => $f->getSize()]);
+        try {
+            $variants->generate($media);
+        } catch (Throwable $error) {
+            report($error);
+        }
+
+        return $media;
     }
 
     public function updateMedia(Request $request, string $mediaId): Media

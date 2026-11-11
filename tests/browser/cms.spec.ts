@@ -21,7 +21,12 @@ test("browser authoring and publication", async ({ page }, info) => {
     name: originalName,
     mimeType: "image/png",
     buffer: Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEElEQVR4nGOQac8EIgYIBQAcKgQxkClVFwAAAABJRU5ErkJggg==",
+      "iVBORw0KGgoAAAANSUhEUgAABAAAAABACAIAAAALaJKrAAABaElEQVR4nO3XQQ0AIBDAsBOCQZRgGxfwWJMK2HezzgYAACLm" +
+      "ewEAAPCMAQAAgBADAAAAIQYAAABCDAAAAIQYAAAACDEAAAAQYgAAACDEAAAAQIgBAACAEAMAAAAhBgAAAEIMAAAAhBgAAAAI" +
+      "MQAAABBiAAAAIMQAAABAiAEAAIAQAwAAACEGAAAAQgwAAACEGAAAAAgxAAAAEGIAAAAgxAAAAECIAQAAgBADAAAAIQYAAABC" +
+      "DAAAAIQYAAAACDEAAAAQYgAAACDEAAAAQIgBAACAEAMAAAAhBgAAAEIMAAAAhBgAAAAIMQAAABBiAAAAIMQAAABAiAEAAIAQ" +
+      "AwAAACEGAAAAQgwAAACEGAAAAAgxAAAAEGIAAAAgxAAAAECIAQAAgBADAAAAIQYAAABCDAAAAIQYAAAACDEAAAAQYgAAACDE" +
+      "AAAAQIgBAACAEAMAAAAhBgAAAEIMAAAAhBgAAAAIMQAAABByAVPpD7UJl2IgAAAAAElFTkSuQmCC",
       "base64",
     ),
   });
@@ -57,7 +62,16 @@ test("browser authoring and publication", async ({ page }, info) => {
   await expect(preview.getByRole("heading", { name: "Saved draft" })).toBeVisible();
   const previewImage = preview.locator("figure img");
   await expect(previewImage).toHaveAttribute("src", fileUrl);
-  await expect.poll(() => previewImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(2);
+  await expect(previewImage).toHaveAttribute(
+    "srcset",
+    /\/variants\/480 480w,\s+.+\/variants\/960 960w/,
+  );
+  await expect.poll(() => previewImage.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+  for (const width of [480, 960]) {
+    const variant = await page.request.get(`${fileUrl}/variants/${width}`);
+    expect(variant.status()).toBe(200);
+    expect(variant.headers()["content-type"]).toMatch(/^image\/webp\b/);
+  }
   await expect(preview.locator("figcaption")).toHaveText("Browser image caption");
   await chooseImage.click();
   await expect(picker).toBeVisible();
