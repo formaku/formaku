@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.20 — 2026-11-11
+
+Use the downloaded adapter with `update` and the existing Formaku endpoint to replace the local adapter while keeping the connection and token. The assistant can list published Commerce categories and filter catalog variants by category slug when the host exposes those public endpoints. This CMS release adds no database migrations.
+
 ## 0.1.0-alpha.19 — 2026-11-11
 
 A paired assistant reads the public Commerce v2 variant catalog when the host exposes it. Each item keeps the product ID and includes a separate variant ID, optional label, price, and availability. Older installations still use the public v1 catalog. Catalog requests omit the CMS token. This CMS release adds no database migrations.

@@ -78,7 +78,7 @@ Od wersji `0.1.0-alpha.17` w innym kliencie MCP obsługującym stdio dopisz `--p
 
 Od wersji `0.1.0-alpha.17` z aktualnym adapterem możesz poprosić agenta o sprawdzenie pól kolekcji i walidację szkicu z wbudowanych bloków przed zapisem. Po zapisaniu otwórz podany przez agenta link do podglądu w przeglądarce, w której masz aktywną sesję Formaku.
 
-Aby zaktualizować adapter dla aktywnego połączenia, pobierz jego nową kopię z panelu. W poleceniu z panelu zamień `setup` na `update` i uruchom je w katalogu pobranego pliku. Uruchom ponownie klienta MCP. Jeśli połączenie wygasło lub zostało cofnięte, sparuj je ponownie poleceniem `setup`.
+Od wersji `0.1.0-alpha.20` pobierz nową kopię adaptera z panelu i uruchom `node formaku-assistant.mjs update ADRES_Z_PANELU` w katalogu pobranego pliku. Użyj adresu dotychczasowego połączenia. Uruchom ponownie klienta MCP. Jeśli połączenie wygasło lub zostało cofnięte, sparuj je ponownie poleceniem `setup`.
 
 Jeśli kolekcja ma zapisane szablony stron, agent może wybrać jeden z nich i użyć jego sekcji w nowym szkicu. Sekcje edytujesz dalej w szkicu.
 
@@ -90,7 +90,7 @@ Jeżeli instalacja udostępnia publiczny katalog Commerce, agent może oprzeć t
 
 Od wersji `0.1.0-alpha.19` agent odczytuje też warianty produktów, jeśli instalacja udostępnia katalog Commerce v2. Wynik obejmuje ich etykiety, SKU, ceny i dostępność. W poleceniu możesz wskazać etykietę lub SKU, żeby dopasować treść oferty do właściwego wariantu.
 
-Jeśli sklep udostępnia publiczne kategorie, możesz poprosić o szkic oferty dla wybranej kategorii. Agent pobierze listę opublikowanych kategorii i zawęzi katalog wariantów do wskazanej pozycji.
+Od wersji `0.1.0-alpha.20`, jeśli sklep udostępnia publiczne kategorie, możesz poprosić o szkic oferty dla wybranej kategorii. Agent pobierze listę opublikowanych kategorii i zawęzi katalog wariantów do wskazanej pozycji.
 
 ## Wydania
 
@@ -102,7 +102,7 @@ Work: create and edit collection records; save a draft, inspect its preview and 
 
 Starting with `0.1.0-alpha.17`, for a stdio MCP client, append `--print-config` to the assistant pairing command shown in Formaku. Enter the one-time code in the terminal, copy the generated `mcpServers` entry or its `command` and `args` into the client configuration, and restart the client. The token stays in the local connection file.
 
-To update the adapter for an active connection, download the new copy from the panel, replace `setup` with `update` in the pairing command, and restart the MCP client after running it. Pair again if the connection has expired or was revoked.
+Starting with `0.1.0-alpha.20`, download the new adapter from the panel and run `node formaku-assistant.mjs update ENDPOINT_FROM_PANEL` with the address of the existing connection. Restart the MCP client after running it. Pair again if the connection has expired or was revoked.
 
 Starting with `0.1.0-alpha.9`, choose **Wybierz rekordy** (Choose records) for a relation field. Select records across pages, apply the selection, then save the draft. Cancel or press Escape to keep the previous selection. The picker lists records you can read and omits private titles and names. If you lose access to a linked record, remove the link or regain access before saving.
 
@@ -121,6 +121,8 @@ Starting with `0.1.0-alpha.17`, a paired assistant can validate a draft made wit
 Starting with `0.1.0-alpha.18`, a paired assistant can reuse public images referenced by current published revisions in its collection. The selected media ID goes into an image block. Draft validation and saving reject block lists that exceed the renderer’s size or nesting limits.
 
 Starting with `0.1.0-alpha.19`, if the installation exposes the Commerce v2 catalog, the assistant can read published variants, including their labels, SKUs, prices, and availability. Specify a variant label or SKU when drafting an offer for a particular variant. Installations with the v1 catalog continue to return products.
+
+Starting with `0.1.0-alpha.20`, the assistant can list published categories and filter variants by category slug when the installation exposes the corresponding public Commerce endpoints.
 
 Starting with `0.1.0-alpha.10`, use **Wybierz plik** (Choose file) in a record media field. Browse up to 30 files per page and choose an image or PDF by name and visibility. Cancel or press Escape to keep the current selection. Save the draft after selecting a file. File access follows the existing permissions.
 
