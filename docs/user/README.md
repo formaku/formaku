@@ -80,7 +80,7 @@ Od wersji `0.1.0-alpha.17` z aktualnym adapterem możesz poprosić agenta o spra
 
 Jeśli kolekcja ma zapisane szablony stron, agent może wybrać jeden z nich i użyć jego sekcji w nowym szkicu. Sekcje edytujesz dalej w szkicu.
 
-Agent może też ponownie użyć publicznych obrazów z aktualnie opublikowanych wersji stron sparowanej kolekcji. Do bloku obrazu wstawia identyfikator wybranej grafiki.
+Od wersji `0.1.0-alpha.18` agent może odczytać i ponownie użyć publiczne obrazy wskazane w aktualnie opublikowanych wersjach stron sparowanej kolekcji. Do bloku obrazu wstawia identyfikator wybranej grafiki. Walidacja i zapis odrzucają zbyt długie lub zbyt głęboko zagnieżdżone listy bloków.
 
 > Przygotuj szkic strony oferty z szablonu „Oferta”. Dostosuj nagłówek, opis i przycisk kontaktu. Sprawdź dane przed zapisem, a potem podaj link do podglądu szkicu.
 
@@ -109,6 +109,8 @@ Starting with `0.1.0-alpha.8`, add an image block, including inside a container 
 Starting with `0.1.0-alpha.16`, choose **Polski** or **English** in the panel header. The browser remembers the choice. Content, collection names, and custom field labels keep their original language.
 
 Starting with `0.1.0-alpha.17`, a paired assistant can validate a draft made with built-in blocks before saving and return a link to its preview after saving. Open the link in a browser signed in to Formaku. The assistant can copy blocks from a template in the paired collection. When the installation exposes the public Commerce catalog, it can also read product names, current prices, and availability. Download the updated adapter from the panel to use the new tools.
+
+Starting with `0.1.0-alpha.18`, a paired assistant can reuse public images referenced by current published revisions in its collection. The selected media ID goes into an image block. Draft validation and saving reject block lists that exceed the renderer’s size or nesting limits.
 
 Starting with `0.1.0-alpha.10`, use **Wybierz plik** (Choose file) in a record media field. Browse up to 30 files per page and choose an image or PDF by name and visibility. Cancel or press Escape to keep the current selection. Save the draft after selecting a file. File access follows the existing permissions.
 

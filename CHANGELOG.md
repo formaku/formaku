@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.18 — 2026-11-11
+
+A paired assistant can list and reuse public images referenced by current published revisions in its collection. Draft-only, historical, private, and out-of-collection images are excluded. Assistant draft validation and saves reject nested block lists that the renderer cannot show in full. This release adds no database migrations.
+
 ## 0.1.0-alpha.17 — 2026-11-11
 
 Paired assistants can validate drafts made with built-in blocks before saving, return a draft preview path, and reuse page templates from the paired collection. When the host exposes the public Commerce catalog, the MCP adapter can read products without sending the CMS token. Pairing can print configuration for other stdio MCP clients. This release adds no database migrations.
