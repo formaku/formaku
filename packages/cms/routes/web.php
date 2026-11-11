@@ -1,5 +1,5 @@
 <?php
-use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController};
+use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,SitemapController};
 Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::get('/',fn()=>view('formaku::admin'))->middleware([ 'auth:'.config('formaku.guard'),Access::class.':work']);
  Route::get('/media/{media}',[PublicController::class,'file']);
@@ -17,4 +17,20 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::get('/releases',[IntegrationController::class,'releases'])->middleware(Access::class.':build');Route::post('/releases',[IntegrationController::class,'release'])->middleware(Access::class.':build');
  });
 });
-if(config('formaku.public_routes'))Route::middleware('web')->group(function(){Route::get('/',[PublicController::class,'home']);Route::get('/p/{slug}',[PublicController::class,'page']);Route::middleware('auth:'.config('formaku.guard'))->group(function(){Route::get('/portal',[PublicController::class,'portal']);Route::post('/portal/requests',[PublicController::class,'submit'])->middleware('throttle:10,1');Route::get('/portal/requests/{record}',[PublicController::class,'request']);});});
+if (config('formaku.public_routes')) {
+    Route::middleware('web')->group(function () {
+        Route::get('/', [PublicController::class, 'home'])->name('formaku.public.home');
+        Route::get('/p/{slug}', [PublicController::class, 'page'])->name('formaku.public.page');
+        Route::middleware('auth:'.config('formaku.guard'))->group(function () {
+            Route::get('/portal', [PublicController::class, 'portal']);
+            Route::post('/portal/requests', [PublicController::class, 'submit'])->middleware('throttle:10,1');
+            Route::get('/portal/requests/{record}', [PublicController::class, 'request']);
+        });
+    });
+
+    if (config('formaku.sitemap')) {
+        Route::get('/sitemap.xml', SitemapController::class);
+        Route::get('/sitemap-{page}.xml', SitemapController::class)
+            ->whereNumber('page')->name('formaku.public.sitemap');
+    }
+}

@@ -39,6 +39,59 @@ class FormakuTest extends TestCase
         return app(RecordService::class)->save($c, null, ['title' => 'Published title', 'slug' => 'published', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Original']]]], 0, $u->id);
     }
 
+    public function test_sitemap_lists_current_publications_on_the_configured_base_url(): void
+    {
+        config(['app.url' => 'https://example.test/site&docs/']);
+        $user = $this->admin();
+        $collection = $this->collection();
+        $service = app(RecordService::class);
+        $record = $this->record($collection, $user);
+        $record = $service->publish($record, $record->version, $user->id);
+        $service->save($collection, $record, ['title' => 'Draft edit', 'slug' => 'draft-edit'], $record->version, $user->id);
+        $service->save($collection, null, ['title' => 'Draft page', 'slug' => 'draft-only'], 0, $user->id);
+        $orphan = $service->save($collection, null, ['title' => 'Orphan', 'slug' => 'orphan'], 0, $user->id);
+        $orphan->update(['published_id' => 99999, 'published_slug' => 'orphan']);
+        $hidden = $collection->replicate();
+        $hidden->key = 'hidden';
+        $hidden->save();
+        $hiddenPage = $service->save($hidden, null, ['title' => 'Hidden', 'slug' => 'hidden'], 0, $user->id);
+        $service->publish($hiddenPage, $hiddenPage->version, $user->id);
+        $hidden->update(['definition' => array_replace($hidden->definition, ['public' => false])]);
+        $collection->update(['definition' => array_replace($collection->definition, ['public' => '1'])]);
+
+        $response = $this->get('http://other.example/sitemap.xml')->assertOk()
+            ->assertHeader('Content-Type', 'application/xml; charset=UTF-8');
+        $sitemap = simplexml_load_string($response->streamedContent());
+
+        $this->assertSame('urlset', $sitemap->getName());
+        $this->assertSame(['https://example.test/site&docs/', 'https://example.test/site&docs/p/published'], array_map('strval', $sitemap->xpath('//*[local-name()="loc"]')));
+    }
+
+    public function test_large_sitemaps_expose_an_index_and_bounded_parts(): void
+    {
+        config(['app.url' => 'https://example.test']);
+        $collection = $this->collection();
+        foreach (array_chunk(range(1, 4001), 250) as $ids) {
+            DB::table('formaku_records')->insert(array_map(fn ($id) => [
+                'id' => $id, 'collection_id' => $collection->id,
+                'published_id' => $id, 'published_slug' => 'page-'.$id,
+            ], $ids));
+            DB::table('formaku_revisions')->insert(array_map(fn ($id) => [
+                'id' => $id, 'record_id' => $id, 'schema_version' => 1, 'data' => '{}',
+            ], $ids));
+        }
+
+        $index = simplexml_load_string($this->get('/sitemap.xml')->assertOk()->streamedContent());
+        $first = simplexml_load_string($this->get('/sitemap-1.xml')->assertOk()->streamedContent());
+        $second = simplexml_load_string($this->get('/sitemap-2.xml')->assertOk()->streamedContent());
+
+        $this->assertSame('sitemapindex', $index->getName());
+        $this->assertSame(['https://example.test/sitemap-1.xml', 'https://example.test/sitemap-2.xml'], array_map('strval', $index->xpath('//*[local-name()="loc"]')));
+        $this->assertCount(4001, $first->xpath('//*[local-name()="loc"]'));
+        $this->assertSame(['https://example.test/p/page-4001'], array_map('strval', $second->xpath('//*[local-name()="loc"]')));
+        $this->get('/sitemap-3.xml')->assertNotFound();
+    }
+
     public function test_page_uses_only_published_seo_metadata(): void
     {
         $user = $this->admin();
