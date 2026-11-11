@@ -88,7 +88,7 @@ jobs:
           php apps/starter/artisan formaku:install
           php scripts/e2e-fixtures.php
       - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npx playwright test
+      - run: npx playwright test --reporter=line,github
 
   compose:
     runs-on: ubuntu-latest

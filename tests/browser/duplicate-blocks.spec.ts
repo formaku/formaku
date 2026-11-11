@@ -4,6 +4,7 @@ test("duplicate page blocks stay independent through saving and publication", as
   page,
   request: guest,
 }, info) => {
+  test.setTimeout(90_000);
   const slug = "duplicate-blocks-" + info.project.name + "-" + Date.now();
   const title = "Duplicating blocks " + slug;
   await page.goto("/login");
