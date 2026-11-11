@@ -1,13 +1,53 @@
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { once } from "node:events";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+
+test("updating the adapter preserves the local token and refuses a mismatched installation", async (t) => {
+  const profile = await mkdtemp(join(tmpdir(), "formaku-adapter-update-"));
+  t.after(() => rm(profile, { force: true, recursive: true }));
+  const base = "https://cms.example.test/formaku/assistant/v1";
+  const token = "fma_" + "b".repeat(64);
+  const name = "formaku_" + createHash("sha256").update(base).digest("hex").slice(0, 12);
+  const directory = join(profile, ".config", "formaku-assistant", name);
+  const preload = join(profile, "profile.cjs");
+  const connection = join(directory, "connection.json");
+  const installed = join(directory, "adapter.mjs");
+  const adapter = fileURLToPath(new URL("../packages/cms/resources/assistant/formaku-assistant.mjs", import.meta.url));
+  const settings = JSON.stringify({ base, token });
+  await mkdir(directory, { recursive: true });
+  await writeFile(preload, "require('node:os').homedir = () => process.env.FORMAKU_TEST_PROFILE; require('node:module').syncBuiltinESMExports();");
+  await writeFile(connection, settings);
+  await writeFile(installed, "// earlier adapter");
+
+  const run = (...args) => spawnSync(process.execPath, ["--require", preload, adapter, ...args], {
+    env: { ...process.env, FORMAKU_TEST_PROFILE: profile },
+    encoding: "utf8",
+    timeout: 5000,
+  });
+  const refreshed = run("update", base);
+  assert.equal(refreshed.status, 0);
+  assert.ok(!refreshed.stdout.includes(token) && !refreshed.stderr.includes(token));
+  assert.equal(await readFile(connection, "utf8"), settings);
+  assert.deepEqual(await readFile(installed), await readFile(adapter));
+
+  await writeFile(installed, "// keep this adapter");
+  await writeFile(connection, JSON.stringify({ base: base.replace("cms.", "other."), token }));
+  assert.equal(run("update", base).status, 1);
+  assert.equal(await readFile(installed, "utf8"), "// keep this adapter");
+
+  await writeFile(connection, '{invalid JSON ' + token);
+  const invalid = run("serve", connection);
+  assert.equal(invalid.status, 1);
+  assert.ok(!invalid.stderr.includes(token));
+});
 
 test("the MCP adapter validates drafts and reads Commerce without forwarding its CMS token", { timeout: 10_000 }, async (t) => {
   const token = "fma_" + "a".repeat(64);

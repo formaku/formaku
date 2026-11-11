@@ -137,18 +137,37 @@ async function privateFile(path, content) {
   }
 }
 
+function installation(base) {
+  const name = "formaku_" + createHash("sha256").update(base).digest("hex").slice(0, 12);
+  const directory = join(homedir(), ".config", "formaku-assistant", name);
+  return {
+    name, directory,
+    configPath: join(directory, "connection.json"),
+    adapterPath: join(directory, "adapter.mjs"),
+  };
+}
+
+const validToken = (token) => typeof token === "string" && /^fma_[a-f0-9]{64}$/.test(token);
+
+async function loadConnection(configPath) {
+  try {
+    const { base, token } = JSON.parse(await readFile(configPath, "utf8"));
+    if (validToken(token)) return { base: endpoint(base), token };
+  } catch {
+    // Avoid printing local configuration contents on JSON parsing errors.
+  }
+  throw new Error("Brak poprawnego lokalnego połączenia. Uruchom parowanie z polecenia w panelu Formaku.");
+}
+
 async function setup(url, { printConfig }) {
   const base = endpoint(url);
   const code = await readCode();
   if (!/^[a-f0-9]{64}$/.test(code)) throw new Error("Nieprawidłowy format kodu.");
-  const name = "formaku_" + createHash("sha256").update(base).digest("hex").slice(0, 12);
-  const directory = join(homedir(), ".config", "formaku-assistant", name);
-  const configPath = join(directory, "connection.json");
-  const adapterPath = join(directory, "adapter.mjs");
+  const { name, directory, configPath, adapterPath } = installation(base);
   await mkdir(directory, { recursive: true, mode: 0o700 });
   await privateFile(adapterPath, await readFile(new URL(import.meta.url)));
   const { access_token: token } = await client(base)("/exchange", "POST", { code });
-  if (!/^fma_[a-f0-9]{64}$/.test(token)) throw new Error("Serwer zwrócił nieprawidłowe poświadczenie.");
+  if (!validToken(token)) throw new Error("Serwer zwrócił nieprawidłowe poświadczenie.");
   await privateFile(configPath, JSON.stringify({ base, token }));
 
   const command = process.execPath;
@@ -172,11 +191,20 @@ async function setup(url, { printConfig }) {
     + `[mcp_servers.${name}]\ncommand = ${JSON.stringify(command)}\nargs = ${JSON.stringify(args)}\n`);
 }
 
+async function update(url) {
+  const base = endpoint(url);
+  const { configPath, adapterPath } = installation(base);
+  const existing = await loadConnection(configPath);
+  if (existing.base !== base) throw new Error("Adres lokalnego połączenia różni się od adresu z panelu Formaku.");
+
+  await privateFile(adapterPath, await readFile(new URL(import.meta.url)));
+  process.stdout.write("Adapter Formaku zaktualizowany. Uruchom ponownie klienta MCP.\n");
+}
+
 async function serve(configPath) {
-  const config = JSON.parse(await readFile(configPath, "utf8"));
-  const base = endpoint(config.base);
+  const { base, token } = await loadConnection(configPath);
   const url = new URL(base);
-  const api = client(base, config.token);
+  const api = client(base, token);
   const send = (id, payload) => process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, ...payload }) + "\n");
   const input = createInterface({ input: process.stdin, crlfDelay: Infinity });
   for await (const line of input) {
@@ -224,10 +252,13 @@ const [mode, value, option, ...extra] = process.argv.slice(2);
 try {
   if (mode === "setup" && value && (option === undefined || option === "--print-config") && extra.length === 0) {
     await setup(value, { printConfig: option === "--print-config" });
+  } else if (mode === "update" && value && option === undefined) {
+    await update(value);
   } else if (mode === "serve" && value && option === undefined) {
     await serve(value);
   } else {
-    throw new Error("Użycie: node formaku-assistant.mjs setup ADRES_Z_PANELU [--print-config]");
+    throw new Error("Użycie: node formaku-assistant.mjs setup ADRES_Z_PANELU [--print-config]\n"
+      + "Aktualizacja istniejącego adaptera: node formaku-assistant.mjs update ADRES_Z_PANELU");
   }
 } catch (error) {
   process.stderr.write(error.message + "\n");
