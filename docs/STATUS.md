@@ -19,7 +19,7 @@ This is **0.1.0-alpha.24**. The remaining v1 work is listed below.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
 - Publishing a public page under a new slug records a permanent redirect to its current URL.
 - The editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.
-- The editor supports nested blocks with sibling reordering, stacked containers and responsive two- and three-column layouts. Image blocks pick from the paginated public image library and can serve smaller WebP variants while retaining the original URL. Administrators can save a draft’s blocks as a collection template. Editors with create access can use it in a new draft.
+- The editor supports nested blocks with sibling reordering and duplication, stacked containers and responsive two- and three-column layouts. Image blocks pick from the paginated public image library and can serve smaller WebP variants while retaining the original URL. Administrators can save a draft’s blocks as a collection template. Editors with create access can use it in a new draft.
 - Docker runtime with PHP/HTTP/queue/scheduler, pinned base-image digests, non-root execution; GitHub build/GHCR and deployment workflow templates with pinned action SHAs.
 - GitHub alpha releases include a Composer ZIP with compiled panel assets and a SHA-256 checksum for Laravel 13 hosts. The public Formaku Composer repository serves release metadata for direct installation.
 - The Releases panel can refresh the state of a dispatched image build from its GitHub Actions run and open that run directly.
