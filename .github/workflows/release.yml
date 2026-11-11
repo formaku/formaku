@@ -42,6 +42,9 @@ jobs:
         run: echo "name=ghcr.io/${REPOSITORY,,}" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         id: build
+        env:
+          # The Summary step records the published digest.
+          DOCKER_BUILD_SUMMARY: "false"
         with:
           context: .
           file: docker/Dockerfile

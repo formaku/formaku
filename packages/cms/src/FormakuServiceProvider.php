@@ -2,7 +2,9 @@
 
 namespace Formaku\Cms;
 
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Illuminate\View\View as BladeView;
 
 class FormakuServiceProvider extends ServiceProvider
 {
@@ -16,6 +18,9 @@ class FormakuServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'formaku');
+        View::composer('formaku::layout', function (BladeView $view): void {
+            $view->with('siteNavigation', $this->app->make(Services\SiteNavigation::class)->current());
+        });
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../routes/assistant.php');
         $this->publishes([__DIR__.'/../config/formaku.php' => config_path('formaku.php')], 'formaku-config');

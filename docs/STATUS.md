@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.12**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.13**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -15,6 +15,7 @@ This is **0.1.0-alpha.12**. The remaining v1 work is listed below.
 - Definition-only project import/export with format version and conflict checks.
 - Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel.
 - Public content collections can map non-private text fields to the SEO title and description of published revisions.
+- Administrators can configure header and footer links and plain footer text in the shared site layout.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
 - Publishing a public page under a new slug records a permanent redirect to its current URL.
 - The editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.
@@ -24,8 +25,8 @@ This is **0.1.0-alpha.12**. The remaining v1 work is listed below.
 
 ## Evidence
 
-- PHP: 45 tests and 389 assertions pass on local SQLite with PHP 8.5.11. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4, including the backfill and record access rules. Image tests cover WebP dimensions, transparency, original bytes and unsupported inputs.
-- Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring, media usage in drafts and publications, responsive layouts, SEO, related records, private attachments, WebP variants and mobile login width.
+- PHP: 48 tests and 440 assertions pass on local SQLite with PHP 8.5.11. The suite covers navigation access, address validation and version conflicts. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4.
+- Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring, media usage, responsive layouts, SEO, related records, private attachments, WebP variants and mobile login width. Chromium also verifies site navigation changes on a published page.
 - Frontend: vue-tsc and Vite production build pass. A real rendered dashboard screenshot is in test-results/dashboard-chromium.png (ignored build artifact).
 - Docker: image built; Laravel command runs, HTTP login returns 200, runtime UID is 33 (www-data). GitHub CI verifies that the web process, database, queue worker and scheduler start with Compose.
 - Clean-host Composer integration: installed in a separate unmodified Laravel project; original root route retained, Formaku admin registered, public routes absent by default.
@@ -34,7 +35,7 @@ This is **0.1.0-alpha.12**. The remaining v1 work is listed below.
 ## Remaining accepted v1 work
 
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
-- Further page composition controls, post templates and menus/footer/theme management.
+- Further page composition controls, post templates and theme management.
 - Complete panel PL/EN localization and linked content translation workflow.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
 - Registered extension contracts are present; complete developer examples and ResourceAdapter/ActionHandler UI integration still need delivery.

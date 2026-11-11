@@ -1,5 +1,5 @@
 <?php
-use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,SitemapController};
+use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,SiteNavigationController,SitemapController};
 Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::get('/',fn()=>view('formaku::admin'))->middleware([ 'auth:'.config('formaku.guard'),Access::class.':work']);
  Route::get('/media/{media}',[PublicController::class,'file']);
@@ -7,6 +7,8 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::prefix('api/v1')->middleware(Access::class.':work')->group(function(){
   Route::get('/bootstrap',[ApiController::class,'bootstrap']);Route::get('/collections',[ApiController::class,'collections']);
   Route::post('/collections',[ApiController::class,'schema'])->middleware(Access::class.':build');
+  Route::get('/site-navigation',[SiteNavigationController::class,'show'])->middleware(Access::class.':build');
+  Route::put('/site-navigation',[SiteNavigationController::class,'update'])->middleware(Access::class.':build');
   Route::get('/collections/{collection}/records',[ApiController::class,'records']);Route::post('/collections/{collection}/records',[ApiController::class,'save']);
   Route::get('/collections/{collection}/relation-options',[ApiController::class,'relationOptions']);
   Route::get('/records/{record}',[ApiController::class,'show']);Route::get('/records/{record}/preview',[ApiController::class,'preview']);

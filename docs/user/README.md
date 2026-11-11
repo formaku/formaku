@@ -38,6 +38,10 @@ Od wersji `0.1.0-alpha.12` blok obrazu udostępnia mniejsze warianty WebP, jeśl
 
 Utwórz kolekcję danych lub treści, nadaj stabilne klucze i dodaj pola. Dla procesu wskaż stany i dozwolone przejścia. Aktywacja tworzy panel listy i edycji. Usunięcie pola lub zmiana jego typu wymaga migracji przygotowanej w Laravel. Definicje można eksportować i importować w ustawieniach.
 
+### Menu i stopka
+
+Od wersji `0.1.0-alpha.13` jako administrator otwórz **Ustawienia → Menu i stopka**. Dodaj, edytuj lub przestaw linki nagłówka i stopki. Adres może być ścieżką witryny, np. `/p/start`, albo pełnym adresem HTTP(S). Możesz też dodać zwykły tekst stopki. Zapis od razu aktualizuje wspólny układ witryny. Pusta lista ukrywa linki w danym miejscu.
+
 ### Metadane SEO
 
 Od wersji `0.1.0-alpha.3` otwórz **Buduj**, wybierz **Edytuj model** przy publicznej kolekcji treści i w sekcji **Metadane SEO** przypisz pola tekstowe do tytułu oraz opisu. Zapisz konfigurację. Redaktor może uzupełnić te pola w rekordzie, a publikacja udostępni wartości z opublikowanej rewizji. Pola prywatne są wykluczone z listy. Pusty tytuł korzysta z publicznego tytułu strony albo jej slugu, a pusty opis pomija znacznik opisu.
@@ -83,6 +87,8 @@ Starting with `0.1.0-alpha.10`, use **Wybierz plik** (Choose file) in a record m
 Starting with `0.1.0-alpha.11`, choose **Użycie pliku** (File usage) next to a file in the library. The list shows records you can access that use the file in a media field or image block. Draft and Published labels refer to current revisions. Historical revisions and private titles or names are omitted.
 
 Starting with `0.1.0-alpha.12`, image blocks can offer smaller WebP variants of public images. The original URL, caption and alternative text remain available. See the [deployment guide](../DEPLOYMENT.md#generate-variants-for-existing-public-images) to process existing files.
+
+Starting with `0.1.0-alpha.13`, administrators can open **Ustawienia → Menu i stopka** (Settings → Menu and footer) to edit and reorder links and set plain footer text. Links accept site paths or absolute HTTP(S) URLs. Saving applies changes to the shared site layout.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 

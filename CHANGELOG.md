@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.13 — 2026-11-11
+
+Administrators can configure and reorder header and footer links and set plain footer text. Saving applies the configuration to the shared site layout. The new migration preserves the default header.
+
 ## 0.1.0-alpha.12 — 2026-11-11
 
 Public image blocks can serve 480 px and 960 px WebP variants without upscaling. The original URL remains available. Generate variants for existing public images with `php artisan formaku:media-variants`.

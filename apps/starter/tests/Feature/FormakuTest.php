@@ -41,6 +41,77 @@ class FormakuTest extends TestCase
         return app(RecordService::class)->save($c, null, ['title' => 'Published title', 'slug' => 'published', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Original']]]], 0, $u->id);
     }
 
+    public function test_site_navigation_defaults_and_saves_ordered_settings(): void
+    {
+        $endpoint = '/formaku/api/v1/site-navigation';
+        $defaults = [
+            'version' => 0,
+            'header' => [
+                ['label' => 'Portal klienta', 'url' => '/portal'],
+                ['label' => 'Panel', 'url' => '/formaku'],
+            ],
+            'footer' => [],
+            'footerText' => '',
+        ];
+        $this->actingAs($this->admin())->getJson($endpoint)->assertOk()->assertExactJson($defaults);
+
+        $settings = [
+            'version' => 0,
+            'header' => [
+                ['label' => 'About & contact', 'url' => '/p/about?view=short#contact'],
+                ['label' => 'Project', 'url' => 'https://formaku.example/docs'],
+            ],
+            'footer' => [['label' => 'Home', 'url' => '/']],
+            'footerText' => 'Formaku & Strefa Badań',
+        ];
+        $saved = ['version' => 1] + $settings;
+        $this->putJson($endpoint, $settings)->assertOk()->assertExactJson($saved);
+        $this->getJson($endpoint)->assertOk()->assertExactJson($saved);
+        $this->putJson($endpoint, $settings)->assertConflict();
+        $this->getJson($endpoint)->assertOk()->assertExactJson($saved);
+
+        $layout = view('formaku::layout');
+        app('view')->callComposer($layout);
+        $this->assertSame($saved, $layout->getData()['siteNavigation']);
+
+        $cleared = ['version' => 1, 'header' => [], 'footer' => [], 'footerText' => ''];
+        $this->putJson($endpoint, $cleared)->assertOk()->assertExactJson(['version' => 2] + $cleared);
+        $this->getJson($endpoint)->assertOk()->assertExactJson(['version' => 2] + $cleared);
+    }
+
+    public function test_site_navigation_settings_require_builder_access(): void
+    {
+        $endpoint = '/formaku/api/v1/site-navigation';
+        $settings = ['version' => 0, 'header' => [], 'footer' => [], 'footerText' => ''];
+        $this->getJson($endpoint)->assertUnauthorized();
+        $this->putJson($endpoint, $settings)->assertUnauthorized();
+
+        foreach (['editor', 'publisher'] as $role) {
+            $this->actingAs(User::factory()->create(['role' => $role]));
+            $this->getJson($endpoint)->assertForbidden();
+            $this->putJson($endpoint, $settings)->assertForbidden();
+        }
+    }
+
+    public function test_site_navigation_rejects_unsafe_urls_and_invalid_lists(): void
+    {
+        $endpoint = '/formaku/api/v1/site-navigation';
+        $this->actingAs($this->admin());
+        $settings = ['version' => 0, 'header' => [], 'footer' => [], 'footerText' => ''];
+        foreach (['javascript:alert(1)', 'data:text/plain,example', '//example.test', '/\\example.test', "/pa\tth", 'https:///no-host', 'https://user@example.test', 'some-page'] as $url) {
+            $this->putJson($endpoint, [
+                'header' => [['label' => 'Unsafe', 'url' => $url]],
+            ] + $settings)->assertUnprocessable()->assertJsonValidationErrors('header.0.url');
+        }
+        $link = ['label' => 'Example', 'url' => '/example'];
+        $this->putJson($endpoint, [
+            'header' => array_fill(0, 13, $link),
+            'footer' => ['first' => $link],
+            'footerText' => str_repeat('x', 501),
+        ] + $settings)->assertUnprocessable()->assertJsonValidationErrors(['header', 'footer', 'footerText']);
+        $this->getJson($endpoint)->assertOk()->assertJsonPath('version', 0);
+    }
+
     public function test_nested_layout_settings_survive_save_preview_and_publication(): void
     {
         $user = $this->admin();

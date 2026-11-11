@@ -30,6 +30,7 @@ import MediaPicker from "./MediaPicker.vue";
 import MediaUsage from "./MediaUsage.vue";
 import RelationPicker from "./RelationPicker.vue";
 import AssistantConnection from "./AssistantConnection.vue";
+import SiteNavigation from "./SiteNavigation.vue";
 import { blockEditorKey, createBlock, maxBlocksPerLevel } from "./blocks";
 type Field = {
   key: string;
@@ -163,7 +164,11 @@ async function request(path: string, method = "GET", data?: any) {
     body: data ? JSON.stringify(data) : undefined,
   });
   const body = await res.json();
-  if (!res.ok) throw new Error(body.message ?? "Operacja nie powiodła się");
+  if (!res.ok) {
+    throw Object.assign(new Error(body.message ?? "Operacja nie powiodła się"), {
+      status: res.status,
+    });
+  }
   return body;
 }
 async function run(fn: () => Promise<void>) {
@@ -307,6 +312,7 @@ function moveBlock(i: number, delta: number) {
   dirty.value = true;
 }
 async function navigate(s: string) {
+  if (s === "settings" && section.value === s) return;
   if (dirty.value && !confirm("Odrzucić niezapisane zmiany?")) return;
   dirty.value = false;
   section.value = s;
@@ -1546,6 +1552,7 @@ const title = computed(
             :request="request"
           />
           <section v-if="section === 'settings'" class="space-y-6">
+            <SiteNavigation v-if="boot?.abilities?.build" :request="request" @dirty="dirty = $event" />
             <div class="bg-base-100 border border-base-300 rounded-xl p-6">
               <h2 class="text-xl mb-5">Połączenia AI</h2>
               <div

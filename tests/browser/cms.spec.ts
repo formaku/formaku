@@ -120,6 +120,33 @@ test("browser authoring and publication", async ({ page }, info) => {
   ).toBeVisible();
   await expect(page.getByRole("img", { name: "Przykładowy obraz testowy" }))
     .toHaveAttribute("src", fileUrl);
+
+  if (info.project.name === "chromium") {
+    const publicMenu = page.getByRole("navigation", { name: "Menu główne" });
+    await expect(publicMenu.getByRole("link")).toHaveText(["Portal klienta", "Panel"]);
+    await page.goto("/formaku");
+    await page.getByRole("button", { name: "Ustawienia", exact: true }).click();
+    const header = page.getByRole("group", { name: "Menu nagłówka" });
+    await header.getByRole("button", { name: "Dodaj link", exact: true }).click();
+    await header.getByLabel("Etykieta linku 3").fill("Oferta Formaku");
+    await header.getByLabel("Adres linku 3").fill("/p/" + slug);
+    await header.getByRole("button", { name: "Przesuń link 3 w górę" }).click();
+    const footer = page.getByRole("group", { name: "Linki stopki" });
+    await footer.getByRole("button", { name: "Dodaj link", exact: true }).click();
+    await footer.getByLabel("Etykieta linku 1").fill("Dokumentacja Formaku");
+    await footer.getByLabel("Adres linku 1").fill("https://formaku.eu/pl/docs/");
+    await page.getByLabel("Tekst stopki").fill("Formaku <alpha>");
+    await page.getByRole("button", { name: "Zapisz menu i stopkę" }).click();
+    await expect(page.getByText("Zapisano menu i stopkę.", { exact: true })).toBeVisible();
+    await page.goto("/p/" + slug);
+    await expect(publicMenu.getByRole("link")).toHaveText(["Portal klienta", "Oferta Formaku", "Panel"]);
+    await expect(publicMenu.getByRole("link", { name: "Oferta Formaku" }))
+      .toHaveAttribute("href", "/p/" + slug);
+    const publicFooter = page.getByRole("contentinfo");
+    await expect(publicFooter.getByText("Formaku <alpha>", { exact: true })).toBeVisible();
+    await expect(publicFooter.getByRole("link", { name: "Dokumentacja Formaku" }))
+      .toHaveAttribute("href", "https://formaku.eu/pl/docs/");
+  }
 });
 test("mobile login stays within viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
