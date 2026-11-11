@@ -2,11 +2,13 @@
 
 ## Release the source and container
 
-1. Choose the full commit SHA and push the reviewed CMS changes to `main` in the GitHub repository. Keep the project website and its documentation build in the separate Forgejo repository.
-2. In GitHub Actions, check the `CI` run for that SHA. Wait for the PHP database matrix, frontend build, browser tests and Docker Compose startup check to pass.
-3. Run **Build Formaku image** on `main`. Enter the full SHA as `source_commit` and a fresh UUID as `release_id`. The workflow checks that the SHA is an ancestor of `origin/main` and publishes to GHCR under the SHA tag. Save the workflow URL and the digest reference from the run summary. [Manual workflow dispatch](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
-4. For a public image, verify the GHCR package visibility and pull the digest reference from a Docker client without registry credentials. Use the verified `ghcr.io/<owner>/<repo>@sha256:<digest>` reference in the release notes. [GitHub Container registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry)
-5. Publish a GitHub release with a version tag pinned to the same SHA. For `v0.1.0-alpha`, select **This is a pre-release**. Include the release scope, any migration requirements and the CI link. When an image is available publicly, include the build link and verified image digest. Verify the tag and release notes from an anonymous session, then update the website documentation to point to the published release. [GitHub releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository)
+1. Add a dated entry for the version to `CHANGELOG.md` and push the reviewed source to `main`. Keep the project website and its documentation build in the separate Forgejo repository.
+2. Wait for the successful `CI` push run on `main` for that exact commit. This includes the database matrix, frontend build, browser tests, and Docker Compose startup.
+3. Create an annotated alpha tag for the tested commit and push that tag on its own using your GitHub credentials. The workflow accepts versions such as `v0.1.0-alpha.21`. The tagged commit must contain the release workflow. If the workflow reports that CI has not completed, rerun it once CI passes.
+4. The workflow builds the SHA-tagged image, verifies the exact manifest by digest using anonymous GHCR access, and creates a GitHub prerelease with the changelog entry, digest and build links. Check the public release and pull the listed digest using a client without registry credentials.
+5. Update the project website in English and Polish with the verified release link, digest, and upgrade instructions. Verify the public documentation after deployment.
+
+For a standalone image build, run **Build Formaku image** on `main` using the full SHA as `source_commit` and a fresh UUID as `release_id`. The run publishes the SHA-tagged image and records the digest in its summary. [Manual workflow dispatch](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
 
 To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY` and a fine-grained `GITHUB_TOKEN` restricted to that repository with Actions write permission. The panel links to the Actions list, where you can find the run by its release ID.
 

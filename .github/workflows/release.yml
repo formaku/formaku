@@ -1,6 +1,8 @@
 name: Build Formaku image
-run-name: Formaku ${{ inputs.release_id }}
+run-name: Formaku ${{ inputs.release_id || github.ref_name }}
 on:
+  push:
+    tags: ['v*-alpha*']
   workflow_dispatch:
     inputs:
       release_id:
@@ -11,24 +13,62 @@ on:
         type: string
 permissions:
   contents: read
-  packages: write
 concurrency:
-  group: formaku-build-${{ inputs.release_id }}
+  group: formaku-build-${{ inputs.release_id || github.ref_name }}
   cancel-in-progress: false
+defaults:
+  run:
+    shell: bash
 jobs:
   build:
+    if: github.event_name == 'workflow_dispatch' || github.event.created
     runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      packages: write
+    outputs:
+      source: ${{ steps.source.outputs.sha }}
+      ci_url: ${{ steps.source.outputs.ci_url }}
+      image: ${{ steps.image.outputs.name }}
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Validate source
+        id: source
         env:
           SOURCE_COMMIT: ${{ inputs.source_commit }}
+          GH_TOKEN: ${{ github.token }}
         run: |
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            if [[ ! "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-alpha(\.[0-9]+)?$ ]]; then
+              echo "::error::Expected an alpha release tag"
+              exit 1
+            fi
+            SOURCE_COMMIT=$(git rev-parse 'HEAD^{commit}')
+          fi
           [[ "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
-          git merge-base --is-ancestor "$SOURCE_COMMIT" origin/main
+          git merge-base --is-ancestor "$SOURCE_COMMIT" refs/remotes/origin/main
           git checkout --detach "$SOURCE_COMMIT"
+          echo "sha=$SOURCE_COMMIT" >> "$GITHUB_OUTPUT"
+
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            ci_url=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
+              -X GET -f branch=main -f event=push -f head_sha="$SOURCE_COMMIT" \
+              | jq -r --arg sha "$SOURCE_COMMIT" '
+                .workflow_runs[0]
+                | select(.head_sha == $sha and .head_branch == "main" and .event == "push")
+                | select(.status == "completed" and .conclusion == "success")
+                | .html_url')
+            if [[ -z "$ci_url" ]]; then
+              echo "::error::Wait for successful CI on main for $SOURCE_COMMIT, then rerun this workflow"
+              exit 1
+            fi
+            echo "ci_url=$ci_url" >> "$GITHUB_OUTPUT"
+          fi
       - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
       - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
@@ -49,7 +89,7 @@ jobs:
           context: .
           file: docker/Dockerfile
           push: true
-          tags: ${{ steps.image.outputs.name }}:${{ inputs.source_commit }}
+          tags: ${{ steps.image.outputs.name }}:${{ steps.source.outputs.sha }}
           sbom: true
           provenance: mode=max
       - name: Summary
@@ -57,3 +97,65 @@ jobs:
           IMAGE: ${{ steps.image.outputs.name }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: echo "Image $IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+  publish:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.build.outputs.source }}
+          persist-credentials: false
+      - name: Verify public image
+        env:
+          IMAGE: ${{ needs.build.outputs.image }}
+          DIGEST: ${{ needs.build.outputs.digest }}
+        run: |
+          [[ "$DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          repository=${IMAGE#ghcr.io/}
+          token=$(curl -fsS --retry 3 --get https://ghcr.io/token \
+            --data-urlencode service=ghcr.io --data-urlencode "scope=repository:$repository:pull" \
+            | jq -er '.token')
+          manifest=$(mktemp)
+          curl -fsS --retry 3 -o "$manifest" \
+            -H "Authorization: Bearer $token" \
+            -H 'Accept: application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json' \
+            "https://ghcr.io/v2/$repository/manifests/$DIGEST"
+          printf '%s  %s\n' "${DIGEST#sha256:}" "$manifest" | sha256sum --check
+      - name: Publish prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_COMMIT: ${{ needs.build.outputs.source }}
+          CI_URL: ${{ needs.build.outputs.ci_url }}
+          IMAGE: ${{ needs.build.outputs.image }}
+          DIGEST: ${{ needs.build.outputs.digest }}
+        run: |
+          tag=$GITHUB_REF_NAME
+          remote_tag=$(git ls-remote --exit-code origin "refs/tags/$tag" "refs/tags/$tag^{}")
+          [[ "$(awk 'END {print $1}' <<< "$remote_tag")" == "$SOURCE_COMMIT" ]]
+
+          notes=$(mktemp)
+          awk -v prefix="## ${tag#v} — " '
+            index($0, prefix) == 1 { found = 1; next }
+            found && /^## / { exit }
+            found { print; if (NF) content = 1 }
+            END { if (!content) exit 1 }
+          ' CHANGELOG.md > "$notes"
+          {
+            printf '\n**Public Linux AMD64 image**\n\n```sh\ndocker pull %s@%s\n```\n' "$IMAGE" "$DIGEST"
+            printf '\n[CI](%s) · [Image build](%s/%s/actions/runs/%s)\n' \
+              "$CI_URL" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
+            printf '\n[Documentation (English)](https://formaku.eu/docs/) · [Dokumentacja (polski)](https://formaku.eu/pl/docs/)\n'
+          } >> "$notes"
+
+          if existing=$(gh release view "$tag" --json isDraft,isPrerelease,body,url); then
+            jq -e --arg ref "$IMAGE@$DIGEST" '
+              .isPrerelease and (.isDraft | not) and (.body | contains($ref))
+            ' <<< "$existing" > /dev/null
+            jq -r '.url' <<< "$existing"
+          else
+            gh release create "$tag" --verify-tag --prerelease --latest=false \
+              --title "Formaku $tag" --notes-file "$notes"
+          fi
