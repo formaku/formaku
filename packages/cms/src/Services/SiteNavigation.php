@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class SiteNavigation
 {
-    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string} */
+    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'} */
     public function current(): array
     {
         $row = $this->row()->first();
@@ -20,15 +20,17 @@ class SiteNavigation
             'footerText' => '',
         ];
 
-        return ['version' => (int) ($row->version ?? 0)] + $settings;
+        return ['version' => (int) ($row->version ?? 0)] + $settings + ['theme' => 'light'];
     }
 
     /**
-     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string}  $settings
-     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string}
+     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme?: 'light'|'dark'}  $settings
+     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'}
      */
     public function save(int $version, array $settings): array
     {
+        $settings['theme'] ??= $this->current()['theme'];
+
         $updated = $this->row()->where('version', $version)->increment('version', 1, [
             'settings' => json_encode($settings, JSON_THROW_ON_ERROR),
         ]);

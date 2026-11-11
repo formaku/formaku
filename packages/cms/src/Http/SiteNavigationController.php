@@ -18,6 +18,7 @@ class SiteNavigationController
         $rules = [
             'version' => 'required|integer|min:0',
             'footerText' => 'present|nullable|string|max:500',
+            'theme' => 'sometimes|required|string|in:light,dark',
         ];
         foreach (['header', 'footer'] as $area) {
             $rules[$area] = 'present|array|list|max:12';
@@ -32,11 +33,11 @@ class SiteNavigationController
 
         $data = $request->validate($rules);
 
-        return $navigation->save((int) $data['version'], [
-            'header' => $data['header'],
-            'footer' => $data['footer'],
-            'footerText' => $data['footerText'] ?? '',
-        ]);
+        $version = (int) $data['version'];
+        unset($data['version']);
+        $data['footerText'] ??= '';
+
+        return $navigation->save($version, $data);
     }
 
     private function isAllowedUrl(string $url): bool

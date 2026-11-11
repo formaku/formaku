@@ -8,6 +8,7 @@ type Navigation = {
   header: Link[];
   footer: Link[];
   footerText: string;
+  theme: "light" | "dark";
 };
 type EditableLink = Link & { key: number };
 type EditableNavigation = Omit<Navigation, "header" | "footer"> & {
@@ -39,6 +40,7 @@ function payload(source: EditableNavigation): Navigation {
     header: serializeLinks(source.header),
     footer: serializeLinks(source.footer),
     footerText: source.footerText,
+    theme: source.theme,
   };
 }
 
@@ -123,6 +125,13 @@ onMounted(load);
       </button>
 
       <form v-if="settings" class="space-y-5" @submit.prevent="save">
+        <label class="block">
+          <span class="field-label">Motyw witryny</span>
+          <select v-model="settings.theme" class="select w-full sm:w-auto" :disabled="busy">
+            <option value="light">Jasny</option>
+            <option value="dark">Ciemny</option>
+          </select>
+        </label>
         <p class="text-sm text-base-content/70">Użyj ścieżki, np. /p/kontakt, albo pełnego adresu HTTP lub HTTPS.</p>
         <fieldset
           v-for="group in linkGroups"

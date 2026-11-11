@@ -52,6 +52,7 @@ class FormakuTest extends TestCase
             ],
             'footer' => [],
             'footerText' => '',
+            'theme' => 'light',
         ];
         $this->actingAs($this->admin())->getJson($endpoint)->assertOk()->assertExactJson($defaults);
 
@@ -64,7 +65,7 @@ class FormakuTest extends TestCase
             'footer' => [['label' => 'Home', 'url' => '/']],
             'footerText' => 'Formaku & Strefa Badań',
         ];
-        $saved = ['version' => 1] + $settings;
+        $saved = ['version' => 1, 'theme' => 'light'] + $settings;
         $this->putJson($endpoint, $settings)->assertOk()->assertExactJson($saved);
         $this->getJson($endpoint)->assertOk()->assertExactJson($saved);
         $this->putJson($endpoint, $settings)->assertConflict();
@@ -75,8 +76,34 @@ class FormakuTest extends TestCase
         $this->assertEquals($saved, $layout->getData()['siteNavigation']);
 
         $cleared = ['version' => 1, 'header' => [], 'footer' => [], 'footerText' => ''];
-        $this->putJson($endpoint, $cleared)->assertOk()->assertExactJson(['version' => 2] + $cleared);
-        $this->getJson($endpoint)->assertOk()->assertExactJson(['version' => 2] + $cleared);
+        $this->putJson($endpoint, $cleared)->assertOk()->assertExactJson(['version' => 2, 'theme' => 'light'] + $cleared);
+        $this->getJson($endpoint)->assertOk()->assertExactJson(['version' => 2, 'theme' => 'light'] + $cleared);
+    }
+
+    public function test_site_theme_is_shared_by_public_pages_and_previews(): void
+    {
+        $user = $this->admin();
+        $record = $this->record($this->collection(), $user);
+        app(RecordService::class)->publish($record, $record->version, $user->id);
+        $endpoint = '/formaku/api/v1/site-navigation';
+        $settings = ['header' => [], 'footer' => [], 'footerText' => 'Existing footer'];
+        DB::table('formaku_site_navigation')->where('id', 1)->update([
+            'settings' => json_encode($settings, JSON_THROW_ON_ERROR),
+        ]);
+
+        $this->get('/p/published')->assertOk()->assertSeeHtml('data-theme="light"');
+        $this->actingAs($user)->getJson($endpoint)->assertOk()->assertJsonPath('theme', 'light');
+        $this->putJson($endpoint, ['version' => 0, 'theme' => 'unknown'] + $settings)
+            ->assertUnprocessable()->assertJsonValidationErrors('theme');
+        $this->putJson($endpoint, ['version' => 0, 'theme' => 'dark'] + $settings)
+            ->assertOk()->assertJsonPath('theme', 'dark');
+        $this->putJson($endpoint, ['version' => 1, 'footerText' => 'Updated by an older client'] + $settings)
+            ->assertOk()->assertJsonPath('theme', 'dark');
+        $this->get('/p/published')->assertOk()->assertSeeHtml('data-theme="dark"')
+            ->assertSee('Updated by an older client');
+        $this->get('/formaku/api/v1/records/'.$record->id.'/preview')->assertOk()
+            ->assertSeeHtml('data-theme="dark"');
+        $this->get('/formaku')->assertOk()->assertSeeHtml('data-theme="light"');
     }
 
     public function test_site_navigation_settings_require_builder_access(): void
