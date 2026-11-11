@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.5**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.6**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -17,7 +17,7 @@ This is **0.1.0-alpha.5**. The remaining v1 work is listed below.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
 - Publishing a public page under a new slug records a permanent redirect to its current URL.
 - The editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.
-- Development version: the editor supports nested blocks with sibling reordering, stacked containers and responsive two- and three-column layouts.
+- The editor supports nested blocks with sibling reordering, stacked containers and responsive two- and three-column layouts.
 - Docker runtime with PHP/HTTP/queue/scheduler, pinned base-image digests, non-root execution; GitHub build/GHCR and deployment workflow templates with pinned action SHAs.
 - Host deployment/backup helper and restricted SSH-dispatch template. These scripts have only received syntax checks; they are not an accepted production deployment system.
 
