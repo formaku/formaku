@@ -353,3 +353,62 @@ test("collection forms save SEO metadata, related records and a private file", a
   await expect(await page.request.get(fileUrl)).toBeOK();
   expect((await guest.get(fileUrl)).status()).toBe(404);
 });
+
+test("page templates copy only blocks into a new draft", async ({ page }, info) => {
+  const suffix = info.project.name + "-" + Date.now();
+  const templateName = "Template " + suffix;
+  const originalSlug = "template-source-" + suffix;
+  const copySlug = "template-copy-" + suffix;
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  await page.getByRole("button", { name: "Strony i oferta", exact: true }).click();
+  const addRecord = page.getByRole("button", { name: "Dodaj rekord" });
+  const title = page.getByLabel("Tytuł", { exact: true });
+  const slug = page.getByLabel("Adres URL", { exact: true });
+  const heroTitle = page.getByLabel("title", { exact: true });
+  const status = page.getByRole("status");
+
+  await addRecord.click();
+  await title.fill("Template source " + suffix);
+  await slug.fill(originalSlug);
+  await page.getByRole("button", { name: "hero", exact: true }).click();
+  await heroTitle.fill("Original template section");
+  await page.getByRole("button", { name: "Zapisz szkic" }).click();
+  await expect(status).toContainText("Szkic zapisany");
+  await page.getByLabel("Nazwa szablonu").fill(templateName);
+  await page.getByRole("button", { name: "Zapisz jako szablon" }).click();
+  await expect(status).toContainText("Zapisano szablon strony");
+
+  await page.getByRole("button", { name: "Wróć do listy" }).click();
+  await addRecord.click();
+  await page.getByRole("button", { name: "Pokaż szablony kolekcji" }).click();
+  await page.getByLabel("Szablon kolekcji").selectOption({ label: templateName });
+  await page.getByRole("button", { name: "Wstaw sekcje szablonu" }).click();
+  await expect(heroTitle).toHaveValue("Original template section");
+  await expect(title).toHaveValue("");
+  await expect(slug).toHaveValue("");
+  await title.fill("Template copy " + suffix);
+  await slug.fill(copySlug);
+  await heroTitle.fill("Edited copy");
+  await page.getByRole("button", { name: "Zapisz szkic" }).click();
+  await expect(status).toContainText("Szkic zapisany");
+  expect((await page.request.get("/p/" + copySlug)).status()).toBe(404);
+  await page.getByRole("button", { name: "Opublikuj treść" }).click();
+  await expect(status).toContainText("Treść opublikowana");
+  await expect(await page.request.get("/p/" + copySlug)).toBeOK();
+
+  await page.getByRole("button", { name: "Wróć do listy" }).click();
+  await addRecord.click();
+  await page.getByRole("button", { name: "Pokaż szablony kolekcji" }).click();
+  const chooser = page.getByLabel("Szablon kolekcji");
+  await chooser.selectOption({ label: templateName });
+  await page.getByRole("button", { name: "Wstaw sekcje szablonu" }).click();
+  await expect(heroTitle).toHaveValue("Original template section");
+  await page.getByRole("button", { name: "Usuń szablon" }).click();
+  await page.getByRole("button", { name: "Potwierdź usunięcie" }).click();
+  await expect(status).toContainText("Usunięto szablon strony");
+  await expect(chooser.getByRole("option", { name: templateName })).toHaveCount(0);
+  await expect(await page.request.get("/p/" + copySlug)).toBeOK();
+});

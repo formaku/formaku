@@ -38,6 +38,12 @@ Od wersji `0.1.0-alpha.12` blok obrazu udostępnia mniejsze warianty WebP, jeśl
 
 Utwórz kolekcję danych lub treści, nadaj stabilne klucze i dodaj pola. Dla procesu wskaż stany i dozwolone przejścia. Aktywacja tworzy panel listy i edycji. Usunięcie pola lub zmiana jego typu wymaga migracji przygotowanej w Laravel. Definicje można eksportować i importować w ustawieniach.
 
+### Szablony stron
+
+Administrator może zapisać układ z istniejącego szkicu. Zapisz szkic z co najmniej jedną sekcją, wpisz nazwę w sekcji **Szablony stron** i wybierz **Zapisz jako szablon**.
+
+W tej samej kolekcji wybierz **Dodaj rekord**, a następnie **Pokaż szablony kolekcji**. Wybierz szablon i kliknij **Wstaw sekcje szablonu**. Uzupełnij tytuł i adres, dostosuj sekcje i zapisz szkic. Opublikuj stronę zwykłą akcją publikacji. Zmiany w kopii i usunięcie szablonu nie zmieniają innych szkiców ani stron.
+
 ### Menu i stopka
 
 Od wersji `0.1.0-alpha.13` jako administrator otwórz **Ustawienia → Menu i stopka**. Dodaj, edytuj lub przestaw linki nagłówka i stopki. Adres może być ścieżką witryny, np. `/p/start`, albo pełnym adresem HTTP(S). Możesz też dodać zwykły tekst stopki. Zapis od razu aktualizuje wspólny układ witryny. Pusta lista ukrywa linki w danym miejscu.
@@ -89,6 +95,10 @@ Starting with `0.1.0-alpha.10`, use **Wybierz plik** (Choose file) in a record m
 Starting with `0.1.0-alpha.11`, choose **Użycie pliku** (File usage) next to a file in the library. The list shows records you can access that use the file in a media field or image block. Draft and Published labels refer to current revisions. Historical revisions and private titles or names are omitted.
 
 Starting with `0.1.0-alpha.12`, image blocks can offer smaller WebP variants of public images. The original URL, caption and alternative text remain available. See the [deployment guide](../DEPLOYMENT.md#generate-variants-for-existing-public-images) to process existing files.
+
+Administrators can save the blocks from an existing draft as a page template. Save a draft with at least one block, enter a name under **Szablony stron** (Page templates), and choose **Zapisz jako szablon** (Save as template).
+
+In the same collection, choose **Dodaj rekord** (Add record) and **Pokaż szablony kolekcji** (Show collection templates). Select a template and choose **Wstaw sekcje szablonu** (Insert template blocks). Enter a new title and URL, adapt the copied blocks, and save the draft. Publish it with the usual publication action. Editing the copy or deleting the template leaves the other drafts and pages intact.
 
 Starting with `0.1.0-alpha.13`, administrators can open **Ustawienia → Menu i stopka** (Settings → Menu and footer) to edit and reorder links and set plain footer text. Links accept site paths or absolute HTTP(S) URLs. Saving applies changes to the shared site layout.
 

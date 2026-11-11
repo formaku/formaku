@@ -60,6 +60,12 @@ type MediaPage = {
   current_page: number;
   last_page: number;
 };
+type PageTemplate = { id: number; name: string };
+type PageTemplatePage = {
+  data: PageTemplate[];
+  current_page: number;
+  last_page: number;
+};
 type Collection = {
   id: number;
   key: string;
@@ -105,6 +111,23 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+const templateName = ref("");
+const templatePage = ref<PageTemplatePage | null>(null);
+const templateId = ref<number | null>(null);
+const templateToDelete = ref<number | null>(null);
+const supportsPageTemplates = computed(
+  () =>
+    selected.value?.kind === "content" &&
+    selected.value.definition.fields.some(
+      (field) => field.key === "blocks" && field.type === "richtext" && !field.private,
+    ),
+);
+watch(record, () => {
+  templateName.value = "";
+  templatePage.value = null;
+  templateId.value = null;
+  templateToDelete.value = null;
+});
 const publicContentSchema = computed(
   () => schema.value?.kind === "content" && schema.value.definition.public,
 );
@@ -240,6 +263,65 @@ function fresh() {
 function edit(r: any) {
   record.value = clone(r);
   dirty.value = false;
+}
+async function savePageTemplate() {
+  if (!record.value?.id || dirty.value || !templateName.value.trim()) return;
+  await run(async () => {
+    await request(`/records/${record.value.id}/page-templates`, "POST", {
+      name: templateName.value.trim(),
+      version: record.value.version,
+    });
+    templateName.value = "";
+    message.value = "Zapisano szablon strony.";
+  });
+}
+function pageTemplatePath(collectionId: number) {
+  return `/collections/${collectionId}/page-templates`;
+}
+async function loadPageTemplates(page = 1) {
+  const draft = record.value;
+  const collectionId = selected.value!.id;
+  await run(async () => {
+    const result: PageTemplatePage = await request(
+      `${pageTemplatePath(collectionId)}?page=${page}`,
+    );
+    if (draft !== record.value || collectionId !== selected.value?.id) return;
+    templatePage.value = result;
+    templateId.value = null;
+    templateToDelete.value = null;
+  });
+}
+async function applyPageTemplate() {
+  const draft = record.value;
+  if (!draft || draft.id || !templateId.value || draft.data.blocks?.length) return;
+  const collectionId = selected.value!.id;
+  await run(async () => {
+    const result = await request(
+      `${pageTemplatePath(collectionId)}/${templateId.value}`,
+    );
+    if (draft !== record.value || collectionId !== selected.value?.id || draft.data.blocks?.length) return;
+    draft.data.blocks = clone(result.blocks);
+    dirty.value = true;
+    message.value = "Wstawiono sekcje szablonu do szkicu.";
+  });
+}
+async function deletePageTemplate() {
+  const draft = record.value;
+  const collectionId = selected.value!.id;
+  const page = templatePage.value;
+  if (!page || !templateToDelete.value) return;
+  await run(async () => {
+    const path = pageTemplatePath(collectionId);
+    await request(`${path}/${templateToDelete.value}`, "DELETE");
+    if (draft !== record.value || collectionId !== selected.value?.id) return;
+    templateId.value = null;
+    templateToDelete.value = null;
+    const targetPage = page.data.length === 1 ? Math.max(1, page.current_page - 1) : page.current_page;
+    const result: PageTemplatePage = await request(`${path}?page=${targetPage}`);
+    if (draft !== record.value || collectionId !== selected.value?.id) return;
+    templatePage.value = result;
+    message.value = "Usunięto szablon strony.";
+  });
 }
 async function save() {
   clearTimeout(autosaveTimer);
@@ -1137,6 +1219,86 @@ const title = computed(
                     ></iframe>
                   </div>
                 </div>
+              </section>
+              <section
+                v-if="supportsPageTemplates && (!record.id || boot?.abilities?.build)"
+                aria-labelledby="page-templates-heading"
+                class="mb-6 rounded-box border border-base-300 bg-base-100 p-4"
+              >
+                <h2 id="page-templates-heading" class="mb-3 text-lg">Szablony stron</h2>
+                <form
+                  v-if="record.id"
+                  class="flex flex-col gap-2 sm:flex-row sm:items-end"
+                  @submit.prevent="savePageTemplate"
+                >
+                  <label>
+                    <span class="field-label">Nazwa szablonu</span>
+                    <input v-model="templateName" class="input w-full" maxlength="100" required />
+                  </label>
+                  <button
+                    type="submit"
+                    class="btn"
+                    :disabled="busy || dirty || !record.data.blocks?.length || !templateName.trim()"
+                  >Zapisz jako szablon</button>
+                  <p v-if="dirty" class="text-sm">Zapisz szkic, aby skopiować jego sekcje.</p>
+                </form>
+                <button
+                  v-else-if="!templatePage"
+                  type="button"
+                  class="btn"
+                  :disabled="busy"
+                  @click="loadPageTemplates()"
+                >Pokaż szablony kolekcji</button>
+                <template v-else>
+                  <p v-if="!templatePage.data.length">W tej kolekcji nie ma szablonów.</p>
+                  <div v-else class="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end">
+                    <label>
+                      <span class="field-label">Szablon kolekcji</span>
+                      <select
+                        v-model="templateId"
+                        class="select w-full"
+                        :disabled="busy"
+                        @change="templateToDelete = null"
+                      >
+                        <option :value="null">Wybierz szablon</option>
+                        <option v-for="template in templatePage.data" :key="template.id" :value="template.id">
+                          {{ template.name }}
+                        </option>
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      class="btn"
+                      :disabled="busy || !templateId || !!record.data.blocks?.length"
+                      @click="applyPageTemplate"
+                    >Wstaw sekcje szablonu</button>
+                    <button
+                      v-if="boot?.abilities?.build && !templateToDelete"
+                      type="button"
+                      class="btn"
+                      :disabled="busy || !templateId"
+                      @click="templateToDelete = templateId"
+                    >Usuń szablon</button>
+                    <template v-if="templateToDelete">
+                      <button type="button" class="btn" :disabled="busy" @click="deletePageTemplate">
+                        Potwierdź usunięcie
+                      </button>
+                      <button type="button" class="btn" :disabled="busy" @click="templateToDelete = null">
+                        Anuluj
+                      </button>
+                    </template>
+                  </div>
+                  <p v-if="record.data.blocks?.length" class="mt-2 text-sm">
+                    Szablon można wstawić do szkicu bez sekcji.
+                  </p>
+                  <div v-if="templatePage.last_page > 1" class="mt-3 flex flex-wrap items-center gap-2">
+                    <button type="button" class="btn btn-sm" :disabled="busy || templatePage.current_page === 1"
+                      @click="loadPageTemplates(templatePage.current_page - 1)">Poprzednia strona</button>
+                    <span class="text-sm">{{ templatePage.current_page }} / {{ templatePage.last_page }}</span>
+                    <button type="button" class="btn btn-sm" :disabled="busy || templatePage.current_page === templatePage.last_page"
+                      @click="loadPageTemplates(templatePage.current_page + 1)">Następna strona</button>
+                  </div>
+                </template>
               </section>
               <div
                 class="space-y-5 bg-base-100 border border-base-300 rounded-xl p-6"
