@@ -58,6 +58,8 @@ docker compose --env-file .env.docker up -d --no-build --wait
 
 Alpha.3 introduces no database migration. Upgrades from the first alpha still apply the assistant migration introduced in alpha.2. After the upgrade, verify that published pages load and set `APP_URL` to the public base URL for the sitemap.
 
+Development builds after alpha.3 require the slug redirects migration. Run `php artisan migrate --force` before starting the updated services. The migration adds an empty redirect table. Formaku records new URL changes as pages are published after the upgrade.
+
 ## Run the first alpha with Docker Compose
 
 The [v0.1.0-alpha source](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha) includes the Compose configuration. After preparing it, use the public Linux AMD64 image from GHCR or build the tagged source locally.

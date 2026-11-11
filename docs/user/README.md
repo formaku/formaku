@@ -10,6 +10,8 @@ Wybierz kolekcję i dodaj rekord. Zapis tworzy nową rewizję. W treściach popr
 
 Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera.
 
+W wersji rozwojowej publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
+
 ## Buduj
 
 Utwórz kolekcję danych lub treści, nadaj stabilne klucze i dodaj pola. Dla procesu wskaż stany i dozwolone przejścia. Aktywacja tworzy panel listy i edycji. Usunięcie pola lub zmiana jego typu wymaga migracji przygotowanej w Laravel. Definicje można eksportować i importować w ustawieniach.

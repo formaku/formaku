@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Publishing a public page under a new slug now redirects its former URL directly to the current one. Existing installations need the slug redirects migration.
+
 ## 0.1.0-alpha.3 — 2026-11-11
 
 Public content collections can map text fields to the SEO title and description. Public pages use the published revision and omit private fields and blank descriptions.

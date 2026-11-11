@@ -15,6 +15,7 @@ This is **0.1.0-alpha.3**. The remaining v1 work is listed below.
 - Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel.
 - Public content collections can map non-private text fields to the SEO title and description of published revisions.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
+- Development version: publishing a public page under a new slug records a permanent redirect to its current URL.
 - Docker runtime with PHP/HTTP/queue/scheduler, pinned base-image digests, non-root execution; GitHub build/GHCR and deployment workflow templates with pinned action SHAs.
 - Host deployment/backup helper and restricted SSH-dispatch template. These scripts have only received syntax checks; they are not an accepted production deployment system.
 
@@ -30,7 +31,7 @@ This is **0.1.0-alpha.3**. The remaining v1 work is listed below.
 ## Remaining accepted v1 work
 
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
-- Complete page composition/visual preview fidelity, post templates, menus/footer/theme management and redirects.
+- Complete page composition/visual preview fidelity, post templates and menus/footer/theme management.
 - Complete panel PL/EN localization and linked content translation workflow.
 - Media usage tracking, asset metadata editing, image variants and integrated media/relation pickers with pagination.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.

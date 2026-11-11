@@ -55,7 +55,15 @@ class RecordService
             }
             $slug = $data['slug'] ?? ('page-'.$r->id);
             abort_unless(preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug), 422, 'Invalid slug');
+            $previousSlug = $r->published_id !== null ? $r->published_slug : null;
             $r->update(['published_id' => $rev->id, 'published_slug' => $slug, 'published_title' => $data['title'] ?? $data['name'] ?? $slug, 'search_text' => implode(' ', array_filter($data, 'is_string')), 'version' => $r->version + 1, 'publish_at' => null]);
+            if (($c->definition['public'] ?? false) && $previousSlug !== null && $previousSlug !== $slug) {
+                DB::table('formaku_slug_redirects')->upsert(
+                    ['slug' => $previousSlug, 'record_id' => $r->id],
+                    ['slug'],
+                    ['record_id'],
+                );
+            }
             $this->event($r, $actor, 'published', $assistantId);
 
             return $r->fresh();

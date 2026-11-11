@@ -10,7 +10,9 @@ use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class PublicController
 {
@@ -19,12 +21,25 @@ class PublicController
         return view('formaku::catalog', ['items' => Record::whereIn('collection_id', Collection::all()->filter(fn ($c) => $c->kind === 'content' && ($c->definition['public'] ?? false))->pluck('id'))->whereNotNull('published_id')->orderBy('published_title')->paginate(20)]);
     }
 
-    public function page(string $slug, Renderer $renderer)
+    public function page(Request $request, string $slug, Renderer $renderer)
     {
-        $r = Record::where('published_slug', $slug)->whereNotNull('published_id')->firstOrFail();
+        $r = Record::where('published_slug', $slug)->whereNotNull('published_id')->first();
+        $redirect = $r === null;
+        $r ??= Record::whereIn('id', DB::table('formaku_slug_redirects')->where('slug', $slug)->select('record_id'))
+            ->whereNotNull('published_id')->whereNotNull('published_slug')->firstOrFail();
         $c = Collection::findOrFail($r->collection_id);
         abort_unless($c->definition['public'] ?? false, 404);
-        $d = Revision::findOrFail($r->published_id)->data;
+        $revision = Revision::where('record_id', $r->id)->findOrFail($r->published_id);
+
+        if ($redirect && $r->published_slug !== $slug) {
+            abort_unless($c->kind === 'content', 404);
+            $base = rtrim('/'.ltrim($request->getBaseUrl(), '/'), '/');
+            $path = route('formaku.public.page', ['slug' => $r->published_slug], false);
+
+            return new RedirectResponse($base.$path, 301, ['Cache-Control' => 'no-store']);
+        }
+
+        $d = $revision->data;
 
         $publicTextKeys = SchemaValidator::publicTextKeys($c->definition);
         $seo = $c->definition['seo'] ?? [];

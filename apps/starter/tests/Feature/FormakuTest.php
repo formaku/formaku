@@ -39,6 +39,72 @@ class FormakuTest extends TestCase
         return app(RecordService::class)->save($c, null, ['title' => 'Published title', 'slug' => 'published', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Original']]]], 0, $u->id);
     }
 
+    public function test_old_published_slugs_redirect_directly_to_the_current_slug(): void
+    {
+        $user = $this->admin();
+        $collection = $this->collection();
+        $service = app(RecordService::class);
+        $record = $this->record($collection, $user);
+        $record = $service->publish($record, $record->version, $user->id);
+
+        $record = $service->save($collection, $record, ['title' => 'Renamed', 'slug' => 'second'], $record->version, $user->id);
+        $this->get('/p/published')->assertOk();
+        $this->get('/p/second')->assertNotFound();
+        $record = $service->publish($record, $record->version, $user->id);
+        $this->get('/p/published?campaign=old')->assertStatus(301)->assertHeader('Location', '/p/second');
+
+        $record = $service->save($collection, $record, ['title' => 'Renamed again', 'slug' => 'third'], $record->version, $user->id);
+        $service->publish($record, $record->version, $user->id);
+
+        $firstRedirect = $this->get('/p/published')->assertStatus(301)->assertHeader('Location', '/p/third');
+        $this->assertStringContainsString('no-store', $firstRedirect->headers->get('Cache-Control'));
+        $this->get('/p/second')->assertStatus(301)->assertHeader('Location', '/p/third');
+        $this->get('/p/third')->assertOk()->assertSeeHtml('<title>Renamed again</title>');
+        $sitemap = $this->get('/sitemap.xml')->assertOk()->streamedContent();
+        $this->assertStringContainsString('/p/third</loc>', $sitemap);
+        $this->assertStringNotContainsString('/p/published</loc>', $sitemap);
+        $this->assertStringNotContainsString('/p/second</loc>', $sitemap);
+    }
+
+    public function test_current_publication_wins_when_an_old_slug_is_reused(): void
+    {
+        $user = $this->admin();
+        $collection = $this->collection();
+        $service = app(RecordService::class);
+        $first = $this->record($collection, $user);
+        $first = $service->publish($first, $first->version, $user->id);
+        $first = $service->save($collection, $first, ['title' => 'First', 'slug' => 'first-new'], $first->version, $user->id);
+        $service->publish($first, $first->version, $user->id);
+        $second = $service->save($collection, null, ['title' => 'Second', 'slug' => 'published'], 0, $user->id);
+        $second = $service->publish($second, $second->version, $user->id);
+
+        $this->get('/p/published')->assertOk()->assertSeeHtml('<title>Second</title>');
+
+        $second = $service->save($collection, $second, ['title' => 'Second', 'slug' => 'second-new'], $second->version, $user->id);
+        $service->publish($second, $second->version, $user->id);
+        $this->get('/p/published')->assertStatus(301)->assertHeader('Location', '/p/second-new');
+    }
+
+    public function test_redirects_hide_private_publications_and_skip_slugs_retired_in_private(): void
+    {
+        $user = $this->admin();
+        $collection = $this->collection();
+        $service = app(RecordService::class);
+        $record = $this->record($collection, $user);
+        $record = $service->publish($record, $record->version, $user->id);
+        $record = $service->save($collection, $record, ['title' => 'Public', 'slug' => 'public-second'], $record->version, $user->id);
+        $record = $service->publish($record, $record->version, $user->id);
+        $collection->update(['definition' => array_replace($collection->definition, ['public' => false])]);
+
+        $this->get('/p/published')->assertNotFound()->assertHeaderMissing('Location');
+
+        $record = $service->save($collection, $record, ['title' => 'Private', 'slug' => 'private-third'], $record->version, $user->id);
+        $service->publish($record, $record->version, $user->id);
+        $collection->update(['definition' => array_replace($collection->definition, ['public' => true])]);
+        $this->get('/p/public-second')->assertNotFound()->assertHeaderMissing('Location');
+        $this->get('/p/published')->assertStatus(301)->assertHeader('Location', '/p/private-third');
+    }
+
     public function test_sitemap_lists_current_publications_on_the_configured_base_url(): void
     {
         config(['app.url' => 'https://example.test/site&docs/']);
