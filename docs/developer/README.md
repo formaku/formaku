@@ -245,3 +245,22 @@ APP_KEY="base64:$(openssl rand -base64 32)" php artisan test --compact --filter=
 ```
 
 The test covers draft creation, preview, publication, HTML escaping, and extension authentication, resource scope, and action validation in both the panel API and host routes.
+
+## Run an isolated merchant installation
+
+The managed mode of the Laravel starter uses one process group per merchant. Start its HTTP application, queue worker and scheduler with the same merchant settings. Keep writable storage and the Laravel bootstrap cache separate for each installation. Run each group with a filesystem identity or container that can access only its own writable volume.
+
+Use the [Formaku Platform registry](https://github.com/formaku/platform) to generate the merchant UUID, verified hostname, PostgreSQL database name and role name. Supply the database endpoint, role password and a unique `APP_KEY` separately. Create the database with that merchant's dedicated login role as owner. Revoke database `CONNECT` from `PUBLIC`, and keep merchant roles free of superuser privileges and membership in other merchant roles. Run the CMS and Commerce migrations against that installation's database.
+
+Configure HTTPS at the reverse proxy and route each approved hostname only to its own HTTP process. Forward the canonical hostname in the `Host` header, including on upstream health checks. The starter returns HTTP 421 on a host mismatch before starting a session. It uses the merchant database for sessions, cache, rate limits and queues. Serve uploaded media through the CMS routes.
+
+To enable the optional [Commerce package](https://github.com/formaku/commerce), install it in the starter and set `FORMAKU_COMMERCE_ENABLED=true`. In the starter, Commerce catalog, inventory, order management and payment confirmation require the administrator role.
+
+The cross-repository test uses two disposable databases and roles named `formaku_00000000000040008000000000000001` and `formaku_00000000000040008000000000000002`, both with the test password `testing-only`. Point it at a local PostgreSQL instance containing those empty databases, a Commerce 0.2 checkout and a Platform checkout. Run it from `apps/starter`.
+
+```sh
+FORMAKU_MERCHANT_TEST_PG_PORT=5432 \
+FORMAKU_COMMERCE_TEST_PATH=/path/to/commerce \
+FORMAKU_PLATFORM_TEST_PATH=/path/to/platform \
+php artisan test --compact --filter=MerchantIsolationTest
+```
