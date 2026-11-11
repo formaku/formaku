@@ -305,11 +305,11 @@ class AssistantController
         $data = $request->validate($rules + ['data' => 'required|array']);
         $request->validate([
             'data.slug' => ['sometimes', 'nullable', 'string', 'max:255', 'regex:/^[a-z0-9][a-z0-9-]*$/D'],
-            'data.blocks' => 'sometimes|nullable|array|list|max:100',
         ]);
 
+        $blocks = $data['data']['blocks'] ?? [];
+        SchemaValidator::blockList($blocks, 'data.blocks');
         try {
-            $blocks = $data['data']['blocks'] ?? [];
             if ($allowExtensions) {
                 $renderer->blocks($blocks);
             } else {

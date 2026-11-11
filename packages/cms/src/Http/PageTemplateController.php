@@ -8,6 +8,7 @@ use Formaku\Cms\Models\PageTemplate;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Services\CollectionAccess;
 use Formaku\Cms\Services\Renderer;
+use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -50,7 +51,7 @@ class PageTemplateController
             $blocks = $current->draft?->data['blocks'] ?? [];
             abort_if($blocks === [], 422, 'Save at least one block before creating a template.');
             abort_if(strlen(json_encode($blocks, JSON_THROW_ON_ERROR)) > 256 * 1024, 422, 'Template blocks exceed 256 KiB.');
-            $this->checkBlockList($blocks);
+            SchemaValidator::blockList($blocks, 'blocks');
 
             try {
                 $renderer->blocks($blocks);
@@ -88,20 +89,5 @@ class PageTemplateController
         abort_if($id === false, 404);
 
         return PageTemplate::where('collection_id', $collection->id)->findOrFail($id);
-    }
-
-    private function checkBlockList(mixed $blocks, int $depth = 0): void
-    {
-        abort_unless(is_array($blocks) && array_is_list($blocks) && count($blocks) <= 100 && $depth <= 10, 422, 'Invalid block list.');
-        foreach ($blocks as $block) {
-            abort_unless(
-                is_array($block) && is_string($block['type'] ?? null) && is_array($block['props'] ?? []),
-                422,
-                'Invalid block data.',
-            );
-            if (isset($block['children'])) {
-                $this->checkBlockList($block['children'], $depth + 1);
-            }
-        }
     }
 }

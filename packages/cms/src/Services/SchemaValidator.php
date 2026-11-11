@@ -68,6 +68,23 @@ class SchemaValidator
             ->pluck('key')->values()->all();
     }
 
+    public static function blockList(mixed $blocks, string $field, int $depth = 0): void
+    {
+        if (! is_array($blocks) || ! array_is_list($blocks) || count($blocks) > 100 || $depth > 10) {
+            throw ValidationException::withMessages([$field => 'Invalid block list. Use at most 100 blocks per list and 10 levels of nesting.']);
+        }
+
+        foreach ($blocks as $index => $block) {
+            $path = $field.'.'.$index;
+            if (! is_array($block) || ! is_string($block['type'] ?? null) || ! is_array($block['props'] ?? [])) {
+                throw ValidationException::withMessages([$path => 'Invalid block data.']);
+            }
+            if (isset($block['children'])) {
+                self::blockList($block['children'], $path.'.children', $depth + 1);
+            }
+        }
+    }
+
     public function record(array $schema, array $data): array
     {
         $rules = [];

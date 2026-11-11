@@ -298,6 +298,28 @@ class AssistantTest extends TestCase
         $this->getJson(self::API.'/pages/'.$second, $headers)->assertJsonPath('published_slug', null)->assertJsonPath('version', 1);
     }
 
+    public function test_agent_rejects_nested_block_lists_that_cannot_be_rendered_in_full(): void
+    {
+        $admin = $this->admin();
+        $headers = $this->bearer($this->exchange($this->start($admin, $this->pages())));
+        $endpoint = self::API.'/pages';
+        $child = ['type' => 'hero', 'props' => ['title' => 'Child']];
+        $data = ['title' => 'Landing', 'blocks' => [['type' => 'container', 'children' => array_fill(0, 100, $child)]]];
+        $this->postJson($endpoint.'/validate', ['data' => $data], $headers)->assertOk()->assertJsonPath('valid', true);
+        $draft = $this->postJson($endpoint, ['request_id' => (string) Str::uuid(), 'data' => $data], $headers)
+            ->assertCreated()->json('id');
+
+        $data['blocks'][0]['children'][] = $child;
+        $this->postJson($endpoint.'/validate', ['data' => $data], $headers)
+            ->assertUnprocessable()->assertJsonValidationErrors('data.blocks.0.children');
+        $this->postJson($endpoint, ['request_id' => (string) Str::uuid(), 'data' => $data], $headers)
+            ->assertUnprocessable()->assertJsonValidationErrors('data.blocks.0.children');
+        $this->putJson($endpoint.'/'.$draft, ['version' => 1, 'data' => $data], $headers)
+            ->assertUnprocessable()->assertJsonValidationErrors('data.blocks.0.children');
+        $this->assertDatabaseCount('formaku_records', 1);
+        $this->assertDatabaseCount('formaku_revisions', 1);
+    }
+
     public function test_agent_cannot_overwrite_a_draft_scheduled_for_publication(): void
     {
         $admin = $this->admin();
