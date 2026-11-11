@@ -42,6 +42,8 @@ Utwórz kolekcję danych lub treści, nadaj stabilne klucze i dodaj pola. Dla pr
 
 Od wersji `0.1.0-alpha.13` jako administrator otwórz **Ustawienia → Menu i stopka**. Dodaj, edytuj lub przestaw linki nagłówka i stopki. Adres może być ścieżką witryny, np. `/p/start`, albo pełnym adresem HTTP(S). Możesz też dodać zwykły tekst stopki. Zapis od razu aktualizuje wspólny układ witryny. Pusta lista ukrywa linki w danym miejscu.
 
+Od wersji `0.1.0-alpha.14` w tym samym miejscu wybierz **Jasny** lub **Ciemny** w polu **Motyw witryny** i zapisz ustawienia. Motyw stosuje się do publicznych stron i podglądu szkicu.
+
 ### Metadane SEO
 
 Od wersji `0.1.0-alpha.3` otwórz **Buduj**, wybierz **Edytuj model** przy publicznej kolekcji treści i w sekcji **Metadane SEO** przypisz pola tekstowe do tytułu oraz opisu. Zapisz konfigurację. Redaktor może uzupełnić te pola w rekordzie, a publikacja udostępni wartości z opublikowanej rewizji. Pola prywatne są wykluczone z listy. Pusty tytuł korzysta z publicznego tytułu strony albo jej slugu, a pusty opis pomija znacznik opisu.
@@ -89,6 +91,8 @@ Starting with `0.1.0-alpha.11`, choose **Użycie pliku** (File usage) next to a 
 Starting with `0.1.0-alpha.12`, image blocks can offer smaller WebP variants of public images. The original URL, caption and alternative text remain available. See the [deployment guide](../DEPLOYMENT.md#generate-variants-for-existing-public-images) to process existing files.
 
 Starting with `0.1.0-alpha.13`, administrators can open **Ustawienia → Menu i stopka** (Settings → Menu and footer) to edit and reorder links and set plain footer text. Links accept site paths or absolute HTTP(S) URLs. Saving applies changes to the shared site layout.
+
+Starting with `0.1.0-alpha.14`, choose **Jasny** (Light) or **Ciemny** (Dark) under **Motyw witryny** (Site theme) in the same settings. Saving applies the theme to public pages and draft previews.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 

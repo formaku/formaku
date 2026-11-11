@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.14 — 2026-11-11
+
+Administrators can choose a light or dark theme for public pages and draft previews in **Ustawienia → Menu i stopka**. Existing site settings default to the light theme.
+
 ## 0.1.0-alpha.13 — 2026-11-11
 
 Administrators can configure and reorder header and footer links and set plain footer text. Saving applies the configuration to the shared site layout. The new migration preserves the default header.

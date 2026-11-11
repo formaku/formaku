@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.13**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.14**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -15,7 +15,7 @@ This is **0.1.0-alpha.13**. The remaining v1 work is listed below.
 - Definition-only project import/export with format version and conflict checks.
 - Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel.
 - Public content collections can map non-private text fields to the SEO title and description of published revisions.
-- Administrators can configure header and footer links and plain footer text in the shared site layout.
+- Administrators can configure header and footer links, plain footer text, and a light or dark theme in the shared site layout. Draft previews use the selected theme.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
 - Publishing a public page under a new slug records a permanent redirect to its current URL.
 - The editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.
@@ -25,7 +25,7 @@ This is **0.1.0-alpha.13**. The remaining v1 work is listed below.
 
 ## Evidence
 
-- PHP: 48 tests and 440 assertions pass on local SQLite with PHP 8.5.11. The suite covers navigation access, address validation and version conflicts. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4.
+- PHP: 49 tests and 458 assertions pass on local SQLite with PHP 8.5.11. The suite covers navigation access, address validation, version conflicts, and theme compatibility with existing settings. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4.
 - Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring, media usage, responsive layouts, SEO, related records, private attachments, WebP variants and mobile login width. Chromium also verifies site navigation changes on a published page.
 - Frontend: vue-tsc and Vite production build pass. A real rendered dashboard screenshot is in test-results/dashboard-chromium.png (ignored build artifact).
 - Docker: image built; Laravel command runs, HTTP login returns 200, runtime UID is 33 (www-data). GitHub CI verifies that the web process, database, queue worker and scheduler start with Compose.
@@ -45,7 +45,7 @@ This is **0.1.0-alpha.13**. The remaining v1 work is listed below.
 
 ## Public release and documentation
 
-The source is public in [`formaku/formaku`](https://github.com/formaku/formaku). The [GitHub prereleases](https://github.com/formaku/formaku/releases) list tagged source and verified [GHCR](https://github.com/formaku/formaku/pkgs/container/formaku) image digests. The [Compose guide](DEPLOYMENT.md#run-the-alpha-locally-with-docker-compose) covers running this version and upgrading an existing installation. CMS runtime deployment remains pending.
+The source is public in [`formaku/formaku`](https://github.com/formaku/formaku). The [GitHub prereleases](https://github.com/formaku/formaku/releases) list tagged source and, where available, verified [GHCR](https://github.com/formaku/formaku/pkgs/container/formaku) image digests. The [Compose guide](DEPLOYMENT.md#run-the-alpha-locally-with-docker-compose) covers running this version and upgrading an existing installation. CMS runtime deployment remains pending.
 
 The static project website and its bilingual documentation are maintained separately in Forgejo and published on OVH MultiSite. The [English](https://formaku.eu/docs/) and [Polish](https://formaku.eu/pl/docs/) guides link to the tagged alpha.
 
