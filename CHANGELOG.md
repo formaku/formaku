@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.22 — 2026-11-11
+
+Refresh a requested image build in Application releases to see its status and open the matching GitHub Actions run for the digest. Refreshing status does not dispatch a build or deploy the image. This release adds no database migrations.
+
 ## 0.1.0-alpha.21 — 2026-11-11
 
 The assistant adapter uses same-site public product paths for product calls to action when a compatible Commerce storefront provides them. The catalog reference remains the fallback. This CMS release adds no database migrations.

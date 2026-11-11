@@ -96,11 +96,11 @@ Jeśli katalog Commerce zwraca publiczny adres karty produktu, poproś agenta o 
 
 ## Wydania
 
-Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie” wysyła żądanie uruchomienia workflow w skonfigurowanym repozytorium GitHub. Link otwiera listę GitHub Actions. Odszukaj przebieg po identyfikatorze wydania i sprawdź jego wynik oraz digest obrazu w podsumowaniu. Wdrożenie obrazu po digescie odbywa się w osobnym workflow opisanym w [instrukcji wdrożenia](../DEPLOYMENT.md).
+Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie” wysyła żądanie uruchomienia workflow w skonfigurowanym repozytorium GitHub. Odśwież status wybranego wydania w panelu, żeby odczytać stan jego budowy z GitHub Actions. Zarejestrowanie przebiegu może potrwać chwilę. Po udanej budowie otwórz konkretny przebieg i skopiuj digest obrazu z podsumowania. Wdrożenie obrazu po digescie odbywa się w osobnym workflow opisanym w [instrukcji wdrożenia](../DEPLOYMENT.md).
 
 ## English quick guide
 
-Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Releases trigger the configured GitHub workflow; actual build/deployment state must be verified in Actions. Customer portal access is scoped to the signed-in owner.
+Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Under **Application releases**, request a build, refresh its status and open the matching GitHub Actions run for the image digest. Deployment is a separate workflow. Customer portal access is scoped to the signed-in owner.
 
 Starting with `0.1.0-alpha.17`, for a stdio MCP client, append `--print-config` to the assistant pairing command shown in Formaku. Enter the one-time code in the terminal, copy the generated `mcpServers` entry or its `command` and `args` into the client configuration, and restart the client. The token stays in the local connection file.
 
