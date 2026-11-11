@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.19 — 2026-11-11
+
+A paired assistant reads the public Commerce v2 variant catalog when the host exposes it. Each item keeps the product ID and includes a separate variant ID, optional label, price, and availability. Older installations still use the public v1 catalog. Catalog requests omit the CMS token. This CMS release adds no database migrations.
+
 ## 0.1.0-alpha.18 — 2026-11-11
 
 A paired assistant can list and reuse public images referenced by current published revisions in its collection. Draft-only, historical, private, and out-of-collection images are excluded. Assistant draft validation and saves reject nested block lists that the renderer cannot show in full. This release adds no database migrations.

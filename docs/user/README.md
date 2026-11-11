@@ -86,7 +86,7 @@ Od wersji `0.1.0-alpha.18` agent może odczytać i ponownie użyć publiczne obr
 
 Jeżeli instalacja udostępnia publiczny katalog Commerce, agent może oprzeć treść strony na opublikowanych produktach. Katalog zwraca aktualne ceny i dostępność do odczytu. Sprawdzenie szkicu i zapis strony odbywają się w sparowanej kolekcji CMS.
 
-Przy dostępności katalogu Commerce v2 agent odczytuje też warianty produktów, w tym ich etykiety, SKU, ceny i dostępność. W poleceniu możesz wskazać etykietę lub SKU, żeby dopasować treść oferty do właściwego wariantu.
+Od wersji `0.1.0-alpha.19` agent odczytuje też warianty produktów, jeśli instalacja udostępnia katalog Commerce v2. Wynik obejmuje ich etykiety, SKU, ceny i dostępność. W poleceniu możesz wskazać etykietę lub SKU, żeby dopasować treść oferty do właściwego wariantu.
 
 ## Wydania
 
@@ -113,6 +113,8 @@ Starting with `0.1.0-alpha.16`, choose **Polski** or **English** in the panel he
 Starting with `0.1.0-alpha.17`, a paired assistant can validate a draft made with built-in blocks before saving and return a link to its preview after saving. Open the link in a browser signed in to Formaku. The assistant can copy blocks from a template in the paired collection. When the installation exposes the public Commerce catalog, it can also read product names, current prices, and availability. Download the updated adapter from the panel to use the new tools.
 
 Starting with `0.1.0-alpha.18`, a paired assistant can reuse public images referenced by current published revisions in its collection. The selected media ID goes into an image block. Draft validation and saving reject block lists that exceed the renderer’s size or nesting limits.
+
+Starting with `0.1.0-alpha.19`, if the installation exposes the Commerce v2 catalog, the assistant can read published variants, including their labels, SKUs, prices, and availability. Specify a variant label or SKU when drafting an offer for a particular variant. Installations with the v1 catalog continue to return products.
 
 Starting with `0.1.0-alpha.10`, use **Wybierz plik** (Choose file) in a record media field. Browse up to 30 files per page and choose an image or PDF by name and visibility. Cancel or press Escape to keep the current selection. Save the draft after selecting a file. File access follows the existing permissions.
 

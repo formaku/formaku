@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.18**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.19**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -13,7 +13,7 @@ This is **0.1.0-alpha.18**. The remaining v1 work is listed below.
 - Public/private uploads, owner/staff file authorization; server-side OpenAI/Gemini adapters, queued proposals, cancellation and applying a page proposal as a draft.
 - Staff can browse the media library by page, choose files for record fields and edit filenames and alternative text. Public media metadata requires publishing permission. Media usage lists accessible records with references in their current draft, published revision, or both.
 - Definition-only project import/export with format version and conflict checks.
-- Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel. The MCP adapter can validate a draft with built-in blocks, return its preview path, read templates and list public images referenced by current published revisions in that collection, and read the optional public Commerce catalog. Pairing can print a stdio configuration for clients other than Codex.
+- Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel. The MCP adapter can validate a draft with built-in blocks, return its preview path, read templates and list public images referenced by current published revisions in that collection, and read the optional public Commerce catalog, including variants when the host exposes v2. Pairing can print a stdio configuration for clients other than Codex.
 - Public content collections can map non-private text fields to the SEO title and description of published revisions.
 - Administrators can configure header and footer links, plain footer text, and a light or dark theme in the shared site layout. Draft previews use the selected theme.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
@@ -25,9 +25,9 @@ This is **0.1.0-alpha.18**. The remaining v1 work is listed below.
 
 ## Evidence
 
-- PHP: 58 tests and 593 assertions pass on local SQLite with PHP 8.5.11. The suite covers navigation access, address validation, version conflicts, theme compatibility with existing settings, and template access, validation and draft independence. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4.
+- PHP: 58 tests and 598 assertions pass on local SQLite with PHP 8.5.11. The suite covers navigation access, address validation, version conflicts, theme compatibility with existing settings, and template access, validation and draft independence. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4.
 - Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring, media usage, responsive layouts, SEO, related records, private attachments, WebP variants and mobile login width. The suite also checks collection templates and their normal publication flow. Chromium verifies site navigation changes on a published page.
-- Assistant adapter: the Node stdio test exercises validation errors, collection templates, image listing, and a public catalog request without the CMS token.
+- Assistant adapter: the Node stdio test exercises validation errors, collection templates, image listing, and public v1 and v2 catalog requests without the CMS token.
 - Frontend: vue-tsc and Vite production build pass. A real rendered dashboard screenshot is in test-results/dashboard-chromium.png (ignored build artifact).
 - Docker: image built; Laravel command runs, HTTP login returns 200, runtime UID is 33 (www-data). GitHub CI verifies that the web process, database, queue worker and scheduler start with Compose.
 - Clean-host Composer integration: installed in a separate unmodified Laravel project; original root route retained, Formaku admin registered, public routes absent by default.
