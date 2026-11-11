@@ -97,9 +97,33 @@ jobs:
           IMAGE: ${{ steps.image.outputs.name }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: echo "Image $IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
-  publish:
+  composer:
     if: github.event_name == 'push'
     needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.build.outputs.source }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run build
+      - name: Build Composer package
+        run: bash scripts/build-composer-package.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/formaku-composer"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: formaku-composer
+          path: ${{ runner.temp }}/formaku-composer/
+          compression-level: 0
+          if-no-files-found: error
+          overwrite: true
+  publish:
+    if: github.event_name == 'push'
+    needs: [build, composer]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -108,6 +132,10 @@ jobs:
         with:
           ref: ${{ needs.build.outputs.source }}
           persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: formaku-composer
+          path: ${{ runner.temp }}/formaku-composer
       - name: Verify public image
         env:
           IMAGE: ${{ needs.build.outputs.image }}
@@ -136,6 +164,11 @@ jobs:
           remote_tag=$(git ls-remote --exit-code origin "refs/tags/$tag" "refs/tags/$tag^{}")
           [[ "$(awk 'END {print $1}' <<< "$remote_tag")" == "$SOURCE_COMMIT" ]]
 
+          package_dir=$RUNNER_TEMP/formaku-composer
+          archive=formaku-cms-$tag.zip
+          (cd "$package_dir" && sha256sum --check --strict "$archive.sha256")
+          archive_digest=$(sha256sum "$package_dir/$archive" | cut -d ' ' -f 1)
+
           notes=$(mktemp)
           awk -v prefix="## ${tag#v} — " '
             index($0, prefix) == 1 { found = 1; next }
@@ -145,17 +178,34 @@ jobs:
           ' CHANGELOG.md > "$notes"
           {
             printf '\n**Public Linux AMD64 image**\n\n```sh\ndocker pull %s@%s\n```\n' "$IMAGE" "$DIGEST"
+            printf '\n**Composer package**\n\nDownload `%s` and its SHA-256 checksum from Assets. SHA-256: `%s`. See the [Laravel installation guide](%s/%s/blob/%s/docs/developer/README.md#install-in-an-existing-laravel-app).\n' \
+              "$archive" "$archive_digest" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$tag"
             printf '\n[CI](%s) · [Image build](%s/%s/actions/runs/%s)\n' \
               "$CI_URL" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
             printf '\n[Documentation (English)](https://formaku.eu/docs/) · [Dokumentacja (polski)](https://formaku.eu/pl/docs/)\n'
           } >> "$notes"
 
-          if existing=$(gh release view "$tag" --json isDraft,isPrerelease,body,url); then
-            jq -e --arg ref "$IMAGE@$DIGEST" '
-              .isPrerelease and (.isDraft | not) and (.body | contains($ref))
-            ' <<< "$existing" > /dev/null
-            jq -r '.url' <<< "$existing"
-          else
-            gh release create "$tag" --verify-tag --prerelease --latest=false \
+          if ! existing=$(gh release view "$tag" --json isDraft,isPrerelease,body,assets,url); then
+            gh release create "$tag" --verify-tag --draft --prerelease --latest=false \
               --title "Formaku $tag" --notes-file "$notes"
+            existing=$(gh release view "$tag" --json isDraft,isPrerelease,body,assets,url)
+          fi
+          jq -e --arg ref "$IMAGE@$DIGEST" --arg checksum "$archive_digest" '
+            .isPrerelease and (.body | contains($ref) and contains($checksum))
+          ' <<< "$existing" > /dev/null
+
+          is_draft=$(jq -r '.isDraft' <<< "$existing")
+          verify_dir=$(mktemp -d)
+          for asset in "$archive" "$archive.sha256"; do
+            if ! jq -e --arg name "$asset" 'any(.assets[]; .name == $name)' <<< "$existing" > /dev/null; then
+              [[ "$is_draft" == true ]]
+              gh release upload "$tag" "$package_dir/$asset"
+            fi
+            gh release download "$tag" --pattern "$asset" --dir "$verify_dir"
+            cmp "$package_dir/$asset" "$verify_dir/$asset"
+          done
+          if [[ "$is_draft" == true ]]; then
+            gh release edit "$tag" --draft=false --prerelease --latest=false
+          else
+            jq -r '.url' <<< "$existing"
           fi

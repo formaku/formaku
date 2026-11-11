@@ -3,6 +3,7 @@ import vue from "@vitejs/plugin-vue";
 import tailwind from "@tailwindcss/vite";
 import { resolve } from "node:path";
 export default defineConfig({
+  base: "./",
   publicDir: "brand/public",
   plugins: [vue(), tailwind()],
   build: {

@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.22**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.23**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -21,6 +21,7 @@ This is **0.1.0-alpha.22**. The remaining v1 work is listed below.
 - The editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.
 - The editor supports nested blocks with sibling reordering, stacked containers and responsive two- and three-column layouts. Image blocks pick from the paginated public image library and can serve smaller WebP variants while retaining the original URL. Administrators can save a draft’s blocks as a collection template. Editors with create access can use it in a new draft.
 - Docker runtime with PHP/HTTP/queue/scheduler, pinned base-image digests, non-root execution; GitHub build/GHCR and deployment workflow templates with pinned action SHAs.
+- GitHub alpha releases include a Composer ZIP with compiled panel assets and a SHA-256 checksum for Laravel 13 hosts.
 - The Releases panel can refresh the state of a dispatched image build from its GitHub Actions run and open that run directly.
 - Host deployment/backup helper and restricted SSH-dispatch template. These scripts have only received syntax checks; they are not an accepted production deployment system.
 
@@ -42,7 +43,7 @@ This is **0.1.0-alpha.22**. The remaining v1 work is listed below.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
 - ResourceAdapter and ActionHandler integration into the Formaku panel. The [developer examples](developer/README.md) cover registry use from host routes.
 - GitHub project snapshot PR creation, deployment status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
-- Composer split-release automation, Packagist registration, full PL/EN manuals, public synthetic demo and release/security review.
+- Composer VCS split and Packagist registration, full PL/EN manuals, public synthetic demo and release/security review.
 - Reference 2-vCPU/4-GB p95 benchmark.
 
 ## Public release and documentation
