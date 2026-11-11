@@ -131,7 +131,7 @@ async function privateFile(path, content) {
   }
 }
 
-async function setup(url) {
+async function setup(url, { printConfig }) {
   const base = endpoint(url);
   const code = await readCode();
   if (!/^[a-f0-9]{64}$/.test(code)) throw new Error("Nieprawidłowy format kodu.");
@@ -145,11 +145,17 @@ async function setup(url) {
   if (!/^fma_[a-f0-9]{64}$/.test(token)) throw new Error("Serwer zwrócił nieprawidłowe poświadczenie.");
   await privateFile(configPath, JSON.stringify({ base, token }));
 
-  const command = [process.execPath, adapterPath, "serve", configPath];
+  const command = process.execPath;
+  const args = [adapterPath, "serve", configPath];
+  if (printConfig) {
+    process.stdout.write(JSON.stringify({ mcpServers: { [name]: { command, args } } }, null, 2) + "\n");
+    return;
+  }
+
   const codexHome = process.env.CODEX_HOME || join(homedir(), ".codex");
   const desktopCli = join(codexHome, "plugins", ".plugin-appserver", "codex-cli", "bin", process.platform === "win32" ? "codex.exe" : "codex");
   const registered = ["codex", desktopCli].some((cli) =>
-    spawnSync(cli, ["mcp", "add", name, "--", ...command], { encoding: "utf8", timeout: 10_000 }).status === 0,
+    spawnSync(cli, ["mcp", "add", name, "--", command, ...args], { encoding: "utf8", timeout: 10_000 }).status === 0,
   );
   if (registered) {
     process.stdout.write("Formaku połączone. Uruchom ponownie Codex, aby wczytać narzędzia.\n");
@@ -157,7 +163,7 @@ async function setup(url) {
   }
 
   process.stdout.write("Parowanie zapisane. Dodaj poniższą konfigurację w Codexie i uruchom go ponownie.\n\n"
-    + `[mcp_servers.${name}]\ncommand = ${JSON.stringify(command[0])}\nargs = ${JSON.stringify(command.slice(1))}\n`);
+    + `[mcp_servers.${name}]\ncommand = ${JSON.stringify(command)}\nargs = ${JSON.stringify(args)}\n`);
 }
 
 async function serve(configPath) {
@@ -208,11 +214,15 @@ async function serve(configPath) {
   }
 }
 
-const [mode, value] = process.argv.slice(2);
+const [mode, value, option, ...extra] = process.argv.slice(2);
 try {
-  if (mode === "setup" && value) await setup(value);
-  else if (mode === "serve" && value) await serve(value);
-  else throw new Error("Użycie: node formaku-assistant.mjs setup ADRES_Z_PANELU");
+  if (mode === "setup" && value && (option === undefined || option === "--print-config") && extra.length === 0) {
+    await setup(value, { printConfig: option === "--print-config" });
+  } else if (mode === "serve" && value && option === undefined) {
+    await serve(value);
+  } else {
+    throw new Error("Użycie: node formaku-assistant.mjs setup ADRES_Z_PANELU [--print-config]");
+  }
 } catch (error) {
   process.stderr.write(error.message + "\n");
   process.exitCode = 1;

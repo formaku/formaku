@@ -74,6 +74,8 @@ W istniejącej instalacji uruchom migracje przed użyciem asystenta. W menu pane
 
 Kod parowania jest jednorazowy i wygasa po pięciu minutach. Dostęp asystenta wygasa po 30 dniach. Prawo do publikacji włączasz osobno podczas parowania. Asystent zgłasza konflikt przy próbie edycji strony z zaplanowaną publikacją. Cofnij połączenie w panelu, gdy przestajesz go używać lub przed zmianą roli użytkownika.
 
+W innym kliencie MCP obsługującym stdio dopisz `--print-config` do polecenia parowania z panelu. Wpisz jednorazowy kod w terminalu i przenieś wygenerowany wpis `mcpServers` do konfiguracji klienta. Jeśli klient używa innego formatu, skopiuj z wpisu wartości `command` i `args`. Uruchom ponownie klienta. Token pozostaje w lokalnym pliku połączenia, a wygenerowany wpis zawiera ścieżkę do tego pliku.
+
 W instalacji z aktualnym adapterem możesz poprosić agenta o sprawdzenie pól kolekcji i walidację szkicu z wbudowanych bloków przed zapisem. Po zapisaniu otwórz podany przez agenta link do podglądu w przeglądarce, w której masz aktywną sesję Formaku. Jeśli po aktualizacji instalacji brakuje tych narzędzi, pobierz ponownie adapter z panelu, powtórz parowanie i uruchom ponownie klienta MCP.
 
 Jeśli kolekcja ma zapisane szablony stron, agent może wybrać jeden z nich i użyć jego sekcji w nowym szkicu. Sekcje edytujesz dalej w szkicu.
@@ -89,6 +91,8 @@ Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie”
 ## English quick guide
 
 Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Releases trigger the configured GitHub workflow; actual build/deployment state must be verified in Actions. Customer portal access is scoped to the signed-in owner.
+
+For a stdio MCP client, append `--print-config` to the assistant pairing command shown in Formaku. Enter the one-time code in the terminal, copy the generated `mcpServers` entry or its `command` and `args` into the client configuration, and restart the client. The token stays in the local connection file.
 
 Starting with `0.1.0-alpha.9`, choose **Wybierz rekordy** (Choose records) for a relation field. Select records across pages, apply the selection, then save the draft. Cancel or press Escape to keep the previous selection. The picker lists records you can read and omits private titles and names. If you lose access to a linked record, remove the link or regain access before saving.
 
