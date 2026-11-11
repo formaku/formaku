@@ -89,6 +89,7 @@ export const messages: Record<string, string> = {
   "Połącz własnego asystenta": "Connect your assistant",
   "Połączenia AI": "AI connections",
   "Połączono": "Connected",
+  "Powiel blok": "Duplicate block",
   "Powiązane rekordy:": "Related records:",
   "Powiązany rekord {0}": "Related record {0}",
   "pól": "fields",

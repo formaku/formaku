@@ -32,6 +32,23 @@ export function blockEditorKey(block: Block): string | symbol {
   return key;
 }
 
+function assignBlockIds(block: Block): void {
+  block.uid = crypto.randomUUID();
+  if (isLayoutBlock(block.type) && Array.isArray(block.children)) {
+    block.children.forEach(assignBlockIds);
+  }
+}
+
+export function duplicateBlock(blocks: Block[], index: number): boolean {
+  const original = blocks[index];
+  if (!original || blocks.length >= maxBlocksPerLevel) return false;
+
+  const copy: Block = JSON.parse(JSON.stringify(original));
+  assignBlockIds(copy);
+  blocks.splice(index + 1, 0, copy);
+  return true;
+}
+
 export function isLayoutBlock(type: string): boolean {
   return type === "container" || type === "columns";
 }

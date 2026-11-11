@@ -21,6 +21,7 @@ import {
   Plug,
   GripVertical,
   Trash2,
+  Copy,
   Eye,
   Save,
   LogOut,
@@ -32,7 +33,12 @@ import MediaUsage from "./MediaUsage.vue";
 import RelationPicker from "./RelationPicker.vue";
 import AssistantConnection from "./AssistantConnection.vue";
 import SiteNavigation from "./SiteNavigation.vue";
-import { blockEditorKey, createBlock, maxBlocksPerLevel } from "./blocks";
+import {
+  blockEditorKey,
+  createBlock,
+  duplicateBlock,
+  maxBlocksPerLevel,
+} from "./blocks";
 type Field = {
   key: string;
   label: string;
@@ -404,6 +410,9 @@ function addBlock(type: string) {
   if (blocks.length >= maxBlocksPerLevel) return;
   blocks.push(createBlock(type));
   dirty.value = true;
+}
+function duplicatePageBlock(index: number) {
+  if (duplicateBlock(record.value.data.blocks, index)) dirty.value = true;
 }
 function moveBlock(i: number, delta: number) {
   const a = record.value.data.blocks,
@@ -1425,6 +1434,16 @@ const title = computed(
                             :aria-label='t("Przesuń w dół")'
                           >
                             ↓</button
+                          ><button
+                            class="btn btn-xs"
+                            type="button"
+                            :aria-label='t("Powiel blok")'
+                            :title='t("Powiel blok")'
+                            :disabled="record.data.blocks.length >= maxBlocksPerLevel"
+                            @click="duplicatePageBlock(Number(i))"
+                          >
+                            <Copy :size="12" aria-hidden="true" />
+                          </button
                           ><button
                             class="btn btn-xs"
                             @click="

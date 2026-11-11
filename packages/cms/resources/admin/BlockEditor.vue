@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { t } from "./locale";
 import { computed, ref } from "vue";
+import { Copy } from "lucide-vue-next";
 import MediaPicker from "./MediaPicker.vue";
 import RichText from "./RichText.vue";
 import {
   blockEditorKey,
   blockLabels,
   createBlock,
+  duplicateBlock,
   isLayoutBlock,
   maxBlocksPerLevel,
   maxLayoutDepth,
@@ -58,6 +60,13 @@ function addChild() {
   const children = (props.block.children ??= []);
   children.push(createBlock(childType.value));
   emit("change");
+}
+
+function duplicateChild(index: number) {
+  const children = props.block.children;
+  if (canAddChild.value && children && duplicateBlock(children, index)) {
+    emit("change");
+  }
 }
 
 function moveChild(index: number, offset: number) {
@@ -156,6 +165,16 @@ function addQuestion() {
               @click="moveChild(index, 1)"
             >
               ↓
+            </button>
+            <button
+              class="btn btn-xs"
+              type="button"
+              :aria-label='t("Powiel blok")'
+              :title='t("Powiel blok")'
+              :disabled="!canAddChild"
+              @click="duplicateChild(index)"
+            >
+              <Copy :size="12" aria-hidden="true" />
             </button>
             <button
               class="btn btn-xs"
