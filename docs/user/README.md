@@ -92,6 +92,8 @@ Od wersji `0.1.0-alpha.19` agent odczytuje też warianty produktów, jeśli inst
 
 Od wersji `0.1.0-alpha.20`, jeśli sklep udostępnia publiczne kategorie, możesz poprosić o szkic oferty dla wybranej kategorii. Agent pobierze listę opublikowanych kategorii i zawęzi katalog wariantów do wskazanej pozycji.
 
+Jeśli katalog Commerce zwraca publiczny adres karty produktu, poproś agenta o użycie go w przycisku na stronie ofertowej. Karta produktu otwiera się w tej samej witrynie.
+
 ## Wydania
 
 Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie” wysyła żądanie uruchomienia workflow w skonfigurowanym repozytorium GitHub. Link otwiera listę GitHub Actions. Odszukaj przebieg po identyfikatorze wydania i sprawdź jego wynik oraz digest obrazu w podsumowaniu. Wdrożenie obrazu po digescie odbywa się w osobnym workflow opisanym w [instrukcji wdrożenia](../DEPLOYMENT.md).

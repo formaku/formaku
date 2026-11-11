@@ -78,8 +78,8 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
       case "/shop/v2/products":
         response.end(JSON.stringify({
           data: [
-            { id: 15, product_id: 12, sku: "DEMO-A", name: "Demo", label: "Niebieski", price_minor: "501", currency: "PLN", available: 1 },
-            { id: 16, product_id: 12, sku: "DEMO-B", name: "Demo", label: null, price_minor: "805", currency: "PLN", available: 0 },
+            { id: 15, product_id: 12, sku: "DEMO-A", name: "Demo", label: "Niebieski", price_minor: "501", currency: "PLN", available: 1, public_path: "/cms/sklep/produkt/12" },
+            { id: 16, product_id: 12, sku: "DEMO-B", name: "Demo", label: null, price_minor: "805", currency: "PLN", available: 0, public_path: "//different.invalid/product/12" },
           ],
           next_cursor: "variant-page-2",
         }));
@@ -161,7 +161,7 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   variantsPath = "/shop/v2/products";
   const variants = JSON.parse((await call("formaku_list_products", { cursor: "variant+1" })).content[0].text);
   assert.deepEqual(variants.items, [
-    { id: 12, variant_id: 15, variant_label: "Niebieski", sku: "DEMO-A", name: "Demo", price_minor: "501", currency: "PLN", in_stock: true },
+    { id: 12, variant_id: 15, variant_label: "Niebieski", public_path: "/cms/sklep/produkt/12", sku: "DEMO-A", name: "Demo", price_minor: "501", currency: "PLN", in_stock: true },
     { id: 12, variant_id: 16, sku: "DEMO-B", name: "Demo", price_minor: "805", currency: "PLN", in_stock: false },
   ]);
   assert.equal(variants.next_cursor, "variant-page-2");
