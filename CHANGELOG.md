@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.10 — 2026-11-11
+
+Media fields in record forms can select an existing file by name and visibility from the paginated library. Selecting a file keeps its current access permissions.
+
 ## 0.1.0-alpha.9 — 2026-11-11
 
 Record forms can select related records across multiple pages. The chooser shows only records the user can read, omits private titles and names, and keeps pending selections when switching pages.

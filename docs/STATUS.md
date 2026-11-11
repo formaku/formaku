@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.9**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.10**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -11,7 +11,7 @@ This is **0.1.0-alpha.9**. The remaining v1 work is listed below.
 - Canonical JSON renderer, Tiptap rich text, hero/text/CTA/image/cards/FAQ/container/columns blocks; reorder controls and drag/drop; delayed autosave for existing records.
 - Customer login, optional registration, verification and password reset; own-request list and details, private-field filtering; staff-only admin API.
 - Public/private uploads, owner/staff file authorization; server-side OpenAI/Gemini adapters, queued proposals, cancellation and applying a page proposal as a draft.
-- Staff can browse the media library by page and edit filenames and alternative text. Public media metadata requires publishing permission.
+- Staff can browse the media library by page, choose files for record fields and edit filenames and alternative text. Public media metadata requires publishing permission.
 - Definition-only project import/export with format version and conflict checks.
 - Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel.
 - Public content collections can map non-private text fields to the SEO title and description of published revisions.
@@ -36,7 +36,7 @@ This is **0.1.0-alpha.9**. The remaining v1 work is listed below.
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
 - Further page composition controls, post templates and menus/footer/theme management.
 - Complete panel PL/EN localization and linked content translation workflow.
-- Media usage tracking, image variants and a picker for media fields in record forms.
+- Media usage tracking and image variants.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
 - Registered extension contracts are present; complete developer examples and ResourceAdapter/ActionHandler UI integration still need delivery.
 - GitHub project snapshot PR creation, build/deploy status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.

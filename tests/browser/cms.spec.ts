@@ -184,8 +184,8 @@ test("nested blocks keep their order and responsive columns after saving", async
     .toHaveText(["First child", "Second child"]);
 });
 
-test("collection forms save SEO metadata and relations selected across pages", async ({
-  page,
+test("collection forms save SEO metadata, related records and a private file", async ({
+  page, request: guest,
 }, info) => {
   const collectionName = "SEO collection " + info.project.name;
   const suffix = info.project.name + "_" + Date.now();
@@ -241,8 +241,22 @@ test("collection forms save SEO metadata and relations selected across pages", a
     key: "source_" + suffix,
     name: "Relation source " + suffix,
     kind: "data",
-    definition: { fields: [nameField, { key: "links", label: "Powiązane rekordy", type: "relation", target: target.id }] },
+    definition: { fields: [
+      nameField,
+      { key: "links", label: "Powiązane rekordy", type: "relation", target: target.id },
+      { key: "attachment", label: "Załącznik", type: "media", private: true },
+    ] },
   });
+  const filename = "internal-" + suffix + ".pdf";
+  const upload = await page.request.post("/formaku/api/v1/media", {
+    headers: { "X-CSRF-TOKEN": csrf ?? "", Accept: "application/json" },
+    multipart: {
+      visibility: "private",
+      file: { name: filename, mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\n%%EOF\n") },
+    },
+  });
+  await expect(upload).toBeOK();
+  const attachment = await upload.json();
   const optionsUrl = `/formaku/api/v1/collections/${target.id}/relation-options`;
   const newest = (await (await page.request.get(optionsUrl)).json()).data[0];
   const oldest = (await (await page.request.get(optionsUrl + "?page=2")).json()).data[0];
@@ -263,6 +277,18 @@ test("collection forms save SEO metadata and relations selected across pages", a
   await page.keyboard.press("Escape");
   await expect(picker).toBeHidden();
 
+  const chooseFile = page.getByRole("button", { name: "Wybierz plik", exact: true });
+  await chooseFile.click();
+  const filePicker = page.getByRole("dialog", { name: "Wybierz plik" });
+  const fileOption = filePicker.getByRole("button", { name: filename, exact: true });
+  await expect(fileOption.getByText("Prywatny", { exact: true })).toBeVisible();
+  await fileOption.click();
+  await expect(filePicker).toBeHidden();
+  await chooseFile.click();
+  await expect(fileOption).toHaveAttribute("aria-current", "true");
+  await page.keyboard.press("Escape");
+  await expect(filePicker).toBeHidden();
+
   const saveResponse = page.waitForResponse((response) =>
     response.request().method() === "POST" &&
     response.url().endsWith(`/collections/${source.id}/records`),
@@ -270,7 +296,12 @@ test("collection forms save SEO metadata and relations selected across pages", a
   await page.getByRole("button", { name: "Zapisz szkic" }).click();
   const saved = await saveResponse;
   expect(saved.ok()).toBe(true);
-  const savedIds = (await saved.json()).data.links;
+  const savedData = (await saved.json()).data;
+  const savedIds = savedData.links;
   expect(savedIds).toEqual(expect.arrayContaining([oldest.id, newest.id]));
   expect(savedIds).toHaveLength(2);
+  expect(savedData.attachment).toBe(attachment.id);
+  const fileUrl = `/formaku/media/${attachment.id}`;
+  await expect(await page.request.get(fileUrl)).toBeOK();
+  expect((await guest.get(fileUrl)).status()).toBe(404);
 });

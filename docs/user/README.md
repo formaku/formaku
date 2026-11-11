@@ -28,6 +28,8 @@ Od wersji `0.1.0-alpha.7` otwórz **Media**. Użyj przycisków **Poprzednia** i 
 
 Od wersji `0.1.0-alpha.8` dodaj blok **Obraz**, także wewnątrz kontenera lub kolumn, i kliknij **Wybierz obraz**. Wybierz plik po nazwie i miniaturze. Lista zawiera publiczne obrazy i ma do 30 pozycji na stronę. **Anuluj** lub klawisz Esc zamyka wybór bez zmiany obrazu. Uzupełnij **Podpis obrazu**, zapisz szkic i sprawdź podgląd.
 
+Od wersji `0.1.0-alpha.10` w polu mediów rekordu wybierz **Wybierz plik**. Wskaż obraz lub PDF po nazwie i sprawdź oznaczenie **Publiczny** albo **Prywatny**. Biblioteka pokazuje do 30 plików na stronę. **Anuluj** lub Esc zachowuje bieżący wybór. Po wybraniu pliku zapisz szkic. Dostęp do pliku zależy od jego dotychczasowych uprawnień.
+
 ## Buduj
 
 Utwórz kolekcję danych lub treści, nadaj stabilne klucze i dodaj pola. Dla procesu wskaż stany i dozwolone przejścia. Aktywacja tworzy panel listy i edycji. Usunięcie pola lub zmiana jego typu wymaga migracji przygotowanej w Laravel. Definicje można eksportować i importować w ustawieniach.
@@ -71,6 +73,8 @@ Starting with `0.1.0-alpha.6`, the editor supports adding, reordering and removi
 Starting with `0.1.0-alpha.7`, open **Media** to browse the library by page. Choose **Edytuj metadane** (Edit metadata) to update a filename or alternative text. The filename is used in the library and when downloading the file. The URL stays the same. Changes to a public image's alternative text also appear on published pages that use it. Editing public file metadata requires publishing permission.
 
 Starting with `0.1.0-alpha.8`, add an image block, including inside a container or columns, and choose **Wybierz obraz** (Choose image). Pick a public image by filename and thumbnail. Browse up to 30 images per page. Cancel or press Escape to keep the current selection. Enter a caption, save the draft and preview the page.
+
+Starting with `0.1.0-alpha.10`, use **Wybierz plik** (Choose file) in a record media field. Browse up to 30 files per page and choose an image or PDF by name and visibility. Cancel or press Escape to keep the current selection. Save the draft after selecting a file. File access follows the existing permissions.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 

@@ -26,6 +26,7 @@ import {
 } from "lucide-vue-next";
 import RichText from "./RichText.vue";
 import BlockEditor from "./BlockEditor.vue";
+import MediaPicker from "./MediaPicker.vue";
 import RelationPicker from "./RelationPicker.vue";
 import AssistantConnection from "./AssistantConnection.vue";
 import { blockEditorKey, createBlock, maxBlocksPerLevel } from "./blocks";
@@ -1142,7 +1143,17 @@ const title = computed(
                     :label="f.label"
                     :private-field="f.private"
                     @update:model-value="dirty = true"
-                  /><label v-else-if="f.key !== 'blocks'"
+                  /><div v-else-if="f.type === 'media' && f.key !== 'blocks'">
+                    <span :id="'media-field-' + f.key" class="field-label">
+                      {{ f.label }}<span v-if="f.private" class="text-secondary"> · wewnętrzne</span>
+                    </span>
+                    <MediaPicker
+                      mode="file"
+                      :description-id="'media-field-' + f.key"
+                      :selected-id="record.data[f.key]"
+                      @select="record.data[f.key] = $event ?? null; dirty = true"
+                    />
+                  </div><label v-else-if="f.key !== 'blocks'"
                     ><span class="field-label"
                       >{{ f.label
                       }}<span v-if="f.private" class="text-secondary">
@@ -1166,7 +1177,7 @@ const title = computed(
                       v-else
                       class="input w-full"
                       :type="
-                        ['number', 'media'].includes(f.type)
+                        f.type === 'number'
                           ? 'number'
                           : f.type === 'date'
                             ? 'date'
