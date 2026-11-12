@@ -59,7 +59,7 @@ class AiGateway
             $text = implode('', array_column($r->json('candidates.0.content.parts', []), 'text'));
         }
         $d = json_decode($text, true, 64, JSON_THROW_ON_ERROR);
-        $d = Validator::make($d, ['title' => 'required|string|max:200', 'blocks' => 'required|array|max:30', 'blocks.*.type' => 'required|in:hero,cta', 'blocks.*.props' => 'required|array', 'blocks.*.props.title' => 'required|string|max:500', 'blocks.*.props.text' => 'nullable|string|max:5000', 'blocks.*.props.url' => 'nullable|string|max:1000', 'blocks.*.props.label' => 'nullable|string|max:200'])->validate();
+        $d = Validator::make($d, ['title' => 'required|string|max:200', 'blocks' => 'required|array|list|max:30', 'blocks.*.type' => 'required|in:hero,cta', 'blocks.*.props' => 'required|array', 'blocks.*.props.title' => 'required|string|max:500', 'blocks.*.props.text' => 'nullable|string|max:5000', 'blocks.*.props.url' => 'nullable|string|max:1000', 'blocks.*.props.label' => 'nullable|string|max:200'])->validate();
         app(Renderer::class)->blocks($d['blocks']);
 
         return $d;
