@@ -118,7 +118,7 @@ Kolekcje z regułami pól są niedostępne dla sparowanego asystenta. Szablony w
 
 Po włączeniu rejestracji użytkownik tworzy konto klienta i potwierdza e-mail. Klient składa zgłoszenie w `/portal` i widzi własne zgłoszenia. Personel obsługuje je w panelu i może przypisać zgłoszenie pracownikowi w trakcie zmiany statusu. Notatki prywatne nie trafiają do odpowiedzi klienta. Poczta wymaga skonfigurowanego transportu oraz działającej kolejki i schedulera.
 
-W **Historii zgłoszeń** wybierz **Stan zgłoszenia** i kliknij **Filtruj**. Wybór obowiązuje także na kolejnych stronach listy. Wybierz **Wszystkie stany**, aby wrócić do pełnej historii.
+W **Historii zgłoszeń** możesz podać dokładny numer zgłoszenia, wybrać stan i kliknąć **Filtruj**. Filtry działają razem i obowiązują na kolejnych stronach. Przy wpisie widać temat, jeśli masz do niego dostęp. Wyczyść filtry, aby wrócić do pełnej historii własnych zgłoszeń.
 
 W **Buduj → Edytuj model** otwórz kolekcję danych `requests` i zaznacz wybrane pola w sekcji **Pola portalu klienta**. Temat i opis są zawsze częścią formularza. Możesz dodać tekst, liczbę, datę, pole tak/nie lub listę wyboru. Zapisz model i otwórz `/portal` jako klient. Formularz uwzględnia wymagane pola i uprawnienia do zapisu. W szczegółach własnego zgłoszenia klient widzi zapisane wartości dostępne do odczytu.
 
@@ -188,7 +188,7 @@ In a collection's record list, enter part of the current title or name and selec
 
 In a collection's record list, choose a state in **Status filter**. The filter stays active when changing pages and returning from the editor. In content collections, it can be combined with **Scheduled**. Choose **All statuses** to clear the status filter.
 
-In request history, choose a request state and select **Filtruj** (Filter). The selection stays active when you change pages. Select **Wszystkie stany** (All states) and apply the filter to return to the full list.
+In request history, enter an exact request number, choose a state and select **Filtruj** (Filter). Both filters apply together and stay active when you change pages. A result shows its subject if you have permission to read it. Clear the filters to return to the full list of your own requests.
 
 To add fields to the customer request form, open the `requests` data collection in **Build → Edit model** and select the fields under **Customer portal fields**. The portal respects the model’s field requirements and customer permissions.
 

@@ -14,6 +14,7 @@ use Formaku\Cms\Services\PortalFields;
 use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
+use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -136,19 +137,71 @@ class PublicController
             $state = null;
         }
 
+        $rawRequestId = $request->query('request_id');
+        $requestIdInput = is_string($rawRequestId) ? trim($rawRequestId, " \t\n\r\v\f") : '';
+        $requestId = preg_match('/\A[0-9]+\z/', $requestIdInput) === 1
+            ? filter_var(ltrim($requestIdInput, '0'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]])
+            : false;
+        $requestIdInvalid = $rawRequestId !== null
+            && (! is_string($rawRequestId) || ($requestIdInput !== '' && $requestId === false));
+        if ($requestIdInvalid) {
+            $ownedRecords->whereRaw('1 = 0');
+        } elseif ($requestId !== false) {
+            $ownedRecords->whereKey($requestId);
+        }
+
         $records = $ownedRecords->latest()->orderByDesc('id')->paginate(20);
         if ($state !== null) {
             $records->appends('state', $state);
+        }
+        if ($requestId !== false) {
+            $records->appends('request_id', $requestId);
         }
 
         return view('formaku::portal', [
             'records' => $records,
             'portalStates' => $states,
             'portalState' => $state,
+            'portalRequestId' => $requestIdInput,
+            'portalRequestIdInvalid' => $requestIdInvalid,
+            'portalRequestTitles' => $this->portalRequestTitles($collection, $records->getCollection(), $access, $user),
             'portalFields' => $this->writablePortalFields($collection, $access, $user),
             'portalAttachmentsEnabled' => $attachments->canUpload($collection, $user),
             'portalAttachmentLimits' => $attachments->limits($collection),
         ]);
+    }
+
+    /**
+     * @param  EloquentCollection<int, Record>  $records
+     * @return array<int, string>
+     */
+    private function portalRequestTitles(Collection $collection, EloquentCollection $records, FieldAccess $access, object $user): array
+    {
+        $titleField = collect($collection->definition['fields'] ?? [])
+            ->first(fn ($field): bool => is_array($field) && ($field['key'] ?? null) === 'title');
+        if ($titleField === null || ($titleField['private'] ?? false) || ! $access->canRead($collection, $titleField, $user)) {
+            return [];
+        }
+
+        $draftIds = $records->pluck('draft_id')->filter()->all();
+        if ($draftIds === []) {
+            return [];
+        }
+        $drafts = Revision::whereKey($draftIds)
+            ->whereIntegerInRaw('record_id', $records->modelKeys())
+            ->get(['id', 'record_id', 'data'])
+            ->keyBy('id');
+
+        $titles = [];
+        foreach ($records as $record) {
+            $draft = $drafts->get($record->draft_id);
+            $title = $draft?->data['title'] ?? null;
+            if ($draft && (int) $draft->record_id === (int) $record->id && is_string($title) && trim($title) !== '') {
+                $titles[$record->id] = $title;
+            }
+        }
+
+        return $titles;
     }
 
     public function submit(

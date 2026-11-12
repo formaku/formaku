@@ -8,23 +8,45 @@
     <div class="grid md:grid-cols-2 gap-8">
         <section>
             <h2 class="text-xl mb-4">Historia zgłoszeń</h2>
-            @if ($portalStates !== [])
-                <form method="get" action="{{ url('/portal') }}" class="mb-4">
-                    <label for="portal-state" class="field-label">Stan zgłoszenia</label>
-                    <div class="flex flex-wrap gap-2">
-                        <select id="portal-state" name="state" class="select w-full sm:w-auto">
-                            <option value="">Wszystkie stany</option>
-                            @foreach ($portalStates as $state)
-                                <option value="{{ $state }}" @selected($portalState === $state)>{{ $state }}</option>
-                            @endforeach
-                        </select>
-                        <button type="submit" class="btn">Filtruj</button>
+            <form method="get" action="{{ url('/portal') }}" class="mb-4 space-y-3" aria-label="Filtry historii zgłoszeń">
+                <div @class(['grid gap-3', 'sm:grid-cols-2' => ($portalStates ?? []) !== []])>
+                    <div>
+                        <label for="portal-request-id" class="field-label">Numer zgłoszenia</label>
+                        <input id="portal-request-id" name="request_id" type="text" inputmode="numeric" autocomplete="off"
+                            value="{{ $portalRequestId ?? '' }}"
+                            @class(['input w-full', 'input-error' => $portalRequestIdInvalid ?? false])
+                            @if ($portalRequestIdInvalid ?? false) aria-invalid="true" aria-describedby="portal-request-id-error" @endif>
+                        @if ($portalRequestIdInvalid ?? false)
+                            <p id="portal-request-id-error" class="mt-1 text-sm text-error">Wpisz prawidłowy numer zgłoszenia, np. 123.</p>
+                        @endif
                     </div>
-                </form>
-            @endif
+                    @if (($portalStates ?? []) !== [])
+                        <div>
+                            <label for="portal-state" class="field-label">Stan zgłoszenia</label>
+                            <select id="portal-state" name="state" class="select w-full">
+                                <option value="">Wszystkie stany</option>
+                                @foreach ($portalStates as $state)
+                                    <option value="{{ $state }}" @selected(($portalState ?? null) === $state)>{{ $state }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    @endif
+                </div>
+                <div class="flex flex-wrap items-center gap-3">
+                    <button type="submit" class="btn">Filtruj</button>
+                    @if (($portalRequestId ?? '') !== '' || ($portalState ?? '') !== '' || ($portalRequestIdInvalid ?? false))
+                        <a href="{{ url('/portal') }}" class="link">Wyczyść filtry</a>
+                    @endif
+                </div>
+            </form>
             @forelse ($records as $record)
                 <a class="block p-5 bg-base-100 border border-base-300 rounded-lg mb-3" href="/portal/requests/{{ $record->id }}">
-                    Zgłoszenie #{{ $record->id }} <span class="badge badge-outline">{{ $record->state }}</span>
+                    <span class="flex flex-wrap items-center gap-2">
+                        Zgłoszenie #{{ $record->id }} <span class="badge badge-outline">{{ $record->state }}</span>
+                    </span>
+                    @if (($portalRequestTitles[$record->id] ?? '') !== '')
+                        <span class="mt-1 block text-sm wrap-anywhere">{{ $portalRequestTitles[$record->id] }}</span>
+                    @endif
                 </a>
             @empty
                 <p class="text-base-content/70">Brak zgłoszeń na tej stronie.</p>
