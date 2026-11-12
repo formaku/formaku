@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.42 — 2026-11-12
+
+- Compile the bundled Tailwind and daisyUI stylesheet from the CMS runtime templates and renderer. Unrelated repository files no longer affect the generated CSS.
+- CI checks that adding a utility-like token outside the CMS sources leaves the generated stylesheet unchanged. No new migrations since alpha.37.
+
 ## 0.1.0-alpha.41 — 2026-11-12
 
 - The deploy workflow summarizes the host status for the requested release UUID and image digest, including the rollback outcome and completed backup when available.

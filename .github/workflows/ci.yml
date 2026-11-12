@@ -57,7 +57,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
-      - run: npm run build
+      - run: bash tests/css-sources.sh
       - run: node --test tests/assistant-adapter.test.mjs
 
   browser:

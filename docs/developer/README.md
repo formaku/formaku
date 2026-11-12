@@ -10,7 +10,7 @@ On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.41' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.42' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -19,7 +19,7 @@ Configure the host guard and the `authorize` callback in `config/formaku.php` us
 
 ### Upgrade an existing Composer installation
 
-After updating to alpha.41, run these commands from the host Laravel app before serving traffic.
+After updating to alpha.42, run these commands from the host Laravel app before serving traffic.
 
 ```sh
 php artisan formaku:install
@@ -30,12 +30,12 @@ Starting with alpha.31, `formaku:install` removes cached copies of the package B
 
 ### Install from a local ZIP
 
-On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.41.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.41). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
+On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.42.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.42). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.41.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.42.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.41' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.42' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -63,6 +63,10 @@ A field definition can include `access.read` and `access.write`, each a list of 
 A model update preserves existing field rules if a client omits `access`. To clear a field's rules, send `access: {}` explicitly. The current model controls access to historical revisions as well as current data. For a collection with field rules, a direct call to `RecordService::save()` must pass the authenticated user as `actorUser` and the matching actor ID.
 
 Before rolling back to a version that predates field permissions, restrict each affected collection to users allowed to see all its fields. Verify collection access before serving traffic with the earlier version.
+
+## Build the CMS stylesheet
+
+Run `npm run build` from the Formaku repository root. The bundled stylesheet scans the CMS admin components, Blade views, and server-side renderer sources declared in `packages/cms/resources/admin/style.css`. For a host extension, compile the extension's styles with the host app when it needs utilities outside the bundled set. Run `bash tests/css-sources.sh` to check that unrelated files leave the CSS unchanged.
 
 ## Configure site branding through the API
 

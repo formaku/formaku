@@ -14,17 +14,17 @@ To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY
 
 ## Run the alpha locally with Docker Compose
 
-These instructions apply to `v0.1.0-alpha.41`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
+These instructions apply to `v0.1.0-alpha.42`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
 
 ```sh
-git clone --branch v0.1.0-alpha.41 --single-branch https://github.com/formaku/formaku.git
+git clone --branch v0.1.0-alpha.42 --single-branch https://github.com/formaku/formaku.git
 cd formaku
 cp .env.docker.example .env.docker
 ```
 
 Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local.
 
-If the [alpha.41 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.41) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
+If the [alpha.42 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.42) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
 
 ```sh
 docker pull "$FORMAKU_IMAGE"
@@ -60,7 +60,7 @@ Starting with alpha.39, `org.opencontainers.image.source` gives the Formaku repo
 
 ### Upgrade an existing alpha installation
 
-Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.41`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.41 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
+Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.42`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.42 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
 
 ```sh
 docker compose --env-file .env.docker stop web worker scheduler
@@ -68,7 +68,7 @@ docker compose --env-file .env.docker run --rm web php artisan migrate --force
 docker compose --env-file .env.docker up -d --no-build --wait
 ```
 
-Alpha.41 adds no migrations. Alpha.37 adds the request attachments table. Back up the database and the private uploads volume together before upgrading. For a code rollback to alpha.36, retain the table and files for use after re-upgrading. Alpha.30 creates a table for page translation links. Existing page drafts and publications are preserved. Apply the migration before starting the updated services. Set `APP_URL` to the public base URL, including any subdirectory, for the absolute `hreflang` links. When upgrading from alpha.14 or earlier, apply the alpha.15 migration that creates the page templates table. After upgrading, verify that a saved draft can be used as a template for a new draft. If you are upgrading from alpha.12 or earlier, the alpha.13 site navigation migration still applies. Existing sites retain their default header and start with an empty footer. Upgrades from alpha.10 or earlier still require the alpha.11 media usage migration. It indexes existing references from current drafts and published revisions. Allow it to finish before starting the updated services and check **Media → Użycie pliku** for a file referenced by an existing record. Existing layouts without explicit column or stacking settings retain their automatic grid. Upgrades from before alpha.4 still apply its redirect table migration. Existing published addresses stay active, and Formaku records URL changes when pages are published after the upgrade. Upgrades from the first alpha also apply the assistant migration introduced in alpha.2. After the upgrade, verify that published pages load and that `APP_URL` is the public base URL for the sitemap.
+Alpha.42 adds no migrations. Alpha.37 adds the request attachments table. Back up the database and the private uploads volume together before upgrading. For a code rollback to alpha.36, retain the table and files for use after re-upgrading. Alpha.30 creates a table for page translation links. Existing page drafts and publications are preserved. Apply the migration before starting the updated services. Set `APP_URL` to the public base URL, including any subdirectory, for the absolute `hreflang` links. When upgrading from alpha.14 or earlier, apply the alpha.15 migration that creates the page templates table. After upgrading, verify that a saved draft can be used as a template for a new draft. If you are upgrading from alpha.12 or earlier, the alpha.13 site navigation migration still applies. Existing sites retain their default header and start with an empty footer. Upgrades from alpha.10 or earlier still require the alpha.11 media usage migration. It indexes existing references from current drafts and published revisions. Allow it to finish before starting the updated services and check **Media → Użycie pliku** for a file referenced by an existing record. Existing layouts without explicit column or stacking settings retain their automatic grid. Upgrades from before alpha.4 still apply its redirect table migration. Existing published addresses stay active, and Formaku records URL changes when pages are published after the upgrade. Upgrades from the first alpha also apply the assistant migration introduced in alpha.2. After the upgrade, verify that published pages load and that `APP_URL` is the public base URL for the sitemap.
 
 When updating an existing Laravel host through Composer, [republish assets and apply pending migrations](developer/README.md#upgrade-an-existing-composer-installation) before serving traffic.
 
@@ -158,7 +158,7 @@ Configure production environment secrets DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS; var
 
 ### Read deployment status in GitHub Actions
 
-Update the host controller and the `deploy/ssh-dispatch` script used by the deployment key's SSH forced command from the same alpha.41 checkout. Keep the existing deployment authorization and add the narrowly scoped status command. For sudo 1.9.10 or newer, replace `formaku-deploy` with the deployment account in this sudoers example and validate the file with `visudo -c`.
+Update the host controller and the `deploy/ssh-dispatch` script used by the deployment key's SSH forced command from the same alpha.41 or newer checkout. Keep the existing deployment authorization and add the narrowly scoped status command. For sudo 1.9.10 or newer, replace `formaku-deploy` with the deployment account in this sudoers example and validate the file with `visudo -c`.
 
 ```sudoers
 formaku-deploy ALL=(root) NOPASSWD: /usr/local/sbin/formaku-deployctl ^status [a-f0-9-]{36}$
@@ -168,7 +168,7 @@ After the deployment command returns, open the workflow run summary. It shows th
 
 ### Read deployment and rollback status
 
-On an existing deployment host, install the controller from the alpha.41 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
+On an existing deployment host, install the controller from the alpha.42 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
 
 | Value | Meaning |
 | --- | --- |

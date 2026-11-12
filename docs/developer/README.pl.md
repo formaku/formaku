@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.41' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.42' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -19,7 +19,7 @@ Skonfiguruj guard aplikacji i funkcję `authorize` w `config/formaku.php` zgodni
 
 ### Aktualizacja istniejącej instalacji Composer
 
-Po aktualizacji do alpha.41 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
+Po aktualizacji do alpha.42 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
 
 ```sh
 php artisan formaku:install
@@ -30,12 +30,12 @@ Od alpha.31 `formaku:install` usuwa skompilowane kopie szablonów Blade pakietu.
 
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.41.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.41). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.42.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.42). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.41.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.42.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.41' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.42' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -63,6 +63,10 @@ Definicja pola może zawierać `access.read` i `access.write`, czyli listy klucz
 Przy aktualizacji modelu pominięcie `access` zachowuje dotychczasowe reguły pola. Wyślij jawnie `access: {}`, aby je usunąć. Bieżący model określa dostęp do bieżących danych i starszych rewizji. Przy bezpośrednim wywołaniu `RecordService::save()` dla kolekcji z regułami pól przekaż zalogowanego użytkownika jako `actorUser` i odpowiadający mu identyfikator wykonawcy.
 
 Przed powrotem do wersji sprzed uprawnień pól ogranicz dostęp do każdej objętej kolekcji do osób, które mogą zobaczyć wszystkie jej pola. Sprawdź reguły kolekcji przed przywróceniem ruchu na starszej wersji.
+
+## Zbuduj arkusz stylów CMS
+
+Uruchom `npm run build` w głównym katalogu repozytorium Formaku. Arkusz skanuje źródła panelu, widoki Blade i kod renderowania zadeklarowane w `packages/cms/resources/admin/style.css`. Jeśli rozszerzenie potrzebuje klas spoza zestawu Formaku, skompiluj jego style w aplikacji gospodarza. Polecenie `bash tests/css-sources.sh` sprawdza, czy pliki spoza wskazanych źródeł pozostawiają CSS identyczny.
 
 ## Skonfiguruj markę witryny przez API
 
