@@ -294,6 +294,14 @@ class ApiController
         return $this->mutationDocument($published, $r->user());
     }
 
+    public function unpublish(Request $r, Record $record, RecordService $s): array
+    {
+        $data = $r->validate(['version' => 'required|integer']);
+        $updated = $s->unpublish($record, $data['version'], $r->user()->id);
+
+        return $this->mutationDocument($updated, $r->user());
+    }
+
     public function transition(Request $r, Record $record, RecordService $s): array
     {
         $d = $r->validate(['version' => 'required|integer', 'state' => 'required|string', 'assignee_id' => 'nullable|integer']);

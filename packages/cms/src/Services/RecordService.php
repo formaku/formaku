@@ -130,13 +130,37 @@ class RecordService
             $previousSlug = $r->published_id !== null ? $r->published_slug : null;
             $r->update(['published_id' => $rev->id, 'published_slug' => $slug, 'published_title' => $data['title'] ?? $data['name'] ?? $slug, 'search_text' => implode(' ', array_filter($data, 'is_string')), 'version' => $r->version + 1, 'publish_at' => null]);
             if (($c->definition['public'] ?? false) && $previousSlug !== null && $previousSlug !== $slug) {
-                DB::table('formaku_slug_redirects')->upsert(
-                    ['slug' => $previousSlug, 'record_id' => $r->id],
-                    ['slug'],
-                    ['record_id'],
-                );
+                $this->rememberSlugRedirect($previousSlug, $r->id);
             }
             $this->event($r, $actor, 'published', $assistantId);
+
+            return $r->fresh();
+        });
+    }
+
+    public function unpublish(Record $record, int $expected, int $actor): Record
+    {
+        return DB::transaction(function () use ($record, $expected, $actor): Record {
+            $r = Record::lockForUpdate()->findOrFail($record->id);
+            abort_unless((int) $r->version === $expected, 409);
+            $collection = Collection::findOrFail($r->collection_id);
+            abort_unless($collection->kind === 'content', 422);
+            if ($r->published_id === null) {
+                return $r;
+            }
+
+            if (($collection->definition['public'] ?? false) && $r->published_slug !== null) {
+                $this->rememberSlugRedirect($r->published_slug, $r->id);
+            }
+            $r->update([
+                'published_id' => null,
+                'published_slug' => null,
+                'published_title' => null,
+                'search_text' => null,
+                'publish_at' => null,
+                'version' => $r->version + 1,
+            ]);
+            $this->event($r, $actor, 'unpublished');
 
             return $r->fresh();
         });
@@ -158,6 +182,15 @@ class RecordService
 
             return $r;
         });
+    }
+
+    private function rememberSlugRedirect(string $slug, int $recordId): void
+    {
+        DB::table('formaku_slug_redirects')->upsert(
+            ['slug' => $slug, 'record_id' => $recordId],
+            ['slug'],
+            ['record_id'],
+        );
     }
 
     private function event(Record $r, int $actor, string $type, ?string $assistantId = null): void

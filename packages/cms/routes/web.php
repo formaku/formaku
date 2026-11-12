@@ -23,6 +23,7 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::get('/records/{record}/attachments/{attachment}', [ApiController::class, 'attachment'])
       ->whereNumber('attachment')->name('formaku.staff.attachment');
   Route::post('/records/{record}/publish',[ApiController::class,'publish'])->middleware(Access::class.':publish');
+  Route::delete('/records/{record}/publish', [ApiController::class, 'unpublish'])->middleware(Access::class.':publish');
   Route::post('/records/{record}/schedule',[ApiController::class,'schedule'])->middleware(Access::class.':publish');
   Route::delete('/records/{record}/schedule', [ApiController::class, 'cancelSchedule'])->middleware(Access::class.':publish');
   Route::get('/records/{record}/translations', [RecordTranslationController::class, 'show'])->middleware(Access::class.':publish');
