@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.36' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.37' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -19,7 +19,7 @@ Skonfiguruj guard aplikacji i funkcję `authorize` w `config/formaku.php` zgodni
 
 ### Aktualizacja istniejącej instalacji Composer
 
-Po aktualizacji do alpha.31 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
+Po aktualizacji do alpha.37 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
 
 ```sh
 php artisan formaku:install
@@ -30,12 +30,12 @@ Od alpha.31 `formaku:install` usuwa skompilowane kopie szablonów Blade pakietu.
 
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.36.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.36). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.37.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.37). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.36.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.37.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.36' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.37' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -69,6 +69,12 @@ Przed powrotem do wersji sprzed uprawnień pól ogranicz dostęp do każdej obj�
 W kolekcji danych `requests` ustaw `definition.portal_fields` jako listę kluczy dodatkowych pól. Na przykład `"portal_fields": ["preferred_date", "contact_method"]` dodaje pola o tych kluczach, jeśli występują w `definition.fields` i nie mają ustawionej prywatności. Obsługiwane typy to `text`, `number`, `date`, `boolean` i `select`. Dla list wyboru podaj różne, niepuste wartości tekstowe. Przecinek służy jako separator wartości. Domyślnie lista jest pusta, a portal zawsze zawiera istniejące pola `title` i `description`.
 
 Formularz pokazuje dodatkowe pola, które zalogowany klient może zapisać. W szczegółach zgłoszenia właściciel widzi zapisane wartości, które może odczytać. Obowiązują reguły kolekcji i pól Formaku.
+
+### Włącz załączniki do zgłoszeń
+
+W kolekcji danych `requests` ustaw `definition.portal_attachments` na `true`. Zgłoszenie może zawierać do trzech plików PDF, JPEG lub PNG o rozmiarze do 5 MiB każdy. Pliki trafiają na dysk `local` w Laravelu. Zachowaj jego prywatność i twórz kopie razem z bazą danych. W aplikacji instalowanej przez Composer ustaw w PHP co najmniej `upload_max_filesize=5M`, `post_max_size=20M` i `max_file_uploads=3`. Sprawdź też limit żądań w reverse proxy. Obraz Docker ma skonfigurowane limity PHP.
+
+Przed uruchomieniem nowej wersji zastosuj migrację alpha.37. Przy powrocie do kodu alpha.36 zachowaj tabelę załączników i pliki, aby odzyskać dostęp po ponownej aktualizacji.
 
 ## Zarejestruj rozszerzenia
 

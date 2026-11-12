@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.36**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.37**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Optional private request attachments in the customer portal, with scoped downloads for owners and staff.
 
 - Configurable scalar request fields in the customer portal, with collection and field permission checks.
 

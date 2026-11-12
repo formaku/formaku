@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.37 — 2026-11-12
+
+- Enable private attachments in the customer request model. Customers can send up to three PDF, JPEG or PNG files of up to 5 MiB each.
+- Owners and staff with access to the request can download the files from its details.
+- Apply the new request attachments table migration when upgrading.
+
 ## 0.1.0-alpha.36 — 2026-11-12
 
 - Choose additional request fields in the model editor. The customer portal validates configured fields and shows saved values on the owner's request detail.

@@ -100,6 +100,8 @@ Po włączeniu rejestracji użytkownik tworzy konto klienta i potwierdza e-mail.
 
 W **Buduj → Edytuj model** otwórz kolekcję danych `requests` i zaznacz wybrane pola w sekcji **Pola portalu klienta**. Temat i opis są zawsze częścią formularza. Możesz dodać tekst, liczbę, datę, pole tak/nie lub listę wyboru. Zapisz model i otwórz `/portal` jako klient. Formularz uwzględnia wymagane pola i uprawnienia do zapisu. W szczegółach własnego zgłoszenia klient widzi zapisane wartości dostępne do odczytu.
 
+W modelu `requests` włącz **Załączniki do zgłoszeń**, aby klient mógł przesłać do trzech plików PDF, JPEG lub PNG o rozmiarze do 5 MiB każdy. Pobieranie jest dostępne w szczegółach zgłoszenia dla właściciela i personelu zgodnie z dostępem do rekordu. Wyłączenie opcji zamyka przesyłanie nowych plików. Zapisane załączniki pozostają dostępne według tych samych uprawnień.
+
 ## AI
 
 Administrator ustawia klucz i model na serwerze. W zakładce AI wybierz dostawcę i opisz stronę. Odśwież stan zadania po wykonaniu przez worker. Gotową propozycję można zastosować jako nowy szkic, poprawić i osobno opublikować. Klucze nie są widoczne w panelu ani w eksporcie.
