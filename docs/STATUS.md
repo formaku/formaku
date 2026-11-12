@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.28**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.29**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -15,7 +15,7 @@ This is **0.1.0-alpha.28**. The remaining v1 work is listed below.
 - Definition-only project import/export with format version and conflict checks.
 - Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel. The MCP adapter can validate a draft with built-in blocks, return its preview path, read templates and list public images referenced by current published revisions in that collection, and read the optional public Commerce catalog, including variants and published categories when the host exposes the corresponding v2 endpoints. The local adapter can be replaced while retaining an existing connection. Pairing can print a stdio configuration for clients other than Codex.
 - Public content collections can map non-private text fields to the SEO title and description of published revisions.
-- Administrators can configure header and footer links, plain footer text, and a light, dark, or system theme in the shared site layout. Draft previews use the selected theme.
+- Administrators can configure header and footer links, plain footer text, and a light, dark, or system theme and a color accent in the shared site layout. Draft previews use the selected theme.
 - The starter exposes an XML sitemap based on the configured public URL and published records in public collections.
 - Publishing a public page under a new slug records a permanent redirect to its current URL.
 - The editor renders the saved draft in a desktop, tablet or phone viewport using the public page renderer.

@@ -60,6 +60,8 @@ Od wersji `0.1.0-alpha.13` jako administrator otwórz **Ustawienia → Menu i st
 
 Od wersji `0.1.0-alpha.14` w tym samym miejscu wybierz **Jasny** lub **Ciemny** w polu **Motyw witryny** i zapisz ustawienia. Motyw stosuje się do publicznych stron i podglądu szkicu. Od alpha.28 opcja **Zgodny z systemem** dopasowuje motyw do preferencji odwiedzającego.
 
+Od alpha.29 w polu **Akcent kolorystyczny** wybierz **Formaku**, **Niebieski** albo **Śliwkowy**. Ustawienie zmienia kolory wyróżnień i przycisków na stronach publicznych oraz w podglądzie.
+
 ### Metadane SEO
 
 Od wersji `0.1.0-alpha.3` otwórz **Buduj**, wybierz **Edytuj model** przy publicznej kolekcji treści i w sekcji **Metadane SEO** przypisz pola tekstowe do tytułu oraz opisu. Zapisz konfigurację. Redaktor może uzupełnić te pola w rekordzie, a publikacja udostępni wartości z opublikowanej rewizji. Pola prywatne są wykluczone z listy. Pusty tytuł korzysta z publicznego tytułu strony albo jej slugu, a pusty opis pomija znacznik opisu.
@@ -155,6 +157,8 @@ In the same collection, choose **Dodaj rekord** (Add record) and **Pokaż szablo
 Starting with `0.1.0-alpha.13`, administrators can open **Ustawienia → Menu i stopka** (Settings → Menu and footer) to edit and reorder links and set plain footer text. Links accept site paths or absolute HTTP(S) URLs. Saving applies changes to the shared site layout.
 
 Starting with `0.1.0-alpha.14`, choose **Jasny** (Light) or **Ciemny** (Dark) under **Motyw witryny** (Site theme) in the same settings. Saving applies the theme to public pages and draft previews. Starting with alpha.28, **Follow system** uses each visitor’s preferred color scheme.
+
+Starting with alpha.29, choose **Formaku**, **Blue**, or **Plum** under **Color accent** to change the accent on public pages and in draft previews.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 
