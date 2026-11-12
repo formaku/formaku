@@ -295,6 +295,16 @@ async function run(fn: () => Promise<void>) {
 async function load() {
   boot.value = await request("/bootstrap");
   collections.value = boot.value.collections;
+  if (selected.value) {
+    const current = collections.value.find((collection) => collection.id === selected.value?.id);
+    selected.value = current ?? null;
+    if (!current && section.value === "records") {
+      setDraft(null);
+      records.value = [];
+      dirty.value = false;
+      section.value = "dashboard";
+    }
+  }
 }
 async function choose(c: Collection) {
   if (hasUnsavedChanges.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;

@@ -156,6 +156,36 @@ class AdminFieldAccessTest extends TestCase
         $this->assertSame($previous, $record->fresh()->draft->data);
     }
 
+    public function test_editor_request_uses_current_role_after_a_draft_was_opened(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $viewer = User::factory()->create(['role' => 'publisher']);
+        $collection = Collection::create([
+            'key' => 'role_change',
+            'name' => 'Role change',
+            'kind' => 'data',
+            'definition' => ['fields' => [
+                ['key' => 'title', 'label' => 'Title', 'type' => 'text'],
+                ['key' => 'internal', 'label' => 'Internal', 'type' => 'text', 'private' => true, 'access' => ['read' => ['publisher']]],
+            ]],
+        ]);
+        $record = app(RecordService::class)->save(
+            $collection, null, ['title' => 'Original', 'internal' => 'Synthetic value'], 0, $admin->id, actorUser: $admin,
+        );
+        $recordUrl = self::API.'/records/'.$record->id;
+        $saveUrl = self::API.'/collections/'.$collection->id.'/records';
+        $this->actingAs($viewer)->getJson($recordUrl)->assertOk()->assertJsonPath('data.internal', 'Synthetic value');
+
+        $viewer->update(['role' => 'editor']);
+        $this->actingAs($viewer->fresh())->getJson($recordUrl)->assertOk()->assertJsonMissingPath('data.internal');
+        $write = ['id' => $record->id, 'version' => $record->version];
+        $this->postJson($saveUrl, $write + ['data' => ['title' => 'Updated', 'internal' => 'Synthetic value']])
+            ->assertForbidden();
+        $this->postJson($saveUrl, $write + ['data' => ['title' => 'Updated']])
+            ->assertOk()->assertJsonMissingPath('data.internal');
+        $this->assertSame('Synthetic value', $record->fresh()->draft->data['internal']);
+    }
+
     public function test_project_import_persists_the_validated_collection_definition(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);
