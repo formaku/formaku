@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.47 — 2026-11-12
+
+- Scheduled publishing reports how many drafts were published, skipped after a concurrent change, or failed. A publication error returns a nonzero exit code after the remaining drafts have been processed.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.46 — 2026-11-12
 
 - Laravel hosts can schedule the `formaku:publish-scheduled` Artisan command when they install Formaku through Composer. The starter already runs it every minute.

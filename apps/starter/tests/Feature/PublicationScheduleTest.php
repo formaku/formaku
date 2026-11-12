@@ -11,10 +11,10 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Exceptions;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
-use TypeError;
 
 class PublicationScheduleTest extends TestCase
 {
@@ -154,26 +154,51 @@ class PublicationScheduleTest extends TestCase
         $this->travelTo(Date::parse('2026-11-12T02:15:00Z'));
         $publisher = User::factory()->create(['role' => 'publisher']);
         $collection = $this->contentCollection();
-        $invalid = $this->draft($collection, $publisher, 'invalid-owner', 'Invalid owner');
-        $invalid->update(['publish_at' => '2026-11-12 02:14:59', 'owner_id' => null]);
+        $invalid = $this->draft($collection, $publisher, 'invalid-slug', 'Invalid slug');
+        $invalid->draft->update(['data' => ['slug' => 'invalid slug', 'title' => 'Invalid slug']]);
+        $invalid->update(['publish_at' => '2026-11-12 02:14:59']);
         $due = $this->draft($collection, $publisher, 'due-now', 'Ready now');
         $due->update(['publish_at' => '2026-11-12 02:15:00']);
         $future = $this->draft($collection, $publisher, 'due-later', 'Ready later');
         $future->update(['publish_at' => '2026-11-12 02:15:01']);
-        Exceptions::fake();
+        Log::shouldReceive('warning')->twice()->with('Scheduled publication failed.', [
+            'record_id' => $invalid->id,
+            'exception_type' => HttpException::class,
+        ]);
 
-        $this->artisan('formaku:publish-scheduled')->assertSuccessful();
+        $this->artisan('formaku:publish-scheduled')
+            ->expectsOutput("Publication failed for record {$invalid->id}. See the application log.")
+            ->expectsOutput('Published: 1, skipped: 0, failed: 1.')
+            ->assertFailed();
 
-        Exceptions::assertReported(TypeError::class);
         $this->assertNull($invalid->fresh()->published_id);
+        $this->assertNotNull($invalid->fresh()->publish_at);
         $this->assertSame($due->draft_id, $due->fresh()->published_id);
         $this->assertNull($due->fresh()->publish_at);
         $this->assertNull($future->fresh()->published_id);
         $this->assertSame('2026-11-12 02:15:01', $future->fresh()->getRawOriginal('publish_at'));
 
-        $this->artisan('formaku:publish-scheduled')->assertSuccessful();
+        $this->artisan('formaku:publish-scheduled')
+            ->expectsOutput('Published: 0, skipped: 0, failed: 1.')
+            ->assertFailed();
 
         $this->assertSame($due->version + 1, $due->fresh()->version);
+    }
+
+    public function test_command_skips_a_concurrent_version_change_without_reporting_a_failure(): void
+    {
+        $publisher = User::factory()->create(['role' => 'publisher']);
+        $draft = $this->draft($this->contentCollection(), $publisher, 'concurrent-change', 'Concurrent change');
+        $draft->update(['publish_at' => now()->subMinute()]);
+        $this->mock(RecordService::class)->shouldReceive('publish')->once()->andThrow(new HttpException(409));
+        Exceptions::fake();
+
+        $this->artisan('formaku:publish-scheduled')
+            ->expectsOutput('Published: 0, skipped: 1, failed: 0.')
+            ->assertSuccessful();
+
+        Exceptions::assertNothingReported();
+        $this->assertNull($draft->fresh()->published_id);
     }
 
     private function contentCollection(): Collection

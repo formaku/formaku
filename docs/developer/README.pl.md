@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.46' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.47' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -26,7 +26,7 @@ W metodzie sprawdzaj uprawnienia aplikacji. Nadaj `work` osobom z dostępem do p
 
 ### Aktualizacja istniejącej instalacji Composer
 
-Po aktualizacji do alpha.46 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
+Po aktualizacji do alpha.47 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
 
 ```sh
 php artisan formaku:install
@@ -47,14 +47,16 @@ Schedule::command('formaku:publish-scheduled')->everyMinute()->withoutOverlappin
 
 Sprawdź wpis poleceniem `php artisan schedule:list` i uruchom scheduler Laravel w swoim środowisku. Komenda publikuje zapisane treści, których termin już nadszedł. Jeśli aplikacja ma własny wpis publikujący treści Formaku, zastąp go tą komendą. Starter Formaku ma gotowy wpis.
 
+Uruchom ręcznie `php artisan formaku:publish-scheduled`, aby zobaczyć podsumowanie. Po błędzie szkic zachowuje termin, a komenda zwraca niezerowy kod po przetworzeniu pozostałych szkiców. Użyj identyfikatora z wyniku i logu aplikacji, aby ustalić przyczynę. Popraw szkic i ustaw nowy termin albo anuluj publikację. Zmiana wersji w trakcie pracy powoduje pominięcie rekordu.
+
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.46.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.46). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.47.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.47). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.46.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.47.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.46' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.47' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```

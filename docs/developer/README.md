@@ -10,7 +10,7 @@ On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.46' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.47' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -26,7 +26,7 @@ Use your app's permissions in the method. Grant `work` to staff who may enter th
 
 ### Upgrade an existing Composer installation
 
-After updating to alpha.46, run these commands from the host Laravel app before serving traffic.
+After updating to alpha.47, run these commands from the host Laravel app before serving traffic.
 
 ```sh
 php artisan formaku:install
@@ -47,14 +47,16 @@ Schedule::command('formaku:publish-scheduled')->everyMinute()->withoutOverlappin
 
 Run `php artisan schedule:list` to check the registration, then run Laravel’s scheduler in your environment. The command publishes saved content whose publication time has passed. If your host already invokes a custom Formaku publication callback, replace that registration with this command. The Formaku starter registers it for you.
 
+Run `php artisan formaku:publish-scheduled` manually to see the counts. A failed draft stays scheduled, and the command returns a nonzero exit code after processing the rest. Use the record ID in the output and the application log to diagnose the failure. Fix the draft and set a new publication time, or cancel the schedule. Concurrent version changes are skipped.
+
 ### Install from a local ZIP
 
-On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.46.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.46). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
+On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.47.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.47). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.46.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.47.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.46' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.47' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
