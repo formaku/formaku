@@ -34,6 +34,7 @@ import MediaUsage from "./MediaUsage.vue";
 import RelationPicker from "./RelationPicker.vue";
 import AssistantConnection from "./AssistantConnection.vue";
 import SiteNavigation from "./SiteNavigation.vue";
+import PageTranslations from "./PageTranslations.vue";
 import {
   blockEditorKey,
   blockLabels,
@@ -143,6 +144,14 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+const translationDirty = ref(false);
+const translationsRecordId = computed<number | undefined>(() =>
+  selected.value?.kind === "content" && selected.value.definition.public && boot.value?.abilities?.publish
+    ? record.value?.id
+    : undefined,
+);
+const hasUnsavedChanges = computed(() => dirty.value || translationDirty.value);
+watch(translationsRecordId, () => { translationDirty.value = false; });
 let pendingAutosave: { id?: number } | null = null;
 const pageBlocks = computed<Block[]>(() => record.value?.data.blocks ?? []);
 const pageBlocksHeading = ref<HTMLElement | null>(null);
@@ -258,7 +267,7 @@ async function load() {
   collections.value = boot.value.collections;
 }
 async function choose(c: Collection) {
-  if (dirty.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
+  if (hasUnsavedChanges.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
   selected.value = c;
   section.value = "records";
   setDraft(null);
@@ -541,7 +550,7 @@ function moveBlock(i: number, delta: number) {
 }
 async function navigate(s: string) {
   if (s === "settings" && section.value === s) return;
-  if (dirty.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
+  if (hasUnsavedChanges.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
   dirty.value = false;
   section.value = s;
   setDraft(null);
@@ -672,7 +681,7 @@ function dropBlock(i: number) {
   dirty.value = true;
 }
 function warn(e: BeforeUnloadEvent) {
-  if (dirty.value) e.preventDefault();
+  if (hasUnsavedChanges.value) e.preventDefault();
 }
 onMounted(() => {
   run(load);
@@ -1317,7 +1326,7 @@ const title = computed(
                 </button>
                 <div class="flex flex-wrap gap-2 items-center">
                   <span class="text-xs text-base-content/50">{{
-                    dirty ? t("Niezapisane zmiany") : t("Zapisano")
+                    hasUnsavedChanges ? t("Niezapisane zmiany") : t("Zapisano")
                   }}</span
                   ><button
                     v-if="previewUrl"
@@ -1394,6 +1403,13 @@ const title = computed(
                   </div>
                 </div>
               </section>
+              <PageTranslations
+                v-if="translationsRecordId"
+                :key="translationsRecordId"
+                :record-id="translationsRecordId"
+                :request="request"
+                @dirty="translationDirty = $event"
+              />
               <section
                 v-if="supportsPageTemplates && (!record.id || boot?.abilities?.build)"
                 aria-labelledby="page-templates-heading"
