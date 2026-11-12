@@ -211,6 +211,19 @@ On an existing deployment host, install the controller from the alpha.72 checkou
 
 When `backup` is present, the encrypted archive for that UUID is complete in `/opt/formaku/backups`. Use a fresh UUID for another deployment attempt. The controller preserves an existing archive.
 
+### Verify the running image
+
+On the deployment host, run `sudo /usr/local/sbin/formaku-deployctl runtime` with the controller from this release. It checks the digest in `active-image` against the locally resolved Docker image and the running, healthy Compose services `web`, `worker` and `scheduler`. This gives a fresh observation even when the latest deployment attempt failed and restored the previous image.
+
+| State | Meaning |
+| --- | --- |
+| `verified` | Each of the three services has one healthy, running container with the image recorded in `image`. |
+| `transitioning` | A deployment is active or the controller's deployment record changed during the check. |
+| `mismatch` | The observed service state or image differs from the expected runtime. |
+| `unavailable` | The controller lacks the marker or Docker evidence needed for an observation. |
+
+Use `status` to read the result of the last deployment attempt and its rollback outcome. Use the public URL to verify the external route separately.
+
 Automatic deployment supports backwards-compatible migrations. An image rollback uses the existing database and files. Recover data from the encrypted archive as a separate operation if needed. Store `backup.key` separately from the host and test data recovery before using real data. CI exercises deployment failures against a synthetic Compose fixture. The target VPS still needs its own acceptance test.
 
 Compose must read .env.docker for interpolation: use docker compose --env-file .env.docker. The host helper exports DB_PASSWORD from the runtime file through Compose's env-file option (see script).

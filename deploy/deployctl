@@ -19,7 +19,96 @@ if [[ "$command" == status ]]; then
     fi
     exit
 fi
-[[ "$command" == deploy && $# == 3 ]] || { echo 'Usage: deployctl status [RELEASE_UUID] | deploy IMAGE@sha256:DIGEST RELEASE_UUID' >&2; exit 2; }
+runtime_lock_probe() (
+    if [[ -e deploy.lock || -L deploy.lock ]]; then
+        [[ -f deploy.lock ]] || return 1
+        flock -E 75 -s -n 8 8<deploy.lock
+    fi
+)
+
+runtime_can_observe() {
+    local lock_result=0
+    runtime_lock_probe 2>/dev/null || lock_result=$?
+    case "$lock_result" in
+        0) return 0 ;;
+        75) printf '%s\n' '{"state":"transitioning"}' ;;
+        *) printf '%s\n' '{"state":"unavailable"}' ;;
+    esac
+    return 1
+}
+
+runtime_file() {
+    local LC_ALL=C content
+    if [[ ! -e "$1" && ! -L "$1" ]]; then
+        return 0
+    fi
+    [[ -f "$1" ]] || return 1
+    content=$(head -c 4097 -- "$1" | tr '\000' '?') || return 1
+    [[ ${#content} -le 4096 ]] || return 1
+    printf '%s' "$content"
+}
+
+runtime_containers() {
+    local image=$1 allowed=$2 expected service id details
+    local details_pattern='^(sha256:[a-f0-9]{64}) (created|running|paused|restarting|removing|exited|dead) (healthy|unhealthy|starting|none)$'
+    [[ "$image" =~ ^ghcr\.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ && -n "$allowed" ]] || return 1
+    [[ "${image%@*}" == "$allowed" ]] || return 2
+
+    expected=$(timeout --kill-after=1s 5s docker image inspect --format '{{.Id}}' "$image") || return 1
+    [[ "$expected" =~ ^sha256:[a-f0-9]{64}$ ]] || return 1
+    local -x FORMAKU_IMAGE=$image
+    for service in web worker scheduler; do
+        id=$(timeout --kill-after=1s 5s docker compose --env-file .env.docker ps --quiet "$service") || return 1
+        [[ -n "$id" && "$id" != *$'\n'* ]] || return 2
+        [[ "$id" =~ ^[a-f0-9]{12,64}$ ]] || return 1
+
+        details=$(timeout --kill-after=1s 5s docker container inspect --format \
+            '{{.Image}} {{.State.Status}} {{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$id") || return 1
+        [[ "$details" =~ $details_pattern ]] || return 1
+        [[ "${BASH_REMATCH[1]}" == "$expected" && "${BASH_REMATCH[2]}" == running ]] || return 2
+        [[ "${BASH_REMATCH[3]}" != none ]] || return 1
+        [[ "${BASH_REMATCH[3]}" == healthy ]] || return 2
+    done
+}
+
+observe_runtime() {
+    local image allowed attempt final_image final_allowed final_attempt result=0
+    # Neither lock probe holds a descriptor while Docker is queried.
+    runtime_can_observe || return 0
+    if ! image=$(runtime_file active-image 2>/dev/null) \
+        || ! allowed=$(runtime_file allowed-image 2>/dev/null) \
+        || ! attempt=$(runtime_file release.json 2>/dev/null); then
+        printf '%s\n' '{"state":"unavailable"}'
+        return 0
+    fi
+
+    runtime_containers "$image" "$allowed" 2>/dev/null || result=$?
+    if ! final_image=$(runtime_file active-image 2>/dev/null) \
+        || ! final_allowed=$(runtime_file allowed-image 2>/dev/null) \
+        || ! final_attempt=$(runtime_file release.json 2>/dev/null); then
+        printf '%s\n' '{"state":"unavailable"}'
+        return 0
+    fi
+    runtime_can_observe || return 0
+    if [[ "$image" != "$final_image" || "$allowed" != "$final_allowed" || "$attempt" != "$final_attempt" ]]; then
+        printf '%s\n' '{"state":"transitioning"}'
+        return 0
+    fi
+
+    case "$result" in
+        0) printf '{"state":"verified","image":"%s"}\n' "$image" ;;
+        2) printf '%s\n' '{"state":"mismatch"}' ;;
+        *) printf '%s\n' '{"state":"unavailable"}' ;;
+    esac
+}
+
+if [[ "$command" == runtime ]]; then
+    [[ $# == 1 ]] || exit 2
+    observe_runtime
+    exit
+fi
+
+[[ "$command" == deploy && $# == 3 ]] || { echo 'Usage: deployctl status [RELEASE_UUID] | runtime | deploy IMAGE@sha256:DIGEST RELEASE_UUID' >&2; exit 2; }
 image=$2
 release=$3
 [[ "$image" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ ]] || exit 2
