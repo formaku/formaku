@@ -1,11 +1,14 @@
 <?php
-use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,PageTemplateController,RecordTranslationController,SiteNavigationController,SitemapController};
+use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,PanelExtensionController,PageTemplateController,RecordTranslationController,SiteNavigationController,SitemapController};
+use Formaku\Cms\Services\Registry;
 Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::get('/',fn()=>view('formaku::admin'))->middleware([ 'auth:'.config('formaku.guard'),Access::class.':work']);
  Route::get('/media/{media}',[PublicController::class,'file']);
  Route::get('/media/{media}/variants/{width}',[PublicController::class,'mediaVariant'])->whereIn('width', ['480', '960']);
  Route::prefix('api/v1')->middleware(Access::class.':work')->group(function(){
   Route::get('/bootstrap',[ApiController::class,'bootstrap']);Route::get('/collections',[ApiController::class,'collections']);
+  Route::get('/extensions/resources/{key}', [PanelExtensionController::class, 'resource'])->where('key', Registry::PANEL_KEY_PATTERN);
+  Route::post('/extensions/actions/{key}', [PanelExtensionController::class, 'action'])->where('key', Registry::PANEL_KEY_PATTERN);
   Route::post('/collections',[ApiController::class,'schema'])->middleware(Access::class.':build');
   Route::get('/site-navigation',[SiteNavigationController::class,'show'])->middleware(Access::class.':build');
   Route::put('/site-navigation',[SiteNavigationController::class,'update'])->middleware(Access::class.':build');
