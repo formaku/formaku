@@ -264,10 +264,16 @@ class PortalAttachmentsTest extends TestCase
             ->assertUnprocessable()->assertJsonValidationErrors($field);
 
         $this->assertDatabaseCount('formaku_collections', 0);
-        $saved = $this->postJson($api, $definition)->assertCreated()->assertJsonPath($field, $limits)->json();
+        $saved = $this->postJson($api, $definition)->assertCreated()
+            ->assertJsonPath($field.'.max_files', 2)
+            ->assertJsonPath($field.'.max_mib', 3)
+            ->assertJsonPath($field.'.types', ['png', 'jpeg'])->json();
         $definition['definition']['portal_attachments'] = false;
         $this->postJson($api, $definition + ['id' => $saved['id'], 'version' => $saved['version']])
-            ->assertOk()->assertJsonPath('definition.portal_attachments', false)->assertJsonPath($field, $limits);
+            ->assertOk()->assertJsonPath('definition.portal_attachments', false)
+            ->assertJsonPath($field.'.max_files', 2)
+            ->assertJsonPath($field.'.max_mib', 3)
+            ->assertJsonPath($field.'.types', ['png', 'jpeg']);
 
         $this->actingAs(User::factory()->create(['role' => 'customer']))->get('/portal')->assertOk()
             ->assertViewHas('portalAttachmentsEnabled', false)
@@ -291,7 +297,9 @@ class PortalAttachmentsTest extends TestCase
             'portal_attachments' => false, 'portal_attachment_limits' => $limits,
         ])]])->assertOk()->assertJsonPath('imported', 1);
         $this->getJson('/formaku/api/v1/project')->assertOk()
-            ->assertJsonPath('collections.0.'.$field, $limits)
+            ->assertJsonPath('collections.0.'.$field.'.max_files', 2)
+            ->assertJsonMissingPath('collections.0.'.$field.'.max_mib')
+            ->assertJsonPath('collections.0.'.$field.'.types', ['png'])
             ->assertJsonPath('collections.0.definition.portal_attachments', false);
     }
 
