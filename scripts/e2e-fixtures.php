@@ -21,6 +21,13 @@ $user->password = Hash::make('Local-Test-Formaku-2026!');
 $user->role = 'admin';
 $user->email_verified_at = now();
 $user->save();
+$editor = User::firstOrNew(['email' => 'field-editor@formaku.test']);
+$editor->name = 'Field Editor';
+$editor->password = $user->password;
+$editor->role = 'editor';
+$editor->email_verified_at = now();
+$editor->save();
+
 Artisan::call('formaku:demo');
 
 DB::transaction(function () use ($user) {
