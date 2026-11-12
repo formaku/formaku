@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.69 — 2026-11-12
+
+- Configure separate output token limits for OpenAI and Gemini page proposals. The default is 3000 tokens per request.
+- Claim queued AI tasks atomically so competing workers cannot send the same proposal request twice.
+- No new migrations since alpha.68.
+
 ## 0.1.0-alpha.68 — 2026-11-12
 
 - Find your own requests by exact number and combine the lookup with the state filter. The request history shows subjects you can read.
