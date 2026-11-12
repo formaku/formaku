@@ -21,7 +21,10 @@ class FormakuServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(self::VIEW_PATH, 'formaku');
         View::composer('formaku::layout', function (BladeView $view): void {
-            $view->with('siteNavigation', $this->app->make(Services\SiteNavigation::class)->current());
+            $navigation = $this->app->make(Services\SiteNavigation::class);
+            $settings = $navigation->current();
+            $view->with('siteNavigation', $settings);
+            $view->with('siteBrandLogoUrl', $navigation->publicBrandLogoUrl($settings['brandLogoId']));
         });
         $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../routes/assistant.php');

@@ -5,6 +5,7 @@ namespace Formaku\Cms\Http;
 use Closure;
 use Formaku\Cms\Services\SiteNavigation;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class SiteNavigationController
 {
@@ -15,11 +16,22 @@ class SiteNavigationController
 
     public function update(Request $request, SiteNavigation $navigation): array
     {
+        $brandName = $request->input('brandName');
+        if (is_string($brandName)) {
+            $request->merge(['brandName' => Str::trim($brandName)]);
+        }
+
         $rules = [
             'version' => 'required|integer|min:0',
             'footerText' => 'present|nullable|string|max:500',
             'theme' => 'sometimes|required|string|in:light,dark,system',
             'accent' => 'sometimes|required|string|in:formaku,blue,plum',
+            'brandName' => 'sometimes|nullable|string|max:80',
+            'brandLogoId' => ['bail', 'sometimes', 'nullable', 'integer:strict', 'min:1', function (string $attribute, int $mediaId, Closure $fail) use ($navigation): void {
+                if ($navigation->publicBrandLogoUrl($mediaId) === null) {
+                    $fail('Choose a public JPEG, PNG, or WebP image.');
+                }
+            }],
         ];
         foreach (['header', 'footer'] as $area) {
             $rules[$area] = 'present|array|list|max:12';
@@ -37,6 +49,9 @@ class SiteNavigationController
         $version = (int) $data['version'];
         unset($data['version']);
         $data['footerText'] ??= '';
+        if (($data['brandName'] ?? null) === '') {
+            $data['brandName'] = null;
+        }
 
         return $navigation->save($version, $data);
     }

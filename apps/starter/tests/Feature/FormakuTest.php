@@ -54,6 +54,8 @@ class FormakuTest extends TestCase
             'footerText' => '',
             'theme' => 'light',
             'accent' => 'formaku',
+            'brandName' => null,
+            'brandLogoId' => null,
         ];
         $this->actingAs($this->admin())->getJson($endpoint)->assertOk()->assertExactJson($defaults);
 
@@ -66,7 +68,7 @@ class FormakuTest extends TestCase
             'footer' => [['label' => 'Home', 'url' => '/']],
             'footerText' => 'Formaku & Strefa Badań',
         ];
-        $saved = ['version' => 1, 'theme' => 'light', 'accent' => 'formaku'] + $settings;
+        $saved = ['version' => 1] + $settings + $defaults;
         $this->putJson($endpoint, $settings)->assertOk()->assertExactJson($saved);
         $this->getJson($endpoint)->assertOk()->assertExactJson($saved);
         $this->putJson($endpoint, $settings)->assertConflict();
@@ -77,8 +79,66 @@ class FormakuTest extends TestCase
         $this->assertEquals($saved, $layout->getData()['siteNavigation']);
 
         $cleared = ['version' => 1, 'header' => [], 'footer' => [], 'footerText' => ''];
-        $this->putJson($endpoint, $cleared)->assertOk()->assertExactJson(['version' => 2, 'theme' => 'light', 'accent' => 'formaku'] + $cleared);
-        $this->getJson($endpoint)->assertOk()->assertExactJson(['version' => 2, 'theme' => 'light', 'accent' => 'formaku'] + $cleared);
+        $this->putJson($endpoint, $cleared)->assertOk()->assertExactJson(['version' => 2] + $cleared + $defaults);
+        $this->getJson($endpoint)->assertOk()->assertExactJson(['version' => 2] + $cleared + $defaults);
+    }
+
+    public function test_site_branding_is_versioned_and_preserves_omitted_fields(): void
+    {
+        $user = $this->admin();
+        $media = $this->mediaForUsage($user);
+        $endpoint = '/formaku/api/v1/site-navigation';
+        $settings = ['header' => [], 'footer' => [], 'footerText' => ''];
+
+        $this->actingAs($user)->putJson($endpoint, [
+            'version' => 0, 'brandName' => '  Brand & Co  ', 'brandLogoId' => $media->id,
+        ] + $settings)->assertOk()->assertJsonPath('brandName', 'Brand & Co')->assertJsonPath('brandLogoId', $media->id);
+        $this->putJson($endpoint, ['version' => 1, 'footerText' => 'Legacy edit'] + $settings)
+            ->assertOk()->assertJsonPath('brandName', 'Brand & Co')->assertJsonPath('brandLogoId', $media->id);
+        $this->putJson($endpoint, ['version' => 1, 'brandLogoId' => null] + $settings)->assertConflict();
+        $this->getJson($endpoint)->assertOk()->assertJsonPath('brandLogoId', $media->id);
+        $this->putJson($endpoint, ['version' => 2, 'brandName' => " \u{00a0} "] + $settings)
+            ->assertOk()->assertJsonPath('brandName', null)->assertJsonPath('brandLogoId', $media->id);
+        $this->putJson($endpoint, ['version' => 3, 'brandName' => 'New brand'] + $settings)
+            ->assertOk()->assertJsonPath('brandName', 'New brand')->assertJsonPath('brandLogoId', $media->id);
+        $this->putJson($endpoint, ['version' => 4, 'brandLogoId' => null] + $settings)
+            ->assertOk()->assertJsonPath('brandName', 'New brand')->assertJsonPath('brandLogoId', null);
+    }
+
+    public function test_site_logo_validates_public_raster_media_and_rechecks_visibility_for_the_layout(): void
+    {
+        $user = $this->admin();
+        $media = $this->mediaForUsage($user);
+        $endpoint = '/formaku/api/v1/site-navigation';
+        $settings = ['version' => 0, 'header' => [], 'footer' => [], 'footerText' => ''];
+        $this->actingAs($user);
+
+        foreach ([0, -1, true, $media->id + 1] as $invalidId) {
+            $this->putJson($endpoint, ['brandLogoId' => $invalidId] + $settings)
+                ->assertUnprocessable()->assertJsonValidationErrors('brandLogoId');
+        }
+        $this->putJson($endpoint, ['brandName' => str_repeat('x', 81)] + $settings)
+            ->assertUnprocessable()->assertJsonValidationErrors('brandName');
+
+        $media->update(['visibility' => 'private']);
+        $this->putJson($endpoint, ['brandLogoId' => $media->id] + $settings)
+            ->assertUnprocessable()->assertJsonValidationErrors('brandLogoId');
+        $media->update(['visibility' => 'public', 'mime' => 'application/pdf']);
+        $this->putJson($endpoint, ['brandLogoId' => $media->id] + $settings)
+            ->assertUnprocessable()->assertJsonValidationErrors('brandLogoId');
+
+        $media->update(['mime' => 'image/png']);
+        $this->putJson($endpoint, ['brandLogoId' => $media->id] + $settings)->assertOk();
+        $layout = view('formaku::layout');
+        app('view')->callComposer($layout);
+        $this->assertSame('/formaku/media/'.$media->id, $layout->getData()['siteBrandLogoUrl']);
+
+        $media->update(['visibility' => 'private']);
+        app('view')->callComposer($layout);
+        $this->assertNull($layout->getData()['siteBrandLogoUrl']);
+        $media->delete();
+        app('view')->callComposer($layout);
+        $this->assertNull($layout->getData()['siteBrandLogoUrl']);
     }
 
     public function test_site_theme_is_shared_by_public_pages_and_previews(): void

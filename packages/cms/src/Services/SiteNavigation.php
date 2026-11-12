@@ -2,12 +2,13 @@
 
 namespace Formaku\Cms\Services;
 
+use Formaku\Cms\Models\Media;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
 class SiteNavigation
 {
-    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system', accent: 'formaku'|'blue'|'plum'} */
+    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system', accent: 'formaku'|'blue'|'plum', brandName: string|null, brandLogoId: int|null} */
     public function current(): array
     {
         $row = $this->row()->first();
@@ -20,19 +21,18 @@ class SiteNavigation
             'footerText' => '',
         ];
 
-        return ['version' => (int) ($row->version ?? 0)] + $settings + ['theme' => 'light', 'accent' => 'formaku'];
+        return ['version' => (int) ($row->version ?? 0)] + $settings + ['theme' => 'light', 'accent' => 'formaku', 'brandName' => null, 'brandLogoId' => null];
     }
 
     /**
-     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme?: 'light'|'dark'|'system', accent?: 'formaku'|'blue'|'plum'}  $settings
-     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system', accent: 'formaku'|'blue'|'plum'}
+     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme?: 'light'|'dark'|'system', accent?: 'formaku'|'blue'|'plum', brandName?: string|null, brandLogoId?: int|null}  $settings
+     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system', accent: 'formaku'|'blue'|'plum', brandName: string|null, brandLogoId: int|null}
      */
     public function save(int $version, array $settings): array
     {
-        if (! isset($settings['theme'], $settings['accent'])) {
-            $current = $this->current();
-            $settings['theme'] ??= $current['theme'];
-            $settings['accent'] ??= $current['accent'];
+        $omitted = array_diff_key(array_flip(['theme', 'accent', 'brandName', 'brandLogoId']), $settings);
+        if ($omitted !== []) {
+            $settings += array_intersect_key($this->current(), $omitted);
         }
 
         $updated = $this->row()->where('version', $version)->increment('version', 1, [
@@ -41,6 +41,18 @@ class SiteNavigation
         abort_unless($updated === 1, 409, 'Site navigation changed. Reload before saving again.');
 
         return ['version' => $version + 1] + $settings;
+    }
+
+    public function publicBrandLogoUrl(?int $mediaId): ?string
+    {
+        if ($mediaId === null || ! Media::whereKey($mediaId)->where('visibility', 'public')
+            ->whereIn('mime', ['image/jpeg', 'image/png', 'image/webp'])->exists()) {
+            return null;
+        }
+
+        $prefix = trim(config('formaku.prefix'), '/');
+
+        return rtrim('/'.$prefix, '/').'/media/'.$mediaId;
     }
 
     private function row(): Builder
