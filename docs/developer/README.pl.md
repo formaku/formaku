@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.35' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.36' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -30,12 +30,12 @@ Od alpha.31 `formaku:install` usuwa skompilowane kopie szablonów Blade pakietu.
 
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.35.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.35). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.36.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.36). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.35.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.36.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.35' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.36' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -63,6 +63,12 @@ Definicja pola może zawierać `access.read` i `access.write`, czyli listy klucz
 Przy aktualizacji modelu pominięcie `access` zachowuje dotychczasowe reguły pola. Wyślij jawnie `access: {}`, aby je usunąć. Bieżący model określa dostęp do bieżących danych i starszych rewizji. Przy bezpośrednim wywołaniu `RecordService::save()` dla kolekcji z regułami pól przekaż zalogowanego użytkownika jako `actorUser` i odpowiadający mu identyfikator wykonawcy.
 
 Przed powrotem do wersji sprzed uprawnień pól ogranicz dostęp do każdej objętej kolekcji do osób, które mogą zobaczyć wszystkie jej pola. Sprawdź reguły kolekcji przed przywróceniem ruchu na starszej wersji.
+
+## Skonfiguruj formularz zgłoszeń klienta
+
+W kolekcji danych `requests` ustaw `definition.portal_fields` jako listę kluczy dodatkowych pól. Na przykład `"portal_fields": ["preferred_date", "contact_method"]` dodaje pola o tych kluczach, jeśli występują w `definition.fields` i nie mają ustawionej prywatności. Obsługiwane typy to `text`, `number`, `date`, `boolean` i `select`. Dla list wyboru podaj różne, niepuste wartości tekstowe. Przecinek służy jako separator wartości. Domyślnie lista jest pusta, a portal zawsze zawiera istniejące pola `title` i `description`.
+
+Formularz pokazuje dodatkowe pola, które zalogowany klient może zapisać. W szczegółach zgłoszenia właściciel widzi zapisane wartości, które może odczytać. Obowiązują reguły kolekcji i pól Formaku.
 
 ## Zarejestruj rozszerzenia
 

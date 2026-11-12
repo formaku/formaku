@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.36 — 2026-11-12
+
+- Choose additional request fields in the model editor. The customer portal validates configured fields and shows saved values on the owner's request detail.
+- Supports text, numbers, dates, yes/no values and select lists. Collection and field permissions apply.
+- No new database migrations since alpha.30.
+
 ## 0.1.0-alpha.35 — 2026-11-12
 
 - Choose host-configured or custom roles in the collection model. Add and remove individual collection rules and choose suggested roles for field permissions.
