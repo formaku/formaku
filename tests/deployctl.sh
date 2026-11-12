@@ -4,6 +4,7 @@ umask 077
 
 repo=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 controller=${1:-$repo/deploy/deployctl}
+dispatcher=${2:-$repo/deploy/ssh-dispatch}
 for tool in flock openssl python3 tar; do
     command -v "$tool" >/dev/null || { echo "Required test tool: $tool" >&2; exit 1; }
 done
@@ -154,6 +155,9 @@ assert_trace() {
 assert_status() {
     local expected_state=$1 expected_rollback=$2 expected_backup=$3 actual
     actual=$(invoke status)
+    if [[ "$expected_state" != not_installed ]]; then
+        [[ $(invoke status "$release") == "$actual" ]]
+    fi
     python3 - "$actual" "$expected_state" "$release" "$candidate" "$expected_rollback" "$expected_backup" <<'PYTHON'
 import json
 import sys
@@ -171,6 +175,15 @@ if rollback:
         assert "backup" not in actual, actual
 assert all(actual.get(key) == value for key, value in expected.items()), (expected, actual)
 PYTHON
+}
+
+assert_rejected() {
+    local code=0
+    "$@" > /dev/null 2>&1 || code=$?
+    if (( code != 2 )); then
+        printf 'Expected command rejection (exit 2), got %s\n' "$code" >&2
+        exit 1
+    fi
 }
 
 assert_backup() {
@@ -223,11 +236,22 @@ scenario=locked
     exec 9>"$fixture/deploy.lock"
     flock -n 9
     invoke status | cmp - "$fixture/release.json"
+    invoke status "$prior_release" | cmp - "$fixture/release.json"
+    [[ $(invoke status "$release") == '{"state":"unavailable"}' ]]
     deploy_failure
     [[ ! -s "$fixture/trace" ]]
     assert_previous_unchanged
 )
-printf 'PASS: status remains readable while the lock rejects a second deployment\n'
+printf 'PASS: unscoped and matching scoped status remain readable while the lock rejects a second deployment\n'
+
+make_fixture missing-status none
+scenario=missing-status
+assert_status not_installed '' ''
+[[ $(invoke status "$release") == '{"state":"unavailable"}' ]]
+assert_rejected invoke status invalid
+assert_rejected invoke status "$release" extra
+[[ ! -s "$fixture/trace" ]]
+printf 'PASS: scoped status reports missing records and rejects invalid arguments\n'
 
 for scenario in pull stop database encrypt; do
     make_fixture "$scenario"
@@ -281,3 +305,28 @@ for scenario in migrate health; do
     [[ ! -e "$fixture/active-image" && ! -e "$fixture/previous-image" ]]
     printf 'PASS: first deployment with %s failure leaves no active image and retains the backup\n' "$scenario"
 done
+
+cat > "$scratch/bin/sudo" <<'MOCK'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$@" > "$SUDO_TRACE"
+MOCK
+chmod +x "$scratch/bin/sudo"
+sudo_trace="$scratch/sudo.trace"
+dispatch() {
+    PATH="$scratch/bin:$PATH" SUDO_TRACE="$sudo_trace" SSH_ORIGINAL_COMMAND="$1" bash "$dispatcher"
+}
+
+dispatch "status $release"
+printf '%s\n' -n /usr/local/sbin/formaku-deployctl status "$release" | cmp - "$sudo_trace"
+dispatch "deploy $candidate $release"
+printf '%s\n' /usr/bin/systemd-run --quiet --collect --wait "--unit=formaku-$release" \
+    /usr/local/sbin/formaku-deployctl deploy "$candidate" "$release" | cmp - "$sudo_trace"
+: > "$sudo_trace"
+for request in '' 'status' 'status invalid' "status $release extra" "status $candidate $release" \
+    "deploy $candidate" "deploy $candidate $release extra" "unknown $release" \
+    "status $release"$'\n' "status $release"$'\r' "deploy $candidate $release"$'\n'"status $release"; do
+    assert_rejected dispatch "$request"
+done
+[[ ! -s "$sudo_trace" ]]
+printf 'PASS: SSH dispatcher forwards only allowed deploy and scoped status commands\n'

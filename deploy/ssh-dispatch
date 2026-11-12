@@ -1,7 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
-read -r action image release extra <<< "${SSH_ORIGINAL_COMMAND:-}"
-[[ -z "${extra:-}" && "$action" == deploy ]] || exit 2
-[[ "$image" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ ]] || exit 2
-[[ "$release" =~ ^[a-f0-9-]{36}$ ]] || exit 2
-exec sudo /usr/bin/systemd-run --quiet --collect --wait --unit="formaku-$release" /usr/local/sbin/formaku-deployctl deploy "$image" "$release"
+request=${SSH_ORIGINAL_COMMAND:-}
+[[ "$request" != *$'\n'* && "$request" != *$'\r'* ]] || exit 2
+IFS=$' \t' read -r action first second extra <<< "$request"
+[[ -z "$extra" ]] || exit 2
+case "$action" in
+    status)
+        [[ -z "$second" && "$first" =~ ^[a-f0-9-]{36}$ ]] || exit 2
+        exec sudo -n /usr/local/sbin/formaku-deployctl status "$first"
+        ;;
+    deploy)
+        [[ "$first" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ ]] || exit 2
+        [[ "$second" =~ ^[a-f0-9-]{36}$ ]] || exit 2
+        exec sudo /usr/bin/systemd-run --quiet --collect --wait --unit="formaku-$second" /usr/local/sbin/formaku-deployctl deploy "$first" "$second"
+        ;;
+    *) exit 2 ;;
+esac

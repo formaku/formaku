@@ -5,11 +5,21 @@ umask 077
 
 command=${1:-status}
 cd /opt/formaku
-if [[ "$command" == status && $# -le 1 ]]; then
-    cat release.json 2>/dev/null || echo '{"state":"not_installed"}'
+if [[ "$command" == status ]]; then
+    if (( $# <= 1 )); then
+        cat release.json 2>/dev/null || echo '{"state":"not_installed"}'
+        exit
+    fi
+    [[ $# == 2 && "$2" =~ ^[a-f0-9-]{36}$ ]] || exit 2
+    # The controller atomically replaces this compact record. Compare the same snapshot we return.
+    if status=$(cat release.json 2>/dev/null) && [[ "$status" == *",\"release\":\"$2\","* ]]; then
+        printf '%s\n' "$status"
+    else
+        echo '{"state":"unavailable"}'
+    fi
     exit
 fi
-[[ "$command" == deploy && $# == 3 ]] || { echo 'Usage: deployctl deploy IMAGE@sha256:DIGEST RELEASE_UUID' >&2; exit 2; }
+[[ "$command" == deploy && $# == 3 ]] || { echo 'Usage: deployctl status [RELEASE_UUID] | deploy IMAGE@sha256:DIGEST RELEASE_UUID' >&2; exit 2; }
 image=$2
 release=$3
 [[ "$image" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ ]] || exit 2
