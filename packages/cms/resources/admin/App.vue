@@ -36,6 +36,7 @@ import AssistantConnection from "./AssistantConnection.vue";
 import SiteNavigation from "./SiteNavigation.vue";
 import PageTranslations from "./PageTranslations.vue";
 import PanelExtensions from "./PanelExtensions.vue";
+import RolePicker, { isRoleKey, roleDisplayName, type RoleOption } from "./RolePicker.vue";
 import {
   blockEditorKey,
   blockLabels,
@@ -51,6 +52,8 @@ import {
   type RemovedBlock,
 } from "./blocks";
 type FieldAbility = "read" | "write";
+type CollectionRoleRule = { scope: "all" | "own" | "assigned" | "none"; write: boolean };
+type CollectionRoleRules = Record<string, CollectionRoleRule>;
 type Field = {
   key: string;
   label: string;
@@ -115,6 +118,7 @@ type Collection = {
     transitions?: { from: string; to: string }[];
     public?: boolean;
     seo?: CollectionSeo;
+    access?: CollectionRoleRules | CollectionRoleRule[];
   };
 };
 const clone = (v: any) => JSON.parse(JSON.stringify(v));
@@ -188,6 +192,22 @@ watch(record, () => {
   templateId.value = null;
   templateToDelete.value = null;
 });
+const configuredRoles = computed<RoleOption[]>(() => boot.value?.roles ?? []);
+const configuredRoleLabels = computed(() => new Map(configuredRoles.value.map(({ key, label }) => [key, label])));
+const collectionRoleRules = computed(() =>
+  Object.entries<CollectionRoleRule>(schema.value?.definition.access ?? {}),
+);
+const collectionRoleKeys = computed(() => collectionRoleRules.value.map(([key]) => key));
+function addCollectionRole(key: string) {
+  const definition = schema.value.definition;
+  if (!definition.access || !isRoleKey(key) || collectionRoleKeys.value.includes(key)) return;
+  definition.access = { ...definition.access, [key]: { scope: "none", write: false } };
+}
+function removeCollectionRole(key: string) {
+  schema.value.definition.access = Object.fromEntries(
+    collectionRoleRules.value.filter(([ruleKey]) => ruleKey !== key),
+  );
+}
 function toggleFieldAccess(field: Field, ability: FieldAbility, enabled: boolean) {
   field.access ??= {};
   if (enabled) field.access[ability] = [];
@@ -196,6 +216,10 @@ function toggleFieldAccess(field: Field, ability: FieldAbility, enabled: boolean
 function updateFieldRoles(field: Field, ability: FieldAbility, value: string) {
   field.access ??= {};
   field.access[ability] = Array.from(new Set(value.split(",").map((role) => role.trim()).filter(Boolean)));
+}
+function addFieldRole(field: Field, ability: FieldAbility, key: string) {
+  const roles = field.access?.[ability];
+  if (roles && isRoleKey(key) && !roles.includes(key)) roles.push(key);
 }
 function canRestrictFieldRead(field: Field) {
   return field.private === true && field.key !== "slug";
@@ -1327,13 +1351,61 @@ const title = computed(
             </div>
             <section class="bg-base-100 border border-base-300 rounded-xl p-6">
               <h2 class="text-lg mb-4">{{ t("Dostęp do kolekcji") }}</h2>
-              <button v-if="!schema.definition.access" type="button" class="btn btn-sm" @click="schema.definition.access={editor:{scope:'all',write:true},publisher:{scope:'all',write:false}}">{{ t("Skonfiguruj dostęp ról") }}</button>
-              <div v-for="(rule,role) in schema.definition.access" :key="role" class="flex flex-wrap items-center gap-4 mb-3">
-                <strong class="text-sm w-24">{{role}}</strong>
-                <label><span class="field-label">{{ t("Widoczne rekordy") }}</span><select class="select" v-model="rule.scope"><option value="all">{{ t("Wszystkie") }}</option><option value="own">{{ t("Własne") }}</option><option value="assigned">{{ t("Przypisane") }}</option><option value="none">{{ t("Brak dostępu") }}</option></select></label>
-                <label class="text-sm"><input type="checkbox" v-model="rule.write"/> {{ t("Edycja rekordów") }}</label>
-              </div>
-              <p class="text-xs text-base-content/50 mt-3">{{ t("Administrator buildera zachowuje pełny dostęp. Po skonfigurowaniu reguł pozostałe role wymagają jawnego wpisu.") }}</p>
+              <template v-if="schema.definition.access === undefined">
+                <p class="text-sm mb-3">{{ t("Domyślny dostęp pozwala użytkownikom panelu wyświetlać i edytować wszystkie rekordy tej kolekcji.") }}</p>
+                <button type="button" class="btn btn-sm" @click="schema.definition.access = {}">
+                  {{ t("Skonfiguruj dostęp ról") }}
+                </button>
+              </template>
+              <template v-else>
+                <p v-if="collectionRoleRules.length" class="text-sm mb-3">
+                  {{ t("Użytkownicy z uprawnieniem Buduj zachowują pełny dostęp. Pozostali potrzebują reguły zezwalającej na dostęp.") }}
+                </p>
+                <p v-else class="text-sm mb-3">
+                  {{ t("Tylko użytkownicy z uprawnieniem Buduj mają dostęp do tej kolekcji.") }}
+                </p>
+                <fieldset
+                  v-for="[key, rule] in collectionRoleRules"
+                  :key="key"
+                  class="fieldset border border-base-300 rounded-box p-3 mb-3"
+                >
+                  <legend class="fieldset-legend">{{ roleDisplayName(key, configuredRoleLabels.get(key)) }}</legend>
+                  <div class="flex flex-wrap items-end gap-4">
+                    <label class="block">
+                      <span class="field-label">{{ t("Widoczne rekordy") }}</span>
+                      <select v-model="rule.scope" class="select select-sm">
+                        <option value="all">{{ t("Wszystkie") }}</option>
+                        <option value="own">{{ t("Własne") }}</option>
+                        <option value="assigned">{{ t("Przypisane") }}</option>
+                        <option value="none">{{ t("Brak dostępu") }}</option>
+                      </select>
+                    </label>
+                    <label class="flex items-center gap-2 min-h-8 text-sm">
+                      <input type="checkbox" class="checkbox checkbox-sm" v-model="rule.write" />
+                      {{ t("Edycja rekordów") }}
+                    </label>
+                    <button
+                      type="button" class="btn btn-ghost btn-sm"
+                      :aria-label="t('Usuń regułę roli {0}', key)"
+                      @click="removeCollectionRole(key)"
+                    >
+                      <Trash2 :size="16" aria-hidden="true" />{{ t("Usuń regułę") }}
+                    </button>
+                  </div>
+                </fieldset>
+                <RolePicker
+                  :roles="configuredRoles"
+                  :selected="collectionRoleKeys"
+                  allow-custom
+                  @add="addCollectionRole"
+                />
+                <button type="button" class="btn btn-outline btn-sm mt-4" @click="delete schema.definition.access">
+                  {{ t("Przywróć domyślny dostęp") }}
+                </button>
+                <p class="text-sm mt-2">
+                  {{ t("Po przywróceniu i zapisaniu domyślnego dostępu użytkownicy panelu będą mogli wyświetlać i edytować wszystkie rekordy tej kolekcji.") }}
+                </p>
+              </template>
             </section>
             <details class="collapse collapse-arrow border border-base-300 bg-base-100">
               <summary class="collapse-title">{{ t("Uprawnienia pól") }}</summary>
@@ -1354,14 +1426,22 @@ const title = computed(
                       />
                       {{ t(ability === 'read' ? 'Ogranicz odczyt' : 'Ogranicz zapis') }}
                     </label>
-                    <label v-if="field.access?.[ability] !== undefined" class="block">
-                      <span class="field-label">{{ t(ability === 'read' ? 'Role z odczytem' : 'Role z zapisem') }}</span>
-                      <input
-                        class="input w-full"
-                        :value="field.access[ability]?.join(', ')"
-                        @change="updateFieldRoles(field, ability, ($event.target as HTMLInputElement).value)"
+                    <template v-if="field.access?.[ability] !== undefined">
+                      <label class="block">
+                        <span class="field-label">{{ t(ability === 'read' ? 'Role z odczytem' : 'Role z zapisem') }}</span>
+                        <input
+                          class="input w-full"
+                          :value="field.access[ability].join(', ')"
+                          @change="updateFieldRoles(field, ability, ($event.target as HTMLInputElement).value)"
+                        />
+                      </label>
+                      <RolePicker
+                        v-if="configuredRoles.length"
+                        :roles="configuredRoles"
+                        :selected="field.access[ability]"
+                        @add="addFieldRole(field, ability, $event)"
                       />
-                    </label>
+                    </template>
                   </div>
                 </section>
               </div>
