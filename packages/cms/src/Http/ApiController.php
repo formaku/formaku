@@ -97,6 +97,23 @@ class ApiController
         $query = app(CollectionAccess::class)->query($collection, $user)->with('draft:id,record_id,data');
         $filters = [];
 
+        if ($r->query->has('publication')) {
+            $publication = $r->query('publication');
+            if (! in_array($publication, ['unpublished', 'published', 'changed'], true)) {
+                throw ValidationException::withMessages(['publication' => 'The publication filter must be unpublished, published or changed.']);
+            }
+            if ($collection->kind !== 'content') {
+                throw ValidationException::withMessages(['publication' => 'The publication filter is available only for content collections.']);
+            }
+
+            match ($publication) {
+                'unpublished' => $query->whereNull('published_id'),
+                'published' => $query->whereNotNull('published_id'),
+                'changed' => $query->whereNotNull('published_id')->whereNotNull('draft_id')->whereColumn('draft_id', '<>', 'published_id'),
+            };
+            $filters['publication'] = $publication;
+        }
+
         $scheduled = $r->query('scheduled');
         if ($r->query->has('scheduled') && ! in_array($scheduled, ['0', '1'], true)) {
             throw ValidationException::withMessages(['scheduled' => 'The scheduled filter must be 0 or 1.']);
