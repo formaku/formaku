@@ -176,7 +176,7 @@ class AdminFieldAccessTest extends TestCase
         $saveUrl = self::API.'/collections/'.$collection->id.'/records';
         $this->actingAs($viewer)->getJson($recordUrl)->assertOk()->assertJsonPath('data.internal', 'Synthetic value');
 
-        $viewer->update(['role' => 'editor']);
+        $viewer->forceFill(['role' => 'editor'])->save();
         $this->actingAs($viewer->fresh())->getJson($recordUrl)->assertOk()->assertJsonMissingPath('data.internal');
         $write = ['id' => $record->id, 'version' => $record->version];
         $this->postJson($saveUrl, $write + ['data' => ['title' => 'Updated', 'internal' => 'Synthetic value']])
