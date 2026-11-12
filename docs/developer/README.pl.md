@@ -9,13 +9,20 @@ Przykłady korzystają ze startera na Laravelu 13. Integracja z panelem wymaga F
 W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formaku](https://formaku.eu/composer/packages.json) i zainstaluj wydanie.
 
 ```sh
-composer repo add formaku composer https://formaku.eu/composer
+composer config repositories.formaku composer https://formaku.eu/composer
 composer require 'formaku/cms:0.1.0-alpha.43' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
 
-Skonfiguruj guard aplikacji i funkcję `authorize` w `config/formaku.php` zgodnie z politykami aplikacji. Otwórz `/formaku` jako uprawniony użytkownik. Włącz publiczne trasy Formaku, gdy chcesz przez nie publikować treści.
+W `config/formaku.php` ustaw w `guard` mechanizm sesji używany do logowania w aplikacji. W `authorize` wskaż funkcję, która otrzymuje zalogowanego użytkownika i nazwę uprawnienia, a zwraca wartość logiczną. Jeśli aplikacja definiuje publiczną metodę statyczną `allows` w klasie `App\Support\FormakuAccess`, użyj takiej konfiguracji.
+
+```php
+'guard' => 'web',
+'authorize' => [\App\Support\FormakuAccess::class, 'allows'],
+```
+
+W metodzie sprawdzaj uprawnienia aplikacji. Nadaj `work` osobom z dostępem do panelu, `build` osobom zarządzającym modelami, a `publish` osobom uprawnionym do publikacji. Dodaj trasę o nazwie `login` dla domyślnego przekierowania gości w Laravel lub wskaż istniejący ekran logowania przez `redirectGuestsTo` w `bootstrap/app.php`. Zaloguj się w aplikacji gospodarza i otwórz `/formaku`. Jeśli potrzebujesz aplikacji z gotowym logowaniem, użyj startera Formaku. Włącz publiczne trasy Formaku, gdy zechcesz przez nie publikować treści.
 
 ### Aktualizacja istniejącej instalacji Composer
 
@@ -34,7 +41,7 @@ Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.43.zip` 
 
 ```sh
 (cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.43.zip.sha256)
-composer repo add formaku-artifacts artifact ./formaku-packages
+composer config repositories.formaku-artifacts artifact ./formaku-packages
 composer require 'formaku/cms:0.1.0-alpha.43' --prefer-dist
 php artisan formaku:install
 php artisan migrate

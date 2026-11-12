@@ -9,13 +9,20 @@ These examples use the Laravel 13 starter. The panel integration requires Formak
 On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https://formaku.eu/composer/packages.json) and install the release.
 
 ```sh
-composer repo add formaku composer https://formaku.eu/composer
+composer config repositories.formaku composer https://formaku.eu/composer
 composer require 'formaku/cms:0.1.0-alpha.43' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
 
-Configure the host guard and the `authorize` callback in `config/formaku.php` using your application's policies, then open `/formaku` as an authorized user. Leave public Formaku routes disabled until you want to publish content through them.
+In `config/formaku.php`, set `guard` to the session guard your app uses for login. Set `authorize` to a callable that accepts the signed-in user and an ability string and returns a boolean. For example, if your app defines a public static `allows` method on `App\Support\FormakuAccess`, configure it as follows.
+
+```php
+'guard' => 'web',
+'authorize' => [\App\Support\FormakuAccess::class, 'allows'],
+```
+
+Use your app's permissions in the method. Grant `work` to staff who may enter the panel, `build` to staff who may manage models, and `publish` to staff who may publish. Use a route named `login` for Laravel's default guest redirect, or set `redirectGuestsTo` in `bootstrap/app.php` to your existing sign-in page. Sign in through the host app, then open `/formaku`. For an app with login already configured, use the Formaku starter. Leave Formaku's public routes disabled until you want to publish through them.
 
 ### Upgrade an existing Composer installation
 
@@ -34,7 +41,7 @@ On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.43.zip` 
 
 ```sh
 (cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.43.zip.sha256)
-composer repo add formaku-artifacts artifact ./formaku-packages
+composer config repositories.formaku-artifacts artifact ./formaku-packages
 composer require 'formaku/cms:0.1.0-alpha.43' --prefer-dist
 php artisan formaku:install
 php artisan migrate

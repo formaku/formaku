@@ -8,7 +8,7 @@ Vue 3 administration, server-rendered pages, versioned records, a customer porta
 
 ## Run locally
 
-Requirements: PHP 8.4+, Composer, Node 22+, SQLite for a quick local start; PostgreSQL 17 or MySQL 8.4 for deployment.
+Requirements: PHP 8.4+, Composer, Node.js 22.12+, SQLite for a quick local start; PostgreSQL 17 or MySQL 8.4 for deployment.
 
 ```sh
 cd apps/starter
