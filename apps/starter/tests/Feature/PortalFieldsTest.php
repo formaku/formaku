@@ -17,14 +17,15 @@ class PortalFieldsTest extends TestCase
         $builder = User::factory()->create(['role' => 'admin']);
         $customer = User::factory()->create(['role' => 'customer']);
         $other = User::factory()->create(['role' => 'customer']);
-        $keys = ['category', 'estimate', 'appointment', 'follow_up', 'reference'];
+        $keys = ['reference', 'follow_up', 'category', 'appointment', 'estimate'];
         $definition = $this->requestDefinition($keys);
         $this->actingAs($builder)->postJson('/formaku/api/v1/collections', $definition)
             ->assertCreated()
             ->assertJsonPath('definition.portal_fields', $keys);
 
         $this->actingAs($customer)->get('/portal')->assertOk()
-            ->assertViewHas('portalFields', fn (array $fields) => array_column($fields, 'key') === $keys);
+            ->assertViewHas('portalFields', fn (array $fields) => array_column($fields, 'key') === $keys)
+            ->assertSeeInOrder(array_map(fn (string $key): string => 'id="portal-field-'.$key.'"', ['title', 'description', ...$keys]), false);
         $base = ['title' => 'Repair request', 'description' => 'Test description'];
         $this->postJson('/portal/requests', $base + ['estimate' => 'several', 'appointment' => 'invalid', 'follow_up' => 'maybe'])
             ->assertUnprocessable()->assertJsonValidationErrors(['category', 'estimate', 'appointment', 'follow_up']);
@@ -52,7 +53,8 @@ class PortalFieldsTest extends TestCase
         $this->assertEquals($base + $submitted, $record->draft->data);
         $path = '/portal/requests/'.$record->id;
         $this->get($path)->assertOk()
-            ->assertViewHas('portalFields', fn (array $fields) => array_column($fields, 'key') === $keys);
+            ->assertViewHas('portalFields', fn (array $fields) => array_column($fields, 'key') === $keys)
+            ->assertSeeInOrder(['Reference</dt>', 'Follow up</dt>', 'Category</dt>', 'Appointment</dt>', 'Estimate</dt>'], false);
         $this->getJson($path)->assertExactJson(['id' => $record->id, 'state' => 'new', 'data' => $base + $submitted]);
         $this->actingAs($other)->get($path)->assertNotFound();
     }
@@ -123,10 +125,12 @@ class PortalFieldsTest extends TestCase
         ])->assertUnprocessable()->assertJsonValidationErrors(['definition.portal_fields.0']);
         $this->assertDatabaseCount('formaku_collections', 0);
 
+        $keys = ['reference', 'category'];
         $this->postJson('/formaku/api/v1/project/import', [
-            'format' => 'formaku.project', 'version' => 1, 'collections' => [$this->requestDefinition(['category'])],
+            'format' => 'formaku.project', 'version' => 1, 'collections' => [$this->requestDefinition($keys)],
         ])->assertOk()->assertJsonPath('imported', 1);
-        $this->assertSame(['category'], Collection::sole()->definition['portal_fields']);
+        $this->getJson('/formaku/api/v1/project')->assertOk()
+            ->assertJsonPath('collections.0.definition.portal_fields', $keys);
     }
 
     public function test_portal_ignores_ineligible_existing_settings(): void

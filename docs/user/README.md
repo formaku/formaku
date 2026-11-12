@@ -122,6 +122,8 @@ W **Historii zgłoszeń** wybierz **Stan zgłoszenia** i kliknij **Filtruj**. Wy
 
 W **Buduj → Edytuj model** otwórz kolekcję danych `requests` i zaznacz wybrane pola w sekcji **Pola portalu klienta**. Temat i opis są zawsze częścią formularza. Możesz dodać tekst, liczbę, datę, pole tak/nie lub listę wyboru. Zapisz model i otwórz `/portal` jako klient. Formularz uwzględnia wymagane pola i uprawnienia do zapisu. W szczegółach własnego zgłoszenia klient widzi zapisane wartości dostępne do odczytu.
 
+W sekcji **Kolejność pól w formularzu** użyj **Przesuń w górę** lub **Przesuń w dół** przy wybranym polu, a następnie zapisz model. Temat i opis są na początku. Dodatkowe pola są wyświetlane w zapisanej kolejności w formularzu i szczegółach zgłoszenia, zgodnie z uprawnieniami.
+
 W modelu `requests` włącz **Załączniki do zgłoszeń**. Wybierz maksymalną liczbę plików od 1 do 3, maksymalny rozmiar pliku od 1 do 5 MiB i co najmniej jeden typ spośród PDF, PNG i JPEG. Domyślnie dostępne są wszystkie trzy typy, do trzech plików i do 5 MiB na plik. Portal pokazuje wybrane limity w formularzu i stosuje je przy zapisie.
 
 Pobieranie jest dostępne w szczegółach zgłoszenia dla właściciela i personelu zgodnie z dostępem do rekordu. Zmiana limitów dotyczy nowych plików. Wyłączenie opcji zamyka przesyłanie, a zapisane załączniki pozostają dostępne według uprawnień do zgłoszenia.
@@ -189,6 +191,8 @@ In a collection's record list, choose a state in **Status filter**. The filter s
 In request history, choose a request state and select **Filtruj** (Filter). The selection stays active when you change pages. Select **Wszystkie stany** (All states) and apply the filter to return to the full list.
 
 To add fields to the customer request form, open the `requests` data collection in **Build → Edit model** and select the fields under **Customer portal fields**. The portal respects the model’s field requirements and customer permissions.
+
+In **Form field order**, use **Move up** or **Move down** next to a selected field and save the model. Subject and Description appear first. The form and request details show the other fields in the saved order, subject to the customer's permissions.
 
 Enable **Request attachments** in the same model to set a maximum of one to three files and one to five MiB per file. Select at least one of PDF, PNG and JPEG. The default allows all three types and up to three files of 5 MiB each. The request owner and staff with record access can download saved files from the request details. Changes to upload settings apply to new files.
 

@@ -364,6 +364,8 @@ const portalModelFields = computed<Field[]>(() => {
         && !option.includes(",") && !option.startsWith('"'));
   });
 });
+const portalFieldOrderAnnouncement = ref("");
+watch(schema, () => { portalFieldOrderAnnouncement.value = ""; });
 const portalFieldSelection = computed<string[]>({
   get() {
     const keys = schema.value?.definition.portal_fields;
@@ -371,8 +373,33 @@ const portalFieldSelection = computed<string[]>({
   },
   set(keys) {
     schema.value.definition.portal_fields = keys;
+    portalFieldOrderAnnouncement.value = "";
   },
 });
+const portalOrderedFields = computed(() => {
+  const eligible = new Map(portalModelFields.value.map((field) => [field.key, field]));
+  return [...new Set(portalFieldSelection.value)].flatMap((key) => {
+    const field = eligible.get(key);
+    return field ? [field] : [];
+  });
+});
+async function movePortalField(index: number, offset: -1 | 1, event: MouseEvent) {
+  const fields = portalOrderedFields.value;
+  const field = fields[index];
+  const nextIndex = index + offset;
+  if (!field || nextIndex < 0 || nextIndex >= fields.length) return;
+
+  const button = event.currentTarget as HTMLButtonElement;
+  const row = button.closest("li");
+  const keys = fields.map(({ key }) => key);
+  keys.splice(index, 1);
+  keys.splice(nextIndex, 0, field.key);
+  portalFieldSelection.value = keys;
+  portalFieldOrderAnnouncement.value = t("Pole {0} zajmuje pozycję {1} z {2}.", field.label, nextIndex + 3, fields.length + 2);
+  await nextTick();
+  const focusTarget = button.disabled ? row?.querySelector<HTMLButtonElement>("button:not(:disabled)") : button;
+  focusTarget?.focus();
+}
 const portalAttachmentLimits = computed<PortalAttachmentLimits>(() => {
   const limits: Collection["definition"]["portal_attachment_limits"] =
     schema.value?.definition.portal_attachment_limits;
@@ -924,8 +951,7 @@ async function saveSchema() {
   await run(async () => {
     const definition = { ...schema.value.definition };
     if (portalSchema.value && Array.isArray(definition.portal_fields)) {
-      const eligibleKeys = new Set(portalModelFields.value.map((field) => field.key));
-      definition.portal_fields = [...new Set(portalFieldSelection.value.filter((key) => eligibleKeys.has(key)))];
+      definition.portal_fields = portalOrderedFields.value.map(({ key }) => key);
     } else {
       delete definition.portal_fields;
     }
@@ -1687,6 +1713,33 @@ const title = computed(
                 <input v-model="portalFieldSelection" type="checkbox" class="checkbox checkbox-sm" :value="field.key" />
                 <span class="min-w-0 wrap-anywhere">{{ field.label }} ({{ field.key }})</span>
               </label>
+              <div class="mt-3">
+                <h3 id="portal-field-order-heading" class="text-sm font-medium">{{ t("Kolejność pól w formularzu") }}</h3>
+                <ol class="list mt-2 border border-base-300 rounded-box" aria-labelledby="portal-field-order-heading">
+                  <li class="list-row text-sm">{{ t("Temat") }}</li>
+                  <li class="list-row text-sm">{{ t("Opis") }}</li>
+                  <li v-for="(field, index) in portalOrderedFields" :key="field.key" class="list-row items-center text-sm">
+                    <span class="list-col-grow min-w-0 wrap-anywhere">{{ field.label }}</span>
+                    <div class="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        :aria-label="t('Przesuń w górę pole {0}', field.label)"
+                        :disabled="index === 0"
+                        @click="movePortalField(index, -1, $event)"
+                      >{{ t("Przesuń w górę") }}</button>
+                      <button
+                        type="button"
+                        class="btn btn-sm"
+                        :aria-label="t('Przesuń w dół pole {0}', field.label)"
+                        :disabled="index === portalOrderedFields.length - 1"
+                        @click="movePortalField(index, 1, $event)"
+                      >{{ t("Przesuń w dół") }}</button>
+                    </div>
+                  </li>
+                </ol>
+                <p aria-live="polite" aria-atomic="true" class="sr-only">{{ portalFieldOrderAnnouncement }}</p>
+              </div>
               <label class="flex items-center gap-2 border-t border-base-300 mt-2 pt-3 text-sm">
                 <input v-model="schema.definition.portal_attachments" type="checkbox" class="checkbox checkbox-sm" />
                 <span>{{ t("Załączniki do zgłoszeń") }}</span>
