@@ -120,6 +120,12 @@ jobs:
         run: |
           bash "$RUNNER_TEMP/formaku-verify-release-image.sh" "$IMAGE" "$DIGEST" \
             "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$SOURCE_COMMIT" "$IMAGE_VERSION"
+      - name: Check installation in the published image
+        if: github.event_name == 'push'
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: bash scripts/smoke-release-image.sh "$IMAGE@$DIGEST"
       - name: Summary
         env:
           IMAGE: ${{ steps.image.outputs.name }}

@@ -58,6 +58,12 @@ docker image inspect "$FORMAKU_IMAGE" --format '{{json .Config.Labels}}'
 
 Starting with alpha.39, `org.opencontainers.image.source` gives the Formaku repository URL and `org.opencontainers.image.revision` gives the full source commit. For a tagged release, `org.opencontainers.image.version` gives the release version without the `v` prefix. For a manual build, it gives the requested source commit. The workflow checks these values on the image pulled by its immutable digest.
 
+### Test a published image in GitHub Actions
+
+In GitHub Actions, open **CI**, choose **Run workflow** on `main`, and enter the `sha256:…` digest from the release notes. The workflow pulls that image from `ghcr.io/formaku/formaku`, checks the installation against a fresh SQLite database, and starts the Compose services against a fresh PostgreSQL database. It checks `formaku:doctor`, `/up` and `/login`. Use an image from alpha.48 or later, when `formaku:doctor` became available.
+
+For new tagged releases, the release workflow runs the SQLite installation check against the public image by digest before it publishes the GitHub prerelease.
+
 ### Upgrade an existing alpha installation
 
 Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.48`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.48 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
