@@ -176,6 +176,16 @@ const fieldTypes = computed(() => {
 });
 type RevisionPage = { data: { id: number; created_at: string }[]; current_page: number; last_page: number };
 const historyPage = ref<RevisionPage | null>(null);
+type RevisionChange = { key: string; label: string; type: string; previous?: unknown; current?: unknown };
+type RevisionComparison = {
+  revision: { id: number; created_at: string };
+  draft: { id: number; created_at: string };
+  changes: RevisionChange[];
+};
+const comparisonDialog = ref<HTMLDialogElement | null>(null);
+const comparison = ref<RevisionComparison | null>(null);
+const comparisonError = ref(false);
+let comparisonRequest = 0;
 const emptyRecordsFilter = { publication: "", state: "", label: "" };
 const recordsFilter = ref(emptyRecordsFilter);
 const recordsLabelInput = ref("");
@@ -357,6 +367,7 @@ watch(
   () => record.value?.id,
   (id) => {
     syncRecordAddress(id);
+    comparisonDialog.value?.close();
     previewOpen.value = false;
     scheduledAt.value = "";
   },
@@ -513,6 +524,32 @@ async function openHistory(page = 1) {
     const result: RevisionPage = await request(page > 1 ? `${path}?page=${page}` : path);
     if (record.value === draft) historyPage.value = result;
   });
+}
+function resetRevisionComparison() {
+  comparisonRequest++;
+  comparison.value = null;
+  comparisonError.value = false;
+}
+async function compareRevision(revisionId: number) {
+  const recordId = record.value?.id;
+  const dialog = comparisonDialog.value;
+  if (!recordId || !dialog || dialog.open) return;
+  resetRevisionComparison();
+  const requestId = comparisonRequest;
+  dialog.showModal();
+  try {
+    const result: RevisionComparison = await request(`/records/${recordId}/revisions/${revisionId}/compare`);
+    if (requestId === comparisonRequest && dialog.open) comparison.value = result;
+  } catch {
+    if (requestId === comparisonRequest && dialog.open) comparisonError.value = true;
+  }
+}
+function comparisonValue(change: RevisionChange, side: "previous" | "current"): string {
+  if (!Object.hasOwn(change, side)) return t("Brak wartości");
+  const value = change[side];
+  if (value === null) return t("Wartość null");
+  if (value === "") return t("Pusty tekst");
+  return readonlyFieldValue(value);
 }
 async function restoreDraftRevision(revisionId: number) {
   await run(async () => {
@@ -2223,6 +2260,9 @@ const title = computed(
                       >
                         {{ t("Podgląd rewizji") }}<ArrowUpRight :size="12" />
                       </a>
+                      <button type="button" class="btn btn-xs" :disabled="busy" @click="compareRevision(h.id)">
+                        {{ t("Porównaj ze szkicem") }}
+                      </button>
                       <button
                         type="button"
                         class="btn btn-xs"
@@ -2543,6 +2583,42 @@ const title = computed(
       </main>
     </div>
     <Teleport to="body">
+      <dialog
+        ref="comparisonDialog"
+        class="modal"
+        aria-labelledby="revision-comparison-title"
+        @close="resetRevisionComparison"
+      >
+        <div class="modal-box max-w-3xl">
+          <h2 id="revision-comparison-title" class="text-lg font-semibold">{{ t("Porównanie rewizji") }}</h2>
+          <p v-if="comparisonError" role="alert" class="mt-4">{{ t("Nie udało się pobrać porównania.") }}</p>
+          <p v-else-if="!comparison" role="status" class="mt-4">{{ t("Pobieram porównanie…") }}</p>
+          <template v-else>
+            <p class="mt-2 text-sm">
+              {{ t("Rewizja #{0} i zapisany szkic #{1}", comparison.revision.id, comparison.draft.id) }}
+            </p>
+            <p v-if="!comparison.changes.length" class="mt-4">{{ t("Brak różnic w dostępnych polach.") }}</p>
+            <ul v-else class="mt-4 space-y-4">
+              <li v-for="change in comparison.changes" :key="change.key" class="rounded-lg border border-base-300 p-3">
+                <h3 class="font-medium">{{ change.label }}</h3>
+                <dl class="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div class="min-w-0">
+                    <dt class="text-sm font-medium">{{ t("Wybrana rewizja") }}</dt>
+                    <dd class="mt-1 whitespace-pre-wrap wrap-anywhere rounded-md bg-base-200 p-2 text-sm">{{ comparisonValue(change, "previous") }}</dd>
+                  </div>
+                  <div class="min-w-0">
+                    <dt class="text-sm font-medium">{{ t("Zapisany szkic") }}</dt>
+                    <dd class="mt-1 whitespace-pre-wrap wrap-anywhere rounded-md bg-base-200 p-2 text-sm">{{ comparisonValue(change, "current") }}</dd>
+                  </div>
+                </dl>
+              </li>
+            </ul>
+          </template>
+          <form method="dialog" class="modal-action">
+            <button class="btn" autofocus>{{ t("Zamknij") }}</button>
+          </form>
+        </div>
+      </dialog>
       <dialog
         ref="blockMoveDialog"
         class="modal"

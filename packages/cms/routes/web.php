@@ -21,6 +21,7 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::get('/records/{record}',[ApiController::class,'show']);Route::get('/records/{record}/preview',[ApiController::class,'preview']);
   Route::get('/records/{record}/revisions', [ApiController::class, 'revisions']);
   Route::get('/records/{record}/revisions/{revision}/preview', [ApiController::class, 'revisionPreview'])->whereNumber('revision');
+  Route::get('/records/{record}/revisions/{revision}/compare', [ApiController::class, 'revisionComparison'])->whereNumber(['record', 'revision']);
   Route::get('/records/{record}/attachments', [ApiController::class, 'attachmentIndex']);
   Route::get('/records/{record}/attachments/{attachment}', [ApiController::class, 'attachment'])
       ->whereNumber('attachment')->name('formaku.staff.attachment');

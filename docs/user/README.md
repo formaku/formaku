@@ -38,6 +38,8 @@ Po otwarciu zapisanego rekordu adres panelu zawiera jego identyfikator. Użyj **
 
 Historia wersji pokazuje do 25 rewizji od najnowszej. Użyj **Następna strona**, by przejść do starszych wersji. Podgląd i przywracanie są dostępne na każdej stronie historii.
 
+Wybierz **Porównaj ze szkicem** przy dowolnej rewizji. Panel pokazuje wartości zmienionych pól po obu stronach, zgodnie z aktualnymi uprawnieniami. Punktem odniesienia jest ostatni zapisany szkic. Edycje, których jeszcze nie zapisano, pozostają w formularzu.
+
 Na liście rekordów wpisz fragment aktualnego tytułu lub nazwy i kliknij **Szukaj**. Wyszukiwanie obejmuje wszystkie strony listy i uwzględnia uprawnienia odczytu pól. Aby je wyczyścić, usuń frazę i ponownie kliknij **Szukaj**.
 
 Na liście rekordów wybierz stan w polu **Filtr stanu**. Wybór pozostaje aktywny podczas zmiany stron i po powrocie z edytora. W kolekcjach treści możesz połączyć go z filtrem **Zaplanowane**. Wybierz **Wszystkie stany**, aby wyczyścić filtr stanu.

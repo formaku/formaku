@@ -19,6 +19,7 @@ use Formaku\Cms\Services\Registry;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -220,6 +221,52 @@ class ApiController
     public function revisions(Record $record): LengthAwarePaginator
     {
         return Revision::where('record_id', $record->id)->latest('id')->paginate(25, ['id', 'created_at']);
+    }
+
+    public function revisionComparison(Request $request, Record $record, string $revision): JsonResponse
+    {
+        $revisionId = filter_var($revision, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        abort_unless($revisionId !== false && $record->draft_id !== null, 404);
+        $revisions = Revision::where('record_id', $record->id)
+            ->whereKey([$revisionId, $record->draft_id])
+            ->get(['id', 'created_at', 'data'])->keyBy('id');
+        $previous = $revisions->get($revisionId);
+        $draft = $revisions->get($record->draft_id);
+        abort_unless($previous && $draft, 404);
+
+        $collection = Collection::findOrFail($record->collection_id);
+        $user = $request->user();
+        // The array cast would conflate empty JSON objects and empty lists.
+        $before = $this->fieldAccess->readableData(
+            $collection, (array) json_decode($previous->getRawOriginal('data'), flags: JSON_THROW_ON_ERROR), $user,
+        );
+        $after = $this->fieldAccess->readableData(
+            $collection, (array) json_decode($draft->getRawOriginal('data'), flags: JSON_THROW_ON_ERROR), $user,
+        );
+        $changes = [];
+        foreach ($collection->definition['fields'] ?? [] as $field) {
+            $key = $field['key'];
+            $hasPrevious = array_key_exists($key, $before);
+            $hasCurrent = array_key_exists($key, $after);
+            if ($hasPrevious === $hasCurrent && $this->sameRevisionValue($before[$key] ?? null, $after[$key] ?? null)) {
+                continue;
+            }
+
+            $change = ['key' => $key, 'label' => $field['label'], 'type' => $field['type']];
+            if ($hasPrevious) {
+                $change['previous'] = $before[$key];
+            }
+            if ($hasCurrent) {
+                $change['current'] = $after[$key];
+            }
+            $changes[] = $change;
+        }
+
+        return response()->json([
+            'revision' => ['id' => $previous->id, 'created_at' => $previous->created_at],
+            'draft' => ['id' => $draft->id, 'created_at' => $draft->created_at],
+            'changes' => $changes,
+        ])->header('Cache-Control', 'no-store');
     }
 
     /** @return list<array{id: int, name: string, size: int, url: string}> */
@@ -584,6 +631,29 @@ class ApiController
 
         return $this->recordAttributes($record, $collection, $user, $hidden)
             + ['data' => $this->fieldAccess->readableData($collection, $data, $user)];
+    }
+
+    private function sameRevisionValue(mixed $previous, mixed $current): bool
+    {
+        if (gettype($previous) !== gettype($current)) {
+            return false;
+        }
+        if (! is_array($previous) && ! is_object($previous)) {
+            return $previous === $current;
+        }
+
+        $previous = (array) $previous;
+        $current = (array) $current;
+        if (count($previous) !== count($current)) {
+            return false;
+        }
+        foreach ($previous as $key => $value) {
+            if (! array_key_exists($key, $current) || ! $this->sameRevisionValue($value, $current[$key])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function revisionData(Record $record, ?Revision $revision): array

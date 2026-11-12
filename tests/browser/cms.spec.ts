@@ -396,6 +396,20 @@ test("preview a saved revision without restoring it", async ({ page }, info) => 
   await page.getByRole("button", { name: "Następna strona", exact: true }).click();
   await expect(previewLink).toBeVisible();
   await expect(revisionLinks).toHaveCount(1);
+  const comparePath = api + recordPath + `/revisions/${earlier.draft_id}/compare`;
+  const [compareResponse] = await Promise.all([
+    page.waitForResponse((response) => new URL(response.url()).pathname === comparePath),
+    page.getByRole("button", { name: "Porównaj ze szkicem", exact: true }).click(),
+  ]);
+  expect(compareResponse.ok()).toBe(true);
+  const comparison = page.getByRole("dialog", { name: "Porównanie rewizji" });
+  await expect(comparison.getByText(historicalTitle, { exact: true })).toBeVisible();
+  await expect(comparison.getByText(draftTitle, { exact: true })).toBeVisible();
+  await expect(comparison.getByText(publishedTitle, { exact: true })).toHaveCount(0);
+  await comparison.getByRole("button", { name: "Zamknij", exact: true }).click();
+  await expect(comparison).toBeHidden();
+  await expect(page.getByLabel("Tytuł", { exact: true })).toHaveValue(draftTitle);
+
   const popupPromise = page.waitForEvent("popup");
   await previewLink.click();
   const popup = await popupPromise;
