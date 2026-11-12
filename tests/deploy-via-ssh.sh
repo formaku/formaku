@@ -89,6 +89,18 @@ run_deploy() {
     grep -Fq "SSH deploy exit code: \`$expected\`" "$GITHUB_STEP_SUMMARY"
 }
 
+run_status() {
+    local expected=$1 expected_summary=$2 result=0
+    : > "$TRACE"
+    : > "$GITHUB_STEP_SUMMARY"
+    bash "$root/scripts/deploy-via-ssh.sh" --status-only > "$fixture/output" 2>&1 || result=$?
+    [[ "$result" == "$expected" ]]
+    [[ ! -s "$fixture/output" && -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
+    printf 'bounded status\nstatus %s\n' "$RELEASE_ID" | cmp - "$TRACE"
+    printf '### Deployment status read\n\nRelease: `%s`\n\n%s\n' \
+        "$RELEASE_ID" "$expected_summary" | cmp - "$GITHUB_STEP_SUMMARY"
+}
+
 check_receipt() {
     jq -es --arg release "$RELEASE_ID" --arg image "$IMAGE" \
         --argjson ssh_exit_code "$1" --argjson host_status "$2" \
@@ -161,7 +173,31 @@ run_deploy 23 1
 grep -Fxq 'Host status: `deployed`' "$GITHUB_STEP_SUMMARY"
 [[ -z $(find "$fixture" -maxdepth 1 -name 'deployment receipt.json.*' -print -quit) ]]
 FORMAKU_DEPLOYMENT_RECEIPT=$receipt
+
+printf 'existing deployment receipt\n' > "$receipt"
+DEPLOY_RESULT=99
+STATUS_RESPONSE=$valid
+run_status 0 'Host status: `deployed`'
+printf 'existing deployment receipt\n' | cmp - "$receipt"
 rm -f -- "$receipt"
+STATUS_RESPONSE=$(status_json deploying)
+run_status 0 'Host status: `deploying`'
+STATUS_RESPONSE=$(status_json failed | jq -c '. + {rollback: "restored", backup: .release, extra: "private field"}')
+run_status 0 $'Host status: `failed`\n\nRollback: `restored`'
+
+for STATUS_RESPONSE in '{' "$valid"$'\n'"$valid" \
+    "$(jq -c '.release = "other-release"' <<< "$valid")" \
+    "$(jq -c '.image = "other-image"' <<< "$valid")"; do
+    run_status 3 'Host status unavailable.'
+done
+STATUS_RESPONSE=$valid
+STATUS_RESULT=255
+run_status 3 'Host status unavailable.'
+STATUS_RESULT=0
+STATUS_TIMEOUT=1
+run_status 3 'Host status unavailable.'
+STATUS_TIMEOUT=0
+[[ ! -e "$receipt" ]]
 
 : > "$TRACE"
 : > "$GITHUB_STEP_SUMMARY"
@@ -169,8 +205,20 @@ for bad_input in IMAGE RELEASE_ID HOST USER; do
     result=0
     env "$bad_input=invalid"$'\n'"argument" bash "$root/scripts/deploy-via-ssh.sh" > "$fixture/output" 2>&1 || result=$?
     [[ "$result" == 2 ]]
+    result=0
+    env "$bad_input=invalid"$'\n'"argument" bash "$root/scripts/deploy-via-ssh.sh" --status-only > "$fixture/output" 2>&1 || result=$?
+    [[ "$result" == 2 ]]
 done
+for bad_arg in --unknown ''; do
+    result=0
+    bash "$root/scripts/deploy-via-ssh.sh" "$bad_arg" > "$fixture/output" 2>&1 || result=$?
+    [[ "$result" == 2 ]]
+    grep -Fxq 'Usage: deploy-via-ssh.sh [--status-only]' "$fixture/output"
+done
+result=0
+bash "$root/scripts/deploy-via-ssh.sh" --status-only --status-only > "$fixture/output" 2>&1 || result=$?
+[[ "$result" == 2 ]]
 [[ ! -s "$TRACE" && ! -s "$GITHUB_STEP_SUMMARY" && ! -e "$receipt" ]]
 [[ -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
 
-printf 'PASS: pinned SSH deploy/status, preserved exit code, scoped summary and receipt, bounded query and credential cleanup\n'
+printf 'PASS: pinned SSH deploy and read-only status, scoped summaries and receipt, bounded query and credential cleanup\n'

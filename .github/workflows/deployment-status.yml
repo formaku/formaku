@@ -1,0 +1,34 @@
+name: Read deployment status
+run-name: Formaku deployment status ${{ inputs.release_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Full ghcr.io image with sha256 digest
+        required: true
+        type: string
+      release_id:
+        description: Deployment release UUID
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  status:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    environment: production
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Read status from the host controller
+        env:
+          IMAGE: ${{ inputs.image }}
+          RELEASE_ID: ${{ inputs.release_id }}
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          HOST: ${{ vars.DEPLOY_HOST }}
+          USER: ${{ vars.DEPLOY_USER }}
+        run: bash scripts/deploy-via-ssh.sh --status-only

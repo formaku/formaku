@@ -2,6 +2,14 @@
 set -euo pipefail
 umask 077
 
+status_only=0
+if [[ "$#" -eq 1 && "${1:-}" == --status-only ]]; then
+    status_only=1
+elif (( $# != 0 )); then
+    echo 'Usage: deploy-via-ssh.sh [--status-only]' >&2
+    exit 2
+fi
+
 if [[ ! "${IMAGE:-}" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ ||
     ! "${RELEASE_ID:-}" =~ ^[a-f0-9-]{36}$ || ! "${HOST:-}" =~ ^[a-zA-Z0-9.-]+$ ||
     ! "${USER:-}" =~ ^[a-z_][a-z0-9_-]*$ || -z "${SSH_KEY:-}" || -z "${KNOWN_HOSTS:-}" ]]; then
@@ -33,7 +41,9 @@ connection=(
 )
 
 deploy_result=0
-"${connection[@]}" "deploy $IMAGE $RELEASE_ID" >/dev/null || deploy_result=$?
+if (( ! status_only )); then
+    "${connection[@]}" "deploy $IMAGE $RELEASE_ID" >/dev/null || deploy_result=$?
+fi
 
 host_status=null
 if timeout --kill-after=2s 15s "${connection[@]}" "status $RELEASE_ID" 2>/dev/null \
@@ -56,11 +66,21 @@ fi
 
 summary_status='Host status unavailable.'
 if [[ "$host_status" != null ]]; then
-    summary_status=$(jq -r '
+    summary_status=$(jq -r --argjson status_only "$status_only" '
         "Host status: `\(.state)`"
         + (if .rollback then "\n\nRollback: `\(.rollback)`" else "" end)
-        + (if .backup then "\n\nBackup: `\(.backup)`" else "" end)
+        + (if .backup and $status_only == 0 then "\n\nBackup: `\(.backup)`" else "" end)
     ' <<< "$host_status") || summary_status='Host status unavailable.'
+fi
+
+if (( status_only )); then
+    printf '### Deployment status read\n\nRelease: `%s`\n\n%s\n' \
+        "$RELEASE_ID" "$summary_status" >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}" \
+        || echo 'Could not write the deployment status summary.' >&2
+    if [[ "$host_status" == null ]]; then
+        exit 3
+    fi
+    exit 0
 fi
 
 printf '### Deployment\n\nRelease: `%s`\n\nImage: `%s`\n\nSSH deploy exit code: `%s`\n\n%s\n' \

@@ -192,6 +192,12 @@ Open **Releases → Deployment receipt**. Enter the numeric GitHub Actions run I
 
 The result shows the SSH exit code and, when available, the state reported by the host after that attempt. If the report is missing or the host status is unavailable, check the workflow summary and use the controller’s status command for a fresh reading.
 
+### Read the latest status of a deployment attempt from GitHub Actions
+
+In GitHub Actions, run **Read deployment status** on `main` with the deployment UUID and full image digest. The workflow uses the existing `production` environment and its SSH configuration. It sends the restricted status command to the host and checks the returned UUID and digest before showing the result in the run summary.
+
+A matching response means the status query succeeded. It can show that the host last recorded deployment in progress, completed, or failed, with rollback information when available. If the controller no longer retains that attempt, the identifiers differ, or the host cannot be reached, the query reports the status as unavailable. The result describes the controller’s most recent record for the requested attempt. Use service health checks when verifying which image currently serves traffic.
+
 ### Read deployment and rollback status
 
 On an existing deployment host, install the controller from the alpha.65 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
