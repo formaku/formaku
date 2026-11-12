@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class SiteNavigation
 {
-    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'} */
+    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system'} */
     public function current(): array
     {
         $row = $this->row()->first();
@@ -24,8 +24,8 @@ class SiteNavigation
     }
 
     /**
-     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme?: 'light'|'dark'}  $settings
-     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'}
+     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme?: 'light'|'dark'|'system'}  $settings
+     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system'}
      */
     public function save(int $version, array $settings): array
     {

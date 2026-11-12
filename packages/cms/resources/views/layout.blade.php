@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pl" data-theme="{{ $siteNavigation['theme'] }}">
+<html lang="pl"@if ($siteNavigation['theme'] !== 'system') data-theme="{{ $siteNavigation['theme'] }}"@endif>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">

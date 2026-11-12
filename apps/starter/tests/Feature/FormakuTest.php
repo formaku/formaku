@@ -103,7 +103,19 @@ class FormakuTest extends TestCase
             ->assertSee('Updated by an older client');
         $this->get('/formaku/api/v1/records/'.$record->id.'/preview')->assertOk()
             ->assertSeeHtml('data-theme="dark"');
-        $this->get('/formaku')->assertOk()->assertSeeHtml('data-theme="light"');
+        $this->putJson($endpoint, ['version' => 2, 'theme' => 'system'] + $settings)
+            ->assertOk()->assertJsonPath('theme', 'system');
+        $this->putJson($endpoint, ['version' => 3, 'footerText' => 'System footer'] + $settings)
+            ->assertOk()->assertJsonPath('theme', 'system');
+        $this->getJson($endpoint)->assertOk()->assertJsonPath('theme', 'system');
+        $this->get('/p/published')->assertOk()->assertSeeHtml('<html lang="pl">')->assertSee('System footer');
+        $this->get('/formaku/api/v1/records/'.$record->id.'/preview')->assertOk()
+            ->assertSeeHtml('<html lang="pl">');
+        $this->get('/formaku')->assertOk()->assertSeeHtml('<html lang="pl" data-theme="light">');
+
+        $this->putJson($endpoint, ['version' => 4, 'theme' => 'light'] + $settings)
+            ->assertOk()->assertJsonPath('theme', 'light');
+        $this->get('/p/published')->assertOk()->assertSeeHtml('<html lang="pl" data-theme="light">');
     }
 
     public function test_site_navigation_settings_require_builder_access(): void

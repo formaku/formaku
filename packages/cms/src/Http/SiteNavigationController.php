@@ -18,7 +18,7 @@ class SiteNavigationController
         $rules = [
             'version' => 'required|integer|min:0',
             'footerText' => 'present|nullable|string|max:500',
-            'theme' => 'sometimes|required|string|in:light,dark',
+            'theme' => 'sometimes|required|string|in:light,dark,system',
         ];
         foreach (['header', 'footer'] as $area) {
             $rules[$area] = 'present|array|list|max:12';
