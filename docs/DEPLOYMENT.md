@@ -5,7 +5,7 @@
 1. Add a dated entry for the version to `CHANGELOG.md` and push the reviewed source to `main`. Keep the project website and its documentation build in the separate Forgejo repository.
 2. Wait for the successful `CI` push run on `main` for that exact commit. This includes the database matrix, frontend build, browser tests, and Docker Compose startup.
 3. Create an annotated alpha tag for the tested commit and push that tag on its own using your GitHub credentials. The workflow accepts versions such as `v0.1.0-alpha.21`. The tagged commit must contain the release workflow. If the workflow reports that CI has not completed, rerun it once CI passes.
-4. The workflow builds the SHA-tagged image and Composer ZIP, verifies the public image manifest and package checksum, then publishes the prerelease with the ZIP and checksum attached. Check the public release, pull the listed digest without registry credentials, and verify the downloaded ZIP against the checksum.
+4. The workflow builds the SHA-tagged image and Composer ZIP. It verifies the source, revision and version labels on the public Linux AMD64 image by digest, checks the image manifest and ZIP checksum, then publishes the prerelease with the ZIP and checksum attached. Check the public release, pull the listed digest without registry credentials, and verify the downloaded ZIP against the checksum.
 5. Register the verified ZIP in the project website’s Composer index. Update the English and Polish guides with the verified release link, image digest, and upgrade instructions. Verify the public documentation after deployment.
 
 For a standalone image build, run **Build Formaku image** on `main` using the full SHA as `source_commit` and a fresh UUID as `release_id`. The run publishes the SHA-tagged image and records the digest in its summary. [Manual workflow dispatch](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow)
@@ -14,17 +14,17 @@ To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY
 
 ## Run the alpha locally with Docker Compose
 
-These instructions apply to `v0.1.0-alpha.38`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
+These instructions apply to `v0.1.0-alpha.39`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
 
 ```sh
-git clone --branch v0.1.0-alpha.38 --single-branch https://github.com/formaku/formaku.git
+git clone --branch v0.1.0-alpha.39 --single-branch https://github.com/formaku/formaku.git
 cd formaku
 cp .env.docker.example .env.docker
 ```
 
 Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local.
 
-If the [alpha.38 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.38) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
+If the [alpha.39 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.39) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
 
 ```sh
 docker pull "$FORMAKU_IMAGE"
@@ -48,9 +48,19 @@ docker compose --env-file .env.docker exec web php artisan formaku:admin you@exa
 
 Use your own email for the administrator and open `http://127.0.0.1:8080/formaku`. Use the language selector in the panel header to switch between Polish and English.
 
+### Verify the image source and revision
+
+After pulling the digest listed in the release notes, inspect the image labels.
+
+```sh
+docker image inspect "$FORMAKU_IMAGE" --format '{{json .Config.Labels}}'
+```
+
+Starting with alpha.39, `org.opencontainers.image.source` gives the Formaku repository URL and `org.opencontainers.image.revision` gives the full source commit. For a tagged release, `org.opencontainers.image.version` gives the release version without the `v` prefix. For a manual build, it gives the requested source commit. The workflow checks these values on the image pulled by its immutable digest.
+
 ### Upgrade an existing alpha installation
 
-Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.38`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.38 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
+Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.39`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.39 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
 
 ```sh
 docker compose --env-file .env.docker stop web worker scheduler

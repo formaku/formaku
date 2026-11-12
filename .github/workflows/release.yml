@@ -52,8 +52,17 @@ jobs:
           fi
           [[ "$SOURCE_COMMIT" =~ ^[a-f0-9]{40}$ ]]
           git merge-base --is-ancestor "$SOURCE_COMMIT" refs/remotes/origin/main
+          git show HEAD:scripts/verify-release-image.sh > "$RUNNER_TEMP/formaku-verify-release-image.sh"
           git checkout --detach "$SOURCE_COMMIT"
-          echo "sha=$SOURCE_COMMIT" >> "$GITHUB_OUTPUT"
+          image_version=$SOURCE_COMMIT
+          if [[ "$GITHUB_EVENT_NAME" == push ]]; then
+            image_version=${GITHUB_REF_NAME#v}
+          fi
+          {
+            echo "sha=$SOURCE_COMMIT"
+            echo "version=$image_version"
+            echo "created=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } >> "$GITHUB_OUTPUT"
 
           if [[ "$GITHUB_EVENT_NAME" == push ]]; then
             ci_url=$(gh api "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs" \
@@ -90,8 +99,27 @@ jobs:
           file: docker/Dockerfile
           push: true
           tags: ${{ steps.image.outputs.name }}:${{ steps.source.outputs.sha }}
+          labels: |
+            org.opencontainers.image.created=${{ steps.source.outputs.created }}
+            org.opencontainers.image.description=Open-source Laravel CMS and schema-driven application builder
+            org.opencontainers.image.licenses=MIT
+            org.opencontainers.image.revision=${{ steps.source.outputs.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.title=Formaku
+            org.opencontainers.image.url=https://formaku.eu/
+            org.opencontainers.image.vendor=Strefa Badań
+            org.opencontainers.image.version=${{ steps.source.outputs.version }}
           sbom: true
           provenance: mode=max
+      - name: Verify published runtime metadata
+        env:
+          IMAGE: ${{ steps.image.outputs.name }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+          SOURCE_COMMIT: ${{ steps.source.outputs.sha }}
+          IMAGE_VERSION: ${{ steps.source.outputs.version }}
+        run: |
+          bash "$RUNNER_TEMP/formaku-verify-release-image.sh" "$IMAGE" "$DIGEST" \
+            "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$SOURCE_COMMIT" "$IMAGE_VERSION"
       - name: Summary
         env:
           IMAGE: ${{ steps.image.outputs.name }}

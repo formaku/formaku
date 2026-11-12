@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.39 — 2026-11-12
+
+- Published Docker images carry Formaku OCI metadata, including the source repository, exact commit and release version. The workflow verifies these labels on the public AMD64 image by digest.
+- Corrected the Composer upgrade guide to identify alpha.37 as the release that introduced the request attachments table. No new migrations since alpha.37.
+
 ## 0.1.0-alpha.38 — 2026-11-12
 
 - Set a site name and choose a public image as the logo in Menu and footer settings. The shared header applies these settings to public pages and draft previews.
