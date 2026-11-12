@@ -68,6 +68,8 @@ Od wersji `0.1.0-alpha.14` w tym samym miejscu wybierz **Jasny** lub **Ciemny** 
 
 Od alpha.29 w polu **Akcent kolorystyczny** wybierz **Formaku**, **Niebieski** albo **Śliwkowy**. Ustawienie zmienia kolory wyróżnień i przycisków na stronach publicznych oraz w podglądzie.
 
+Od alpha.38 w sekcji **Marka witryny** wpisz **Nazwę witryny** i opcjonalnie wybierz logo z publicznych obrazów. Zapisz ustawienia, aby zmienić nagłówek stron publicznych i podglądu szkicu. Wyczyść nazwę i usuń przypisanie obrazu, aby przywrócić domyślny nagłówek Formaku.
+
 ### Pola prywatne na publicznych stronach
 
 Od alpha.33 opcja **Prywatne** obejmuje także publiczną stronę, katalog i karty. Prywatne bloki pozostają w szkicu i podglądzie w panelu. Gdy tytuł jest prywatny, Formaku pokazuje publiczną nazwę lub fragment adresu. Widoczność samych plików ustawiasz osobno w bibliotece mediów.
@@ -189,6 +191,8 @@ Starting with `0.1.0-alpha.13`, administrators can open **Ustawienia → Menu i 
 Starting with `0.1.0-alpha.14`, choose **Jasny** (Light) or **Ciemny** (Dark) under **Motyw witryny** (Site theme) in the same settings. Saving applies the theme to public pages and draft previews. Starting with alpha.28, **Follow system** uses each visitor’s preferred color scheme.
 
 Starting with alpha.29, choose **Formaku**, **Blue**, or **Plum** under **Color accent** to change the accent on public pages and in draft previews.
+
+Starting with alpha.38, set the site name and choose an optional public image in **Site branding**. Clear both settings to restore the default Formaku header.
 
 Starting with alpha.30, save each language as a separate page in the same public content collection. Open **Language versions**, enter the **Page language** (for example `pl` or `en-GB`) and use the same **Translation group key** on each page (for example `about`). Select **Save translation link**. You need permission to edit the record and publish pages. Once at least two linked pages are public, visitors can switch between them. Changes to the link take effect immediately on published pages. Clear both fields and save to unlink a page.
 

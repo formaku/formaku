@@ -10,7 +10,7 @@ On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.37' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.38' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -19,7 +19,7 @@ Configure the host guard and the `authorize` callback in `config/formaku.php` us
 
 ### Upgrade an existing Composer installation
 
-After updating to alpha.37, run these commands from the host Laravel app before serving traffic.
+After updating to alpha.38, run these commands from the host Laravel app before serving traffic.
 
 ```sh
 php artisan formaku:install
@@ -30,12 +30,12 @@ Starting with alpha.31, `formaku:install` removes cached copies of the package B
 
 ### Install from a local ZIP
 
-On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.37.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.37). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
+On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.38.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.38). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.37.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.38.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.37' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.38' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -64,6 +64,10 @@ A model update preserves existing field rules if a client omits `access`. To cle
 
 Before rolling back to a version that predates field permissions, restrict each affected collection to users allowed to see all its fields. Verify collection access before serving traffic with the earlier version.
 
+## Configure site branding through the API
+
+The versioned site navigation settings accept `brandName` (up to 80 characters) and `brandLogoId` (an ID of a public JPEG, PNG or WebP file). Include the current `version` when saving. Omitted branding keys keep their saved values. Send `null` to clear a setting. Branding uses the existing site settings table and does not require a new migration.
+
 ## Configure the customer request form
 
 For the `requests` data collection, set `definition.portal_fields` to an array of additional field keys. For example, `"portal_fields": ["preferred_date", "contact_method"]` includes those two fields if they exist in `definition.fields` with **Private** cleared. Supported types are `text`, `number`, `date`, `boolean` and `select`. Supply distinct nonempty string options for select fields. Use plain values with commas reserved as separators. The list is empty by default and the portal always includes its existing `title` and `description` inputs.
@@ -74,7 +78,7 @@ The form includes additional fields the signed-in customer can write. Request de
 
 Set `definition.portal_attachments` to `true` on the `requests` data collection. A request can contain up to three PDF, JPEG or PNG files of up to 5 MiB each. Files use the Laravel `local` disk. Keep that disk private and include it in the same backup schedule as the database. For a Composer host, configure PHP with `upload_max_filesize` of at least `5M`, `post_max_size` of at least `20M` and `max_file_uploads` of at least `4`. Check matching request limits at the reverse proxy. The Docker image configures PHP for these uploads.
 
-Apply the alpha.37 migration before running the new version. For a code rollback to alpha.36, retain the attachment table and files to make them available again after re-upgrading.
+Apply the alpha.38 migration before running the new version. For a code rollback to alpha.36, retain the attachment table and files to make them available again after re-upgrading.
 
 ## Register the extensions
 
