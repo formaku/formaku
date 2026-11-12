@@ -331,5 +331,22 @@ export const messages: Record<string, string> = {
   "Potwierdź usunięcie": "Confirm deletion",
   "Szablon można wstawić do szkicu bez sekcji.": "Templates can be inserted into drafts without sections.",
   "Poprzednia strona": "Previous page",
-  "Następna strona": "Next page"
+  "Następna strona": "Next page",
+  "Rozszerzenia": "Extensions",
+  "Zasoby": "Resources",
+  "Akcje": "Actions",
+  "Wybierz zasób": "Choose a resource",
+  "Wybierz akcję": "Choose an action",
+  "Wybierz wartość": "Choose a value",
+  "Wczytywanie zasobu…": "Loading resource…",
+  "Nie udało się wczytać zasobu.": "Could not load the resource.",
+  "Strony zasobu": "Resource pages",
+  "Strona {0}": "Page {0}",
+  "Tak": "Yes",
+  "Nie": "No",
+  "Uruchom akcję": "Run action",
+  "Wykonywanie akcji…": "Running action…",
+  "Sprawdź wartości pól akcji.": "Check the action field values.",
+  "Nie udało się wykonać akcji.": "Could not run the action.",
+  "Wynik akcji": "Action result"
 };

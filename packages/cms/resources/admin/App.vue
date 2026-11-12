@@ -35,6 +35,7 @@ import RelationPicker from "./RelationPicker.vue";
 import AssistantConnection from "./AssistantConnection.vue";
 import SiteNavigation from "./SiteNavigation.vue";
 import PageTranslations from "./PageTranslations.vue";
+import PanelExtensions from "./PanelExtensions.vue";
 import {
   blockEditorKey,
   blockLabels,
@@ -691,6 +692,10 @@ onBeforeUnmount(() => {
   clearTimeout(autosaveTimer);
   window.removeEventListener("beforeunload", warn);
 });
+const panelExtensions = computed(() => {
+  const extensions = boot.value?.extensions;
+  return extensions?.resources?.length || extensions?.actions?.length ? extensions : null;
+});
 const title = computed(
   () =>
     ({
@@ -701,6 +706,7 @@ const title = computed(
       media: t("Biblioteka mediów"),
       ai: t("Asystent AI"),
       assistant: t("Asystent witryny"),
+      extensions: t("Rozszerzenia"),
       releases: t("Wydania aplikacji"),
       settings: t("Ustawienia"),
     })[section.value],
@@ -783,6 +789,13 @@ const title = computed(
               <Sparkles :size="17" />{{ t("Asystent AI") }}
             </button></template
           >
+          <button
+            v-if="panelExtensions"
+            class="btn btn-ghost justify-start"
+            @click="navigate('extensions')"
+          >
+            <Layers :size="17" />{{ t("Rozszerzenia") }}
+          </button>
           <div class="border-t border-base-300 my-4" />
           <button
             v-if="boot?.abilities?.build"
@@ -1942,6 +1955,13 @@ const title = computed(
               </p>
             </article>
           </section>
+          <PanelExtensions
+            v-if="panelExtensions"
+            v-show="section === 'extensions'"
+            :active="section === 'extensions'"
+            :extensions="panelExtensions"
+            :request="request"
+          />
           <AssistantConnection
             v-if="section === 'assistant' && boot?.abilities?.build"
             :base="base"
