@@ -137,6 +137,13 @@ type DeploymentReceiptResult = {
   } | null;
 };
 type PortalAttachment = { id: number; name: string; size: number; url: string };
+const supportedPortalAttachmentTypes = ["pdf", "png", "jpeg"] as const;
+type PortalAttachmentType = (typeof supportedPortalAttachmentTypes)[number];
+type PortalAttachmentLimits = {
+  max_files?: number;
+  max_mib?: number;
+  types?: PortalAttachmentType[];
+};
 type PageTemplate = { id: number; name: string };
 type PageTemplatePage = {
   data: PageTemplate[];
@@ -159,6 +166,7 @@ type Collection = {
     access?: CollectionRoleRules | CollectionRoleRule[];
     portal_fields?: string[];
     portal_attachments?: boolean;
+    portal_attachment_limits?: PortalAttachmentLimits | [];
   };
 };
 type AiTask = { id: number; state: string; prompt: string; error?: string | null; result?: unknown };
@@ -364,6 +372,20 @@ const portalFieldSelection = computed<string[]>({
   set(keys) {
     schema.value.definition.portal_fields = keys;
   },
+});
+const portalAttachmentLimits = computed<PortalAttachmentLimits>(() => {
+  const limits: Collection["definition"]["portal_attachment_limits"] =
+    schema.value?.definition.portal_attachment_limits;
+  return limits && !Array.isArray(limits) ? limits : {};
+});
+function setPortalAttachmentLimit<K extends keyof PortalAttachmentLimits>(
+  key: K, value: NonNullable<PortalAttachmentLimits[K]>,
+) {
+  schema.value.definition.portal_attachment_limits = { ...portalAttachmentLimits.value, [key]: value };
+}
+const portalAttachmentTypes = computed<PortalAttachmentType[]>({
+  get: () => portalAttachmentLimits.value.types ?? [...supportedPortalAttachmentTypes],
+  set: (types) => setPortalAttachmentLimit("types", types),
 });
 function readonlyFieldValue(value: unknown): string {
   if (value == null || value === "") return "—";
@@ -907,7 +929,10 @@ async function saveSchema() {
     } else {
       delete definition.portal_fields;
     }
-    if (!portalSchema.value) delete definition.portal_attachments;
+    if (!portalSchema.value) {
+      delete definition.portal_attachments;
+      delete definition.portal_attachment_limits;
+    }
     await request("/collections", "POST", { ...schema.value, definition });
     await load();
     schema.value = null;
@@ -1666,6 +1691,46 @@ const title = computed(
                 <input v-model="schema.definition.portal_attachments" type="checkbox" class="checkbox checkbox-sm" />
                 <span>{{ t("Załączniki do zgłoszeń") }}</span>
               </label>
+              <div v-if="schema.definition.portal_attachments" class="mt-3 grid gap-4 sm:grid-cols-2">
+                <label>
+                  <span class="field-label">{{ t("Maksymalna liczba plików") }}</span>
+                  <select
+                    class="select w-full"
+                    :value="portalAttachmentLimits.max_files ?? 3"
+                    @change="setPortalAttachmentLimit('max_files', Number(($event.target as HTMLSelectElement).value))"
+                  >
+                    <option v-for="limit in 3" :key="limit" :value="limit">{{ limit }}</option>
+                  </select>
+                </label>
+                <label>
+                  <span class="field-label">{{ t("Maksymalny rozmiar pliku (MiB)") }}</span>
+                  <select
+                    class="select w-full"
+                    :value="portalAttachmentLimits.max_mib ?? 5"
+                    @change="setPortalAttachmentLimit('max_mib', Number(($event.target as HTMLSelectElement).value))"
+                  >
+                    <option v-for="limit in 5" :key="limit" :value="limit">{{ limit }}</option>
+                  </select>
+                </label>
+                <fieldset class="fieldset sm:col-span-2" aria-describedby="portal-attachment-types-hint">
+                  <legend class="fieldset-legend">{{ t("Dozwolone typy plików") }}</legend>
+                  <div class="flex flex-wrap gap-4">
+                    <label v-for="type in supportedPortalAttachmentTypes" :key="type" class="flex items-center gap-2 text-sm">
+                      <input
+                        v-model="portalAttachmentTypes"
+                        :value="type"
+                        :disabled="portalAttachmentTypes.length === 1 && portalAttachmentTypes.includes(type)"
+                        type="checkbox"
+                        class="checkbox checkbox-sm"
+                      />
+                      {{ type.toUpperCase() }}
+                    </label>
+                  </div>
+                  <p id="portal-attachment-types-hint" class="text-sm text-base-content/70">
+                    {{ t("Wybierz co najmniej jeden typ pliku.") }}
+                  </p>
+                </fieldset>
+              </div>
             </fieldset>
             <fieldset
               v-if="publicContentSchema"

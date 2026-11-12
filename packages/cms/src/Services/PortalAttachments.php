@@ -16,6 +16,16 @@ use Throwable;
 
 class PortalAttachments
 {
+    public const MAX_FILES = 3;
+
+    public const MAX_MIB = 5;
+
+    private const MIME_TYPES = [
+        'pdf' => 'application/pdf',
+        'png' => 'image/png',
+        'jpeg' => 'image/jpeg',
+    ];
+
     private const INPUT = '_portal_attachments';
 
     private const DIRECTORY = 'formaku/portal-attachments';
@@ -34,12 +44,67 @@ class PortalAttachments
         return ($rule['write'] ?? false) && in_array($rule['scope'], ['all', 'own'], true);
     }
 
+    /** @return list<string> */
+    public static function supportedTypes(): array
+    {
+        return array_keys(self::MIME_TYPES);
+    }
+
+    /** @return array{max_files: int, max_mib: int, types: list<string>, accept: string} */
+    public function limits(Collection $collection): array
+    {
+        $settings = $collection->definition['portal_attachment_limits'] ?? [];
+        if (! is_array($settings) || ! PortalFields::supportsCollection($collection->key, $collection->kind)) {
+            $settings = [];
+        }
+
+        $types = $settings['types'] ?? null;
+        if (! is_array($types) || ! array_is_list($types) || $types === []
+            || array_filter($types, fn ($type): bool => is_string($type) && isset(self::MIME_TYPES[$type])) !== $types
+            || count(array_unique($types)) !== count($types)) {
+            $types = self::supportedTypes();
+        }
+
+        $extensions = [];
+        foreach ($types as $type) {
+            if ($type === 'jpeg') {
+                $extensions[] = '.jpg';
+            }
+            $extensions[] = '.'.$type;
+        }
+
+        return [
+            'max_files' => $this->boundedLimit($settings['max_files'] ?? null, self::MAX_FILES),
+            'max_mib' => $this->boundedLimit($settings['max_mib'] ?? null, self::MAX_MIB),
+            'types' => $types,
+            'accept' => implode(',', [...$extensions, ...$this->mimeTypes($types)]),
+        ];
+    }
+
+    private function boundedLimit(mixed $limit, int $maximum): int
+    {
+        return is_int($limit) && $limit >= 1 && $limit <= $maximum ? $limit : $maximum;
+    }
+
+    /**
+     * @param  list<string>  $types
+     * @return list<string>
+     */
+    private function mimeTypes(array $types): array
+    {
+        return array_map(fn (string $type): string => self::MIME_TYPES[$type], $types);
+    }
+
     /** @return list<UploadedFile> */
     public function validate(Request $request, Collection $collection, object $user): array
     {
+        $limits = $this->limits($collection);
         $validated = $request->validate([
-            self::INPUT => ['sometimes', 'array', 'list', 'max:3'],
-            self::INPUT.'.*' => ['required', 'file', 'max:5120', 'mimetypes:application/pdf,image/png,image/jpeg'],
+            self::INPUT => ['sometimes', 'array', 'list', 'max:'.$limits['max_files']],
+            self::INPUT.'.*' => [
+                'required', 'file', 'max:'.($limits['max_mib'] * 1024),
+                'mimetypes:'.implode(',', $this->mimeTypes($limits['types'])),
+            ],
         ]);
         $files = $validated[self::INPUT] ?? [];
 

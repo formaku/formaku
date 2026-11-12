@@ -135,9 +135,13 @@ Formularz pokazuje dodatkowe pola, które zalogowany klient może zapisać. W sz
 
 ### Włącz załączniki do zgłoszeń
 
-W kolekcji danych `requests` ustaw `definition.portal_attachments` na `true`. Zgłoszenie może zawierać do trzech plików PDF, JPEG lub PNG o rozmiarze do 5 MiB każdy. Pliki trafiają na dysk `local` w Laravelu. Zachowaj jego prywatność i twórz kopie razem z bazą danych. W aplikacji instalowanej przez Composer ustaw w PHP co najmniej `upload_max_filesize=5M`, `post_max_size=20M` i `max_file_uploads=4`. Sprawdź też limit żądań w reverse proxy. Obraz Docker ma skonfigurowane limity PHP.
+W kolekcji danych `requests` ustaw `definition.portal_attachments` na `true`. Opcjonalne `definition.portal_attachment_limits` przyjmuje `max_files` (1–3), `max_mib` (1–5 na plik) i `types` (niepustą listę unikalnych wartości spośród `pdf`, `png` i `jpeg`). Domyślne wartości to trzy pliki, 5 MiB na plik i wszystkie trzy typy. Limity obowiązują przy składaniu zgłoszenia.
+
+Pliki trafiają na dysk `local` w Laravelu. Zachowaj jego prywatność i twórz kopie razem z bazą danych. Aby obsłużyć domyślne limity w aplikacji instalowanej przez Composer, ustaw w PHP co najmniej `upload_max_filesize=5M`, `post_max_size=20M` i `max_file_uploads=4`. Sprawdź też limit żądań w reverse proxy. Obraz Docker ma skonfigurowane limity PHP.
 
 Jeśli migracja tabeli załączników wprowadzona w alpha.37 jest nadal oczekująca, zastosuj ją przed uruchomieniem nowej wersji. Przy powrocie do kodu alpha.36 zachowaj tabelę załączników i pliki, aby odzyskać dostęp po ponownej aktualizacji.
+
+Alpha.65 stosuje pierwotne limity przesyłania. Przed powrotem do tej wersji wyłącz załączniki, jeśli przyjmowanie plików według tych limitów naruszałoby zasady przesyłania w Twojej instalacji.
 
 ## Zarejestruj rozszerzenia
 

@@ -176,6 +176,125 @@ class PortalAttachmentsTest extends TestCase
             ->assertCreated()->assertJsonPath('definition.portal_attachments', true);
     }
 
+    public function test_configured_attachment_limits_apply_to_the_portal_view_and_uploads(): void
+    {
+        Storage::fake('local');
+        Collection::create($this->schema([
+            'portal_attachments' => true,
+            'portal_attachment_limits' => ['max_files' => 1, 'max_mib' => 1, 'types' => ['pdf']],
+        ]));
+        $this->actingAs(User::factory()->create(['role' => 'customer']));
+        $this->get('/portal')->assertOk()
+            ->assertViewHas('portalAttachmentsEnabled', true)
+            ->assertViewHas('portalAttachmentLimits', [
+                'max_files' => 1, 'max_mib' => 1, 'types' => ['pdf'], 'accept' => '.pdf,application/pdf',
+            ]);
+
+        $this->post('/portal/requests', self::BASE + [self::INPUT => [$this->pdf(), $this->pdf()]], ['Accept' => 'application/json'])
+            ->assertUnprocessable()->assertJsonValidationErrors([self::INPUT]);
+        $this->post('/portal/requests', self::BASE + [self::INPUT => [
+            UploadedFile::fake()->create('too-large.pdf', 1025, 'application/pdf'),
+        ]], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors([self::INPUT.'.0']);
+        $this->post('/portal/requests', self::BASE + [self::INPUT => [
+            UploadedFile::fake()->image('excluded.png'),
+        ]], ['Accept' => 'application/json'])->assertUnprocessable()->assertJsonValidationErrors([self::INPUT.'.0']);
+        $this->assertDatabaseCount('formaku_records', 0);
+        $this->assertDatabaseCount('formaku_revisions', 0);
+        $this->assertDatabaseCount('formaku_portal_attachments', 0);
+        $this->assertSame([], Storage::disk('local')->allFiles());
+
+        $this->post('/portal/requests', self::BASE + [self::INPUT => [$this->pdf()]])->assertRedirect('/portal');
+        $this->assertDatabaseCount('formaku_records', 1);
+        $this->assertDatabaseCount('formaku_portal_attachments', 1);
+        Storage::disk('local')->assertExists(PortalAttachment::sole()->path);
+    }
+
+    public function test_legacy_or_corrupt_attachment_settings_resolve_to_bounded_defaults(): void
+    {
+        $collection = Collection::create($this->schema(['portal_attachments' => true]));
+        $this->actingAs(User::factory()->create(['role' => 'customer']));
+        $defaults = [
+            'max_files' => 3, 'max_mib' => 5, 'types' => ['pdf', 'png', 'jpeg'],
+            'accept' => '.pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg',
+        ];
+        $this->get('/portal')->assertOk()->assertViewHas('portalAttachmentLimits', $defaults);
+
+        foreach (['invalid', ['max_files' => '1', 'max_mib' => 6, 'types' => ['pdf', ['bad']]]] as $limits) {
+            $collection->update(['definition' => array_replace($collection->definition, ['portal_attachment_limits' => $limits])]);
+            $this->get('/portal')->assertOk()->assertViewHas('portalAttachmentLimits', $defaults);
+        }
+
+        $collection->update(['definition' => array_replace($collection->definition, [
+            'portal_attachment_limits' => ['max_files' => 2, 'types' => ['jpeg']],
+        ])]);
+        $this->get('/portal')->assertOk()->assertViewHas('portalAttachmentLimits', [
+            'max_files' => 2, 'max_mib' => 5, 'types' => ['jpeg'], 'accept' => '.jpg,.jpeg,image/jpeg',
+        ]);
+    }
+
+    public function test_attachment_limits_are_validated_and_preserved_when_disabled(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+        $field = 'definition.portal_attachment_limits';
+        $api = '/formaku/api/v1/collections';
+        foreach ([
+            [null, $field],
+            [['unknown' => true], $field],
+            [['pdf'], $field],
+            [['max_files' => 0], $field.'.max_files'],
+            [['max_files' => 4], $field.'.max_files'],
+            [['max_files' => '2'], $field.'.max_files'],
+            [['max_mib' => 0], $field.'.max_mib'],
+            [['max_mib' => 6], $field.'.max_mib'],
+            [['max_mib' => 1.5], $field.'.max_mib'],
+            [['types' => []], $field.'.types'],
+            [['types' => [1 => 'pdf']], $field.'.types'],
+            [['types' => ['pdf', 'pdf']], $field.'.types.0'],
+            [['types' => ['gif']], $field.'.types.0'],
+        ] as [$limits, $error]) {
+            $this->postJson($api, $this->schema(['portal_attachment_limits' => $limits]))
+                ->assertUnprocessable()->assertJsonValidationErrors($error);
+        }
+
+        $limits = ['max_files' => 2, 'max_mib' => 3, 'types' => ['png', 'jpeg']];
+        $definition = $this->schema(['portal_attachments' => true, 'portal_attachment_limits' => $limits]);
+        $this->postJson($api, array_replace($definition, ['kind' => 'content']))
+            ->assertUnprocessable()->assertJsonValidationErrors('definition.portal_attachments');
+        $this->postJson($api, $this->schema(['portal_attachment_limits' => $limits], 'other'))
+            ->assertUnprocessable()->assertJsonValidationErrors($field);
+
+        $this->assertDatabaseCount('formaku_collections', 0);
+        $saved = $this->postJson($api, $definition)->assertCreated()->assertJsonPath($field, $limits)->json();
+        $definition['definition']['portal_attachments'] = false;
+        $this->postJson($api, $definition + ['id' => $saved['id'], 'version' => $saved['version']])
+            ->assertOk()->assertJsonPath('definition.portal_attachments', false)->assertJsonPath($field, $limits);
+
+        $this->actingAs(User::factory()->create(['role' => 'customer']))->get('/portal')->assertOk()
+            ->assertViewHas('portalAttachmentsEnabled', false)
+            ->assertViewHas('portalAttachmentLimits', $limits + ['accept' => '.png,.jpg,.jpeg,image/png,image/jpeg']);
+    }
+
+    public function test_project_import_applies_the_same_attachment_limit_rules(): void
+    {
+        $this->actingAs(User::factory()->create(['role' => 'admin']));
+        $api = '/formaku/api/v1/project/import';
+        $format = ['format' => 'formaku.project', 'version' => 1];
+        $field = 'definition.portal_attachment_limits';
+        $limits = ['max_files' => 2, 'types' => ['png']];
+        $this->postJson($api, $format + ['collections' => [$this->schema(['portal_attachment_limits' => $limits], 'other')]])
+            ->assertUnprocessable()->assertJsonValidationErrors($field);
+        $this->postJson($api, $format + ['collections' => [$this->schema(['portal_attachment_limits' => ['max_mib' => '5']])]])
+            ->assertUnprocessable()->assertJsonValidationErrors($field.'.max_mib');
+        $this->assertDatabaseCount('formaku_collections', 0);
+
+        $this->postJson($api, $format + ['collections' => [$this->schema([
+            'portal_attachments' => false, 'portal_attachment_limits' => $limits,
+        ])]])->assertOk()->assertJsonPath('imported', 1);
+        $this->getJson('/formaku/api/v1/project')->assertOk()
+            ->assertJsonPath('collections.0.'.$field, $limits)
+            ->assertJsonPath('collections.0.definition.portal_attachments', false);
+    }
+
     private function schema(array $settings = [], string $key = 'requests'): array
     {
         return [

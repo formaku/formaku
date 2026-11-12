@@ -105,13 +105,17 @@
                 @endphp
                 <div class="mb-4">
                     <label for="portal-attachments" class="field-label">Załączniki do zgłoszenia</label>
-                    <input id="portal-attachments" name="_portal_attachments[]" type="file" multiple
-                        accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                    <input id="portal-attachments" name="_portal_attachments[]" type="file"
+                        @if ($portalAttachmentLimits['max_files'] > 1) multiple @endif
+                        accept="{{ $portalAttachmentLimits['accept'] }}"
                         @class(['file-input w-full', 'file-input-error' => $invalidAttachments])
                         aria-describedby="portal-attachments-hint{{ $invalidAttachments ? ' portal-attachments-errors' : '' }}"
                         @if ($invalidAttachments) aria-invalid="true" @endif>
                     <p id="portal-attachments-hint" class="mt-1 text-xs text-base-content/70">
-                        Maksymalnie 3 pliki PDF, PNG lub JPEG, każdy do 5 MiB.
+                        Możesz dodać maksymalnie {{ $portalAttachmentLimits['max_files'] }}
+                        {{ $portalAttachmentLimits['max_files'] === 1 ? 'plik' : 'pliki' }}
+                        ({{ implode(', ', array_map('strtoupper', $portalAttachmentLimits['types'])) }}).
+                        Limit na plik wynosi {{ $portalAttachmentLimits['max_mib'] }} MiB.
                     </p>
                     @if ($invalidAttachments)
                         <ul id="portal-attachments-errors" class="mt-1 text-sm text-error">

@@ -147,6 +147,7 @@ class PublicController
             'portalState' => $state,
             'portalFields' => $this->writablePortalFields($collection, $access, $user),
             'portalAttachmentsEnabled' => $attachments->canUpload($collection, $user),
+            'portalAttachmentLimits' => $attachments->limits($collection),
         ]);
     }
 

@@ -27,6 +27,11 @@ class SchemaValidator
             'definition.access.*.write' => 'required|boolean',
             'definition.public' => 'sometimes|boolean',
             'definition.portal_attachments' => 'sometimes|boolean',
+            'definition.portal_attachment_limits' => ['sometimes', 'array:max_files,max_mib,types'],
+            'definition.portal_attachment_limits.max_files' => ['sometimes', 'integer:strict', 'min:1', 'max:'.PortalAttachments::MAX_FILES],
+            'definition.portal_attachment_limits.max_mib' => ['sometimes', 'integer:strict', 'min:1', 'max:'.PortalAttachments::MAX_MIB],
+            'definition.portal_attachment_limits.types' => ['sometimes', 'array', 'list', 'min:1', 'max:'.count(PortalAttachments::supportedTypes())],
+            'definition.portal_attachment_limits.types.*' => ['required', 'string', 'distinct:strict', Rule::in(PortalAttachments::supportedTypes())],
             'definition.portal_fields' => 'sometimes|array|list|max:50',
             'definition.portal_fields.*' => 'required|string|distinct:strict',
             'definition.seo' => 'sometimes|array:title,description',
@@ -42,6 +47,12 @@ class SchemaValidator
                 ]);
             }
             $d['definition']['portal_attachments'] = (bool) $d['definition']['portal_attachments'];
+        }
+        if (array_key_exists('portal_attachment_limits', $d['definition'])
+            && ! PortalFields::supportsCollection($d['key'], $d['kind'])) {
+            throw ValidationException::withMessages([
+                'definition.portal_attachment_limits' => 'Portal attachment limits are only available on the requests data collection.',
+            ]);
         }
 
         if ($d['kind'] === 'content' && ($d['definition']['public'] ?? false)) {
