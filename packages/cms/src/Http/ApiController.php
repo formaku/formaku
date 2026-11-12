@@ -18,6 +18,7 @@ use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Registry;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\SchemaValidator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -120,6 +121,18 @@ class ApiController
                 $query->where('published_title', 'like', '%'.$filters['search'].'%');
             }
         }
+        $label = $r->query('label', '');
+        if (is_string($label)) {
+            $label = trim($label, " \t\n\r\v\f");
+        }
+        if (! is_string($label) || ! mb_check_encoding($label, 'UTF-8') || str_contains($label, "\0") || mb_strlen($label, 'UTF-8') > 200) {
+            throw ValidationException::withMessages(['label' => 'The label filter must be text of up to 200 characters.']);
+        }
+        if ($label !== '') {
+            $fields = array_keys($this->fieldAccess->readableData($collection, ['title' => null, 'name' => null], $user));
+            $this->filterDraftLabel($query, $fields, $label);
+            $filters['label'] = $label;
+        }
         if ($this->titleIsHidden($hidden)) {
             $query->with('published:id,record_id,data');
         }
@@ -127,6 +140,36 @@ class ApiController
         return $query->orderByDesc('id')->paginate(25)->appends($filters)->through(
             fn (Record $record) => $this->document($record, $collection, $user, $hidden),
         );
+    }
+
+    /** @param list<string> $fields */
+    private function filterDraftLabel(Builder $query, array $fields, string $label): void
+    {
+        if ($fields === []) {
+            $query->whereRaw('1 = 0');
+
+            return;
+        }
+
+        $pattern = '%'.strtr($label, ['!' => '!!', '%' => '!%', '_' => '!_']).'%';
+        $query->whereHas('draft', function (Builder $draft) use ($fields, $pattern): void {
+            $draft->whereColumn('formaku_revisions.record_id', 'formaku_records.id');
+            $draft->where(function (Builder $matches) use ($fields, $pattern): void {
+                $connection = $matches->getQuery()->getConnection();
+                $grammar = $connection->getQueryGrammar();
+                $data = $grammar->wrap('formaku_revisions.data');
+                foreach ($fields as $field) {
+                    $selector = $grammar->wrap('formaku_revisions.data->'.$field);
+                    $isText = match ($connection->getDriverName()) {
+                        'sqlite' => "json_type({$data}, '$.{$field}') = 'text'",
+                        'pgsql' => "json_typeof({$data}->'{$field}') = 'string'",
+                        'mysql', 'mariadb' => "json_type(json_extract({$data}, '$.{$field}')) = 'STRING'",
+                        default => '1 = 1',
+                    };
+                    $matches->orWhereRaw("({$isText} AND {$selector} LIKE ? ESCAPE '!')", [$pattern]);
+                }
+            });
+        });
     }
 
     public function show(Request $request, Record $record): array
