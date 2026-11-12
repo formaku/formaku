@@ -3,14 +3,18 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Formaku\Cms\Console\PublishScheduledCommand;
 use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Services\RecordService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Schedule;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
+use TypeError;
 
 class PublicationScheduleTest extends TestCase
 {
@@ -103,8 +107,7 @@ class PublicationScheduleTest extends TestCase
             ->assertJsonPath('version', $draft->version + 1);
 
         $this->travelTo(Date::parse('2026-11-12T02:16:00Z'));
-        $event = collect(Schedule::events())->firstWhere('description', 'formaku:publish-scheduled');
-        $event->run($this->app);
+        $this->artisan('formaku:publish-scheduled')->assertSuccessful();
 
         $this->assertSame($control->draft_id, $control->fresh()->published_id);
         $this->assertSame($draft->draft_id, $draft->fresh()->draft_id);
@@ -131,6 +134,46 @@ class PublicationScheduleTest extends TestCase
 
         $this->assertSame('2026-11-12 03:00:00', $draft->fresh()->getRawOriginal('publish_at'));
         $this->assertSame($draft->version, $draft->fresh()->version);
+    }
+
+    public function test_package_command_is_registered_and_the_starter_schedules_it_once(): void
+    {
+        $command = 'formaku:publish-scheduled';
+        $this->assertInstanceOf(PublishScheduledCommand::class, Artisan::all()[$command]);
+
+        $events = collect(Schedule::events())->where('description', $command);
+        $this->assertCount(1, $events);
+        $event = $events->first();
+        $this->assertStringContainsString($command, $event->command);
+        $this->assertSame('* * * * *', $event->expression);
+        $this->assertTrue($event->withoutOverlapping);
+    }
+
+    public function test_command_publishes_due_records_once_even_when_another_record_fails(): void
+    {
+        $this->travelTo(Date::parse('2026-11-12T02:15:00Z'));
+        $publisher = User::factory()->create(['role' => 'publisher']);
+        $collection = $this->contentCollection();
+        $invalid = $this->draft($collection, $publisher, 'invalid-owner', 'Invalid owner');
+        $invalid->update(['publish_at' => '2026-11-12 02:14:59', 'owner_id' => null]);
+        $due = $this->draft($collection, $publisher, 'due-now', 'Ready now');
+        $due->update(['publish_at' => '2026-11-12 02:15:00']);
+        $future = $this->draft($collection, $publisher, 'due-later', 'Ready later');
+        $future->update(['publish_at' => '2026-11-12 02:15:01']);
+        Exceptions::fake();
+
+        $this->artisan('formaku:publish-scheduled')->assertSuccessful();
+
+        Exceptions::assertReported(TypeError::class);
+        $this->assertNull($invalid->fresh()->published_id);
+        $this->assertSame($due->draft_id, $due->fresh()->published_id);
+        $this->assertNull($due->fresh()->publish_at);
+        $this->assertNull($future->fresh()->published_id);
+        $this->assertSame('2026-11-12 02:15:01', $future->fresh()->getRawOriginal('publish_at'));
+
+        $this->artisan('formaku:publish-scheduled')->assertSuccessful();
+
+        $this->assertSame($due->version + 1, $due->fresh()->version);
     }
 
     private function contentCollection(): Collection

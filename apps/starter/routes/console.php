@@ -37,15 +37,10 @@ Artisan::command('formaku:demo', function () {
         $s->publish($rec, $rec->version, $actor);
     }$this->info('Demo ready. No accounts or passwords were seeded.');
 });
-Schedule::call(function () {
-    foreach (Record::whereNotNull('publish_at')->where('publish_at', '<=', now())->get() as $r) {
-        try {
-            app(RecordService::class)->publish($r, $r->version, $r->owner_id);
-        } catch (Throwable $error) {
-            report($error);
-        }
-    }
-})->everyMinute()->name('formaku:publish-scheduled')->withoutOverlapping();
+Schedule::command('formaku:publish-scheduled')
+    ->everyMinute()
+    ->name('formaku:publish-scheduled')
+    ->withoutOverlapping();
 
 Schedule::call(function () {
     foreach (DB::table('formaku_events')->whereNull('notified_at')->whereIn('type', ['saved', 'transitioned'])->limit(100)->get() as $event) {

@@ -31,7 +31,11 @@ class FormakuServiceProvider extends ServiceProvider
         $this->publishes([__DIR__.'/../config/formaku.php' => config_path('formaku.php')], 'formaku-config');
         $this->publishes([__DIR__.'/../public' => public_path('vendor/formaku')], 'formaku-assets');
         if ($this->app->runningInConsole()) {
-            $this->commands([Console\InstallCommand::class, Console\MediaVariantsCommand::class]);
+            $this->commands([
+                Console\InstallCommand::class,
+                Console\MediaVariantsCommand::class,
+                Console\PublishScheduledCommand::class,
+            ]);
         }
     }
 }
