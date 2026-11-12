@@ -99,11 +99,26 @@ test("undo block removal restores the current draft across autosave", async ({
   await page.getByRole("button", { name: "Zapisz szkic" }).click();
   expect((await manualSave).ok()).toBe(true);
   await expect(publish).toBeEnabled();
-  await publish.click();
-  await expect(page.getByRole("status")).toContainText("Treść opublikowana");
+  let releaseRefresh!: () => void;
+  const heldRefresh = new Promise<void>((resolve) => { releaseRefresh = resolve; });
+  let confirmRefresh!: () => void;
+  const refreshing = new Promise<void>((resolve) => { confirmRefresh = resolve; });
+  await page.route("**/formaku/api/v1/bootstrap", async (route) => {
+    confirmRefresh();
+    await heldRefresh;
+    await route.continue();
+  }, { times: 1 });
 
   const otherAutosave = nextSave();
-  await roots.last().getByRole("button", removeRoot).click();
+  try {
+    await publish.click();
+    await expect(page.getByRole("status")).toContainText("Treść opublikowana");
+    await refreshing;
+    await expect(publish).toBeDisabled();
+    await roots.last().getByRole("button", removeRoot).click();
+  } finally {
+    releaseRefresh();
+  }
   expect((await otherAutosave).ok()).toBe(true);
   await expect(publish).toBeEnabled();
   await expect(undo).toBeEnabled();

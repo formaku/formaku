@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+Draft edits made while the editor finishes a request are queued for autosave when it is ready.
+
 ## 0.1.0-alpha.26 — 2026-11-12
 
 Undo the most recent block removal while editing a page draft, including after an autosave. The restored block keeps its nested content and media references. Publish the draft to apply the restoration to the public page. This release adds no database migrations.

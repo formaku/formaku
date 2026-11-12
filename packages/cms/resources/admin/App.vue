@@ -143,6 +143,7 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+let pendingAutosave: { id?: number } | null = null;
 const pageBlocks = computed<Block[]>(() => record.value?.data.blocks ?? []);
 const pageBlocksHeading = ref<HTMLElement | null>(null);
 const removedBlock = ref<RemovedBlock | null>(null);
@@ -393,6 +394,7 @@ async function deletePageTemplate() {
 }
 async function save() {
   clearTimeout(autosaveTimer);
+  pendingAutosave = null;
   await run(async () => {
     const draft = record.value;
     const collectionId = selected.value!.id;
@@ -641,17 +643,27 @@ async function exportProject() {
     URL.revokeObjectURL(a.href);
   });
 }
-watch(
-  () => [record.value?.data, blockMoveSource.value],
-  () => {
-    clearTimeout(autosaveTimer);
-    if (record.value?.id && dirty.value && !busy.value && !blockMoveSource.value)
-      autosaveTimer = setTimeout(() => {
-        if (dirty.value && !busy.value && !blockMoveSource.value) void save();
-      }, 1800);
-  },
-  { deep: true },
-);
+function scheduleAutosave() {
+  clearTimeout(autosaveTimer);
+  const draft = pendingAutosave;
+  if (!draft || record.value !== draft || !dirty.value) {
+    pendingAutosave = null;
+    return;
+  }
+  if (!draft.id || busy.value || blockMoveSource.value) return;
+
+  autosaveTimer = setTimeout(() => {
+    if (record.value === draft && dirty.value && !busy.value && !blockMoveSource.value) {
+      void save();
+    }
+  }, 1800);
+}
+
+watch(() => record.value?.data, () => {
+  pendingAutosave = dirty.value ? record.value : null;
+  scheduleAutosave();
+}, { deep: true });
+watch([busy, blockMoveSource], scheduleAutosave);
 function dropBlock(i: number) {
   if (draggedBlock.value === null) return;
   const [block] = record.value.data.blocks.splice(draggedBlock.value, 1);
