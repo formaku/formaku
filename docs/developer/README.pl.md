@@ -49,7 +49,7 @@ Definicja pola może zawierać `access.read` i `access.write`, czyli listy klucz
 
 Przy aktualizacji modelu pominięcie `access` zachowuje dotychczasowe reguły pola. Wyślij jawnie `access: {}`, aby je usunąć. Bieżący model określa dostęp do bieżących danych i starszych rewizji. Przy bezpośrednim wywołaniu `RecordService::save()` dla kolekcji z regułami pól przekaż zalogowanego użytkownika jako `actorUser` i odpowiadający mu identyfikator wykonawcy.
 
-Przed powrotem do wersji sprzed uprawnień pól zabezpiecz dane regułami całej kolekcji albo przywróć schemat i politykę dostępu sprzed włączenia reguł.
+Przed powrotem do wersji sprzed uprawnień pól ogranicz dostęp do każdej objętej kolekcji do osób, które mogą zobaczyć wszystkie jej pola. Sprawdź reguły kolekcji przed przywróceniem ruchu na starszej wersji.
 
 ## Zarejestruj rozszerzenia
 

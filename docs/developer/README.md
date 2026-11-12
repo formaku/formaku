@@ -49,7 +49,7 @@ A field definition can include `access.read` and `access.write`, each a list of 
 
 A model update preserves existing field rules if a client omits `access`. To clear a field's rules, send `access: {}` explicitly. The current model controls access to historical revisions as well as current data. For a collection with field rules, a direct call to `RecordService::save()` must pass the authenticated user as `actorUser` and the matching actor ID.
 
-Before rolling back to a version that predates field permissions, secure affected data with collection-level restrictions or restore the schema and access policy that preceded activation.
+Before rolling back to a version that predates field permissions, restrict each affected collection to users allowed to see all its fields. Verify collection access before serving traffic with the earlier version.
 
 ## Register the extensions
 

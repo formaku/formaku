@@ -64,7 +64,7 @@ When updating an existing Laravel host through Composer, [republish assets and a
 
 When upgrading to alpha.33, review public content models that have a private `slug` field. Their existing drafts and revisions are retained. To restore public visibility, make sure the stored URLs are safe to publish and clear the field’s Private setting in the model.
 
-Before rolling back from alpha.34 after activating field permissions, restrict affected collections to users allowed to see their full records or restore the access policy that preceded activation. Earlier versions do not enforce field role rules.
+Before rolling back from alpha.34 after activating field permissions, restrict affected collections to users allowed to see their full records. Verify collection access before starting the earlier version.
 
 For a code rollback to alpha.29, keep the translation links table in place. Rolling back its migration deletes the saved links. Back up the database before removing that table.
 
