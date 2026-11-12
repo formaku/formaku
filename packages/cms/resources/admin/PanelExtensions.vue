@@ -38,8 +38,12 @@ async function loadResource(page: number) {
     if (requestId === resourceRequest && key === resource.value?.key) {
       resourcePage.value = response;
     }
-  } catch {
+  } catch (error) {
     if (requestId === resourceRequest && key === resource.value?.key) {
+      const status = (error as { status?: number })?.status;
+      if (status === 401 || status === 403 || status === 404) {
+        resourcePage.value = null;
+      }
       resourceError.value = true;
     }
   } finally {
