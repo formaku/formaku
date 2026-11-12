@@ -184,6 +184,8 @@ formaku-deploy ALL=(root) NOPASSWD: /usr/local/sbin/formaku-deployctl ^status [a
 
 After the deployment command returns, open the workflow run summary. It shows the host state for the requested release UUID and image digest. A matching failure can include the rollback outcome and completed backup UUID. If the host gives no matching status, the summary reports that it is unavailable. The workflow keeps the exit code of the original deployment command.
 
+For automation, download `formaku-deployment-<run attempt>` from that run’s artifacts. Its `formaku-deployment.json` identifies the release UUID and image digest and reports the SSH exit code separately from the host state observed after the command. An unavailable or mismatched host response yields `host_status: null`. Match both identifiers to the requested deployment before using the receipt. Use the controller’s status command for a fresh reading.
+
 ### Read deployment and rollback status
 
 On an existing deployment host, install the controller from the alpha.64 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.

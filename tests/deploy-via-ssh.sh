@@ -12,6 +12,7 @@ export USER=formaku-deploy HOST=example.invalid
 export SSH_KEY='test-secret-private-key' KNOWN_HOSTS='test-pinned-host-key'
 export GITHUB_STEP_SUMMARY="$fixture/summary" TRACE="$fixture/trace"
 export DEPLOY_RESULT=0 STATUS_RESULT=0 STATUS_TIMEOUT=0
+unset FORMAKU_DEPLOYMENT_RECEIPT
 
 cat > "$fixture/bin/ssh" <<'MOCK'
 #!/usr/bin/env bash
@@ -72,21 +73,37 @@ status_json() {
 }
 
 run_deploy() {
-    local expected=$1 result=0
+    local expected=$1 receipt_error=${2:-0} result=0
     : > "$TRACE"
     : > "$GITHUB_STEP_SUMMARY"
     bash "$root/scripts/deploy-via-ssh.sh" > "$fixture/output" 2>&1 || result=$?
     [[ "$result" == "$expected" ]]
     [[ -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
-    printf 'deployment SSH diagnostic\n' | cmp - "$fixture/output"
+    {
+        printf 'deployment SSH diagnostic\n'
+        if [[ "$receipt_error" == 1 ]]; then
+            printf 'Could not write the deployment receipt.\n'
+        fi
+    } | cmp - "$fixture/output"
     printf 'deploy %s %s\nbounded status\nstatus %s\n' "$IMAGE" "$RELEASE_ID" "$RELEASE_ID" | cmp - "$TRACE"
     grep -Fq "SSH deploy exit code: \`$expected\`" "$GITHUB_STEP_SUMMARY"
+}
+
+check_receipt() {
+    jq -es --arg release "$RELEASE_ID" --arg image "$IMAGE" \
+        --argjson ssh_exit_code "$1" --argjson host_status "$2" \
+        '. == [{format: 1, $release, $image, $ssh_exit_code, $host_status}]' \
+        "$FORMAKU_DEPLOYMENT_RECEIPT" > /dev/null
 }
 
 export STATUS_RESPONSE
 STATUS_RESPONSE=$(status_json deployed)
 run_deploy 0
 grep -Fxq 'Host status: `deployed`' "$GITHUB_STEP_SUMMARY"
+
+export FORMAKU_DEPLOYMENT_RECEIPT="$fixture/deployment receipt.json"
+run_deploy 0
+check_receipt 0 '{"state":"deployed","rollback":null,"backup":null}'
 
 DEPLOY_RESULT=17
 STATUS_RESPONSE=$(status_json failed | jq -c '. + {rollback: "restored", backup: .release, extra: "private field"}')
@@ -95,11 +112,18 @@ grep -Fxq 'Host status: `failed`' "$GITHUB_STEP_SUMMARY"
 grep -Fxq 'Rollback: `restored`' "$GITHUB_STEP_SUMMARY"
 grep -Fxq "Backup: \`$RELEASE_ID\`" "$GITHUB_STEP_SUMMARY"
 ! grep -Fq 'private field' "$GITHUB_STEP_SUMMARY"
+check_receipt 17 "$(jq -nc --arg backup "$RELEASE_ID" '{state: "failed", rollback: "restored", $backup}')"
 
 DEPLOY_RESULT=255
 STATUS_RESPONSE=$(status_json deployed)
 run_deploy 255
 grep -Fxq 'Host status: `deployed`' "$GITHUB_STEP_SUMMARY"
+check_receipt 255 '{"state":"deployed","rollback":null,"backup":null}'
+
+STATUS_RESPONSE=$(status_json deploying)
+run_deploy 255
+grep -Fxq 'Host status: `deploying`' "$GITHUB_STEP_SUMMARY"
+check_receipt 255 '{"state":"deploying","rollback":null,"backup":null}'
 
 DEPLOY_RESULT=0
 valid=$(status_json deployed)
@@ -108,23 +132,36 @@ for STATUS_RESPONSE in '' '{' '{"state":"unavailable"}' "$valid"$'\n'"$valid" \
     "$(jq -c '.image = "other-image"' <<< "$valid")" \
     "$(jq -c '.state = "unsupported state"' <<< "$valid")" \
     "$(jq -c '. + {state: "failed", rollback: "private field"}' <<< "$valid")" \
+    "$(jq -c '. + {state: "failed", rollback: ["restored"]}' <<< "$valid")" \
     "$(jq -c '. + {state: "failed"}' <<< "$valid")" \
     "$(jq -c '. + {state: "failed", rollback: "restored", backup: "other-release"}' <<< "$valid")" \
     "$(jq -c '. + {backup: .release}' <<< "$valid")" \
     "$(jq -c '. + {large: ("x" * 4096)}' <<< "$valid")"; do
     run_deploy 0
     grep -Fxq 'Host status unavailable.' "$GITHUB_STEP_SUMMARY"
+    check_receipt 0 null
 done
 
 STATUS_RESPONSE=$valid
 STATUS_RESULT=255
 run_deploy 0
 grep -Fxq 'Host status unavailable.' "$GITHUB_STEP_SUMMARY"
+check_receipt 0 null
 STATUS_RESULT=0
 STATUS_TIMEOUT=1
 DEPLOY_RESULT=23
 run_deploy 23
 grep -Fxq 'Host status unavailable.' "$GITHUB_STEP_SUMMARY"
+check_receipt 23 null
+
+receipt=$FORMAKU_DEPLOYMENT_RECEIPT
+FORMAKU_DEPLOYMENT_RECEIPT="$fixture"
+STATUS_TIMEOUT=0
+run_deploy 23 1
+grep -Fxq 'Host status: `deployed`' "$GITHUB_STEP_SUMMARY"
+[[ -z $(find "$fixture" -maxdepth 1 -name 'deployment receipt.json.*' -print -quit) ]]
+FORMAKU_DEPLOYMENT_RECEIPT=$receipt
+rm -f -- "$receipt"
 
 : > "$TRACE"
 : > "$GITHUB_STEP_SUMMARY"
@@ -133,7 +170,7 @@ for bad_input in IMAGE RELEASE_ID HOST USER; do
     env "$bad_input=invalid"$'\n'"argument" bash "$root/scripts/deploy-via-ssh.sh" > "$fixture/output" 2>&1 || result=$?
     [[ "$result" == 2 ]]
 done
-[[ ! -s "$TRACE" && ! -s "$GITHUB_STEP_SUMMARY" ]]
+[[ ! -s "$TRACE" && ! -s "$GITHUB_STEP_SUMMARY" && ! -e "$receipt" ]]
 [[ -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
 
-printf 'PASS: pinned SSH deploy/status, preserved exit code, scoped summary, bounded query and credential cleanup\n'
+printf 'PASS: pinned SSH deploy/status, preserved exit code, scoped summary and receipt, bounded query and credential cleanup\n'

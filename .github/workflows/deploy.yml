@@ -1,4 +1,5 @@
 name: Deploy existing image
+run-name: Formaku deploy ${{ inputs.release_id }}
 on:
   workflow_dispatch:
     inputs:
@@ -30,4 +31,13 @@ jobs:
           KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           HOST: ${{ vars.DEPLOY_HOST }}
           USER: ${{ vars.DEPLOY_USER }}
+          FORMAKU_DEPLOYMENT_RECEIPT: ${{ runner.temp }}/formaku-deployment.json
         run: bash scripts/deploy-via-ssh.sh
+      - name: Upload deployment receipt
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: formaku-deployment-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/formaku-deployment.json
+          if-no-files-found: ignore
