@@ -45,6 +45,8 @@ php artisan formaku:install
 php artisan migrate --force
 ```
 
+Jeśli migracja indeksu historii rewizji oczekuje na wykonanie, uwzględnij czas budowy indeksu PostgreSQL przed wznowieniem zapisów. SQLite również tworzy ten indeks. Istniejące rewizje pozostają w bazie.
+
 Od alpha.31 `formaku:install` usuwa skompilowane kopie szablonów Blade pakietu. Widoki aplikacji gospodarza pozostają w cache. Jeśli wdrożenie kompiluje widoki z wyprzedzeniem, uruchom następnie `php artisan view:cache`. Przy instalacji alpha.30 po aktualizacji wykonaj `php artisan view:clear`.
 
 ### Włącz zaplanowaną publikację w aplikacji Laravel

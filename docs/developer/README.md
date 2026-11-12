@@ -45,6 +45,8 @@ php artisan formaku:install
 php artisan migrate --force
 ```
 
+When the revision history index migration is pending, allow time for PostgreSQL to build the index before reopening the app to writes. SQLite also creates the index. Existing revision data stays in place.
+
 Starting with alpha.31, `formaku:install` removes cached copies of the package Blade templates. Compiled host views stay in place. Run `php artisan view:cache` afterward if your deployment precompiles views. If you are installing alpha.30, run `php artisan view:clear` after the update.
 
 ### Enable scheduled publication in a Composer host

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Index revision history by record and revision ID on PostgreSQL and SQLite.
+
 ## 0.1.0-alpha.60 — 2026-11-12
 
 - Add and edit registered custom blocks in the page editor, including blocks that accept nested content.
