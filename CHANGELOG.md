@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.28 — 2026-11-12
+
+The website theme can follow each visitor's system preference. This applies to public pages and draft previews. The Light and Dark choices still set an explicit theme. This release adds no database migrations.
+
 ## 0.1.0-alpha.27 — 2026-11-12
 
 Draft edits made while the editor finishes a request are queued for autosave when it is ready. This includes removing a block during the refresh after publication. This release adds no database migrations.

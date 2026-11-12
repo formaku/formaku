@@ -58,7 +58,7 @@ W tej samej kolekcji wybierz **Dodaj rekord**, a następnie **Pokaż szablony ko
 
 Od wersji `0.1.0-alpha.13` jako administrator otwórz **Ustawienia → Menu i stopka**. Dodaj, edytuj lub przestaw linki nagłówka i stopki. Adres może być ścieżką witryny, np. `/p/start`, albo pełnym adresem HTTP(S). Możesz też dodać zwykły tekst stopki. Zapis od razu aktualizuje wspólny układ witryny. Pusta lista ukrywa linki w danym miejscu.
 
-Od wersji `0.1.0-alpha.14` w tym samym miejscu wybierz **Jasny** lub **Ciemny** w polu **Motyw witryny** i zapisz ustawienia. Motyw stosuje się do publicznych stron i podglądu szkicu.
+Od wersji `0.1.0-alpha.14` w tym samym miejscu wybierz **Jasny** lub **Ciemny** w polu **Motyw witryny** i zapisz ustawienia. Motyw stosuje się do publicznych stron i podglądu szkicu. Od alpha.28 opcja **Zgodny z systemem** dopasowuje motyw do preferencji odwiedzającego.
 
 ### Metadane SEO
 
@@ -154,7 +154,7 @@ In the same collection, choose **Dodaj rekord** (Add record) and **Pokaż szablo
 
 Starting with `0.1.0-alpha.13`, administrators can open **Ustawienia → Menu i stopka** (Settings → Menu and footer) to edit and reorder links and set plain footer text. Links accept site paths or absolute HTTP(S) URLs. Saving applies changes to the shared site layout.
 
-Starting with `0.1.0-alpha.14`, choose **Jasny** (Light) or **Ciemny** (Dark) under **Motyw witryny** (Site theme) in the same settings. Saving applies the theme to public pages and draft previews.
+Starting with `0.1.0-alpha.14`, choose **Jasny** (Light) or **Ciemny** (Dark) under **Motyw witryny** (Site theme) in the same settings. Saving applies the theme to public pages and draft previews. Starting with alpha.28, **Follow system** uses each visitor’s preferred color scheme.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 
