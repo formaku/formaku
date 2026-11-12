@@ -27,9 +27,36 @@ class ApiController
 {
     public function __construct(private FieldAccess $fieldAccess) {}
 
-    public function bootstrap(Request $r)
+    public function bootstrap(Request $r): array
     {
-        return ['staff' => is_callable(config('formaku.staff')) ? (config('formaku.staff'))() : [], 'abilities' => collect(['work', 'build', 'publish'])->mapWithKeys(fn ($ability) => [$ability => (config('formaku.authorize'))($r->user(), $ability)])->all(), 'user' => ['name' => $r->user()->name, 'id' => $r->user()->id], 'collections' => $this->collections($r), 'counts' => ['records' => $this->visibleCount($r->user()), 'published' => $this->visibleCount($r->user(), true), 'media' => Media::count()], 'providers' => collect(config('formaku.ai'))->map(fn ($p) => ['configured' => ! empty($p['key']) && ! empty($p['model']), 'model' => $p['model']]), 'blocks' => ['hero', 'text', 'cta', 'image', 'cards', 'faq', 'container', 'columns'], 'extensions' => app(Registry::class)->panelExtensions($r->user())];
+        $bootstrap = ['staff' => is_callable(config('formaku.staff')) ? (config('formaku.staff'))() : [], 'abilities' => collect(['work', 'build', 'publish'])->mapWithKeys(fn ($ability) => [$ability => (config('formaku.authorize'))($r->user(), $ability)])->all(), 'user' => ['name' => $r->user()->name, 'id' => $r->user()->id], 'collections' => $this->collections($r), 'counts' => ['records' => $this->visibleCount($r->user()), 'published' => $this->visibleCount($r->user(), true), 'media' => Media::count()], 'providers' => collect(config('formaku.ai'))->map(fn ($p) => ['configured' => ! empty($p['key']) && ! empty($p['model']), 'model' => $p['model']]), 'blocks' => ['hero', 'text', 'cta', 'image', 'cards', 'faq', 'container', 'columns'], 'extensions' => app(Registry::class)->panelExtensions($r->user())];
+
+        if ($bootstrap['abilities']['build']) {
+            $bootstrap['roles'] = $this->roleCatalog();
+        }
+
+        return $bootstrap;
+    }
+
+    /** @return list<array{key: string, label: string}> */
+    private function roleCatalog(): array
+    {
+        $configured = config('formaku.roles');
+        if (! is_array($configured)) {
+            return [];
+        }
+
+        $roles = [];
+        foreach ($configured as $key => $label) {
+            $key = (string) $key;
+            if ($key === '' || trim($key) !== $key || ! is_string($label) || trim($label) === '') {
+                continue;
+            }
+
+            $roles[] = ['key' => $key, 'label' => trim($label)];
+        }
+
+        return $roles;
     }
 
     public function collections(Request $request)
