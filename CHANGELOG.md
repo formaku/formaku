@@ -2,7 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.62 — 2026-11-12
+
 - Compare a historical revision with the saved draft from the revision history. The comparison shows changed fields the signed-in user can read.
+- No new migrations since alpha.61.
 
 ## 0.1.0-alpha.61 — 2026-11-12
 

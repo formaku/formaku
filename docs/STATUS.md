@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.61**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.62**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -11,6 +11,8 @@ This is **0.1.0-alpha.61**. The remaining v1 work is listed below.
 - Recover from a draft version conflict with local edits preserved in the editor and available as a JSON download.
 
 - Preview a saved content revision from the version history in a separate tab, with current field permissions.
+
+- Compare a saved revision with the current saved draft, showing changes only in fields the viewer can read.
 
 - Withdraw published content and its scheduled publication while retaining the saved draft and revision history.
 
