@@ -68,6 +68,12 @@ Od wersji `0.1.0-alpha.14` w tym samym miejscu wybierz **Jasny** lub **Ciemny** 
 
 Od alpha.29 w polu **Akcent kolorystyczny** wybierz **Formaku**, **Niebieski** albo **Śliwkowy**. Ustawienie zmienia kolory wyróżnień i przycisków na stronach publicznych oraz w podglądzie.
 
+### Pola prywatne na publicznych stronach
+
+Od alpha.33 opcja **Prywatne** obejmuje także publiczną stronę, katalog i karty. Prywatne bloki pozostają w szkicu i podglądzie w panelu. Gdy tytuł jest prywatny, Formaku pokazuje publiczną nazwę lub fragment adresu.
+
+Pole `slug` jest częścią publicznego adresu. W **Buduj → Edytuj model** odznacz przy nim **Prywatne**, jeśli adresy mają być publiczne. Aby zachować prywatne adresy, wyłącz **Publiczna kolekcja treści**. Po aktualizacji kolekcja z prywatnym polem `slug` będzie ukryta w witrynie do czasu zmiany konfiguracji. Jej rekordy i rewizje pozostają w bazie.
+
 ### Metadane SEO
 
 Od wersji `0.1.0-alpha.3` otwórz **Buduj**, wybierz **Edytuj model** przy publicznej kolekcji treści i w sekcji **Metadane SEO** przypisz pola tekstowe do tytułu oraz opisu. Zapisz konfigurację. Redaktor może uzupełnić te pola w rekordzie, a publikacja udostępni wartości z opublikowanej rewizji. Pola prywatne są wykluczone z listy. Pusty tytuł korzysta z publicznego tytułu strony albo jej slugu, a pusty opis pomija znacznik opisu.
@@ -179,6 +185,8 @@ The starter serves published public pages at `/sitemap.xml`. Set `APP_URL` to th
 Starting with `0.1.0-alpha.4`, publishing a public page under a new URL creates a 301 redirect from its previous URL. Earlier URLs point straight to the current publication. An active publication takes precedence when an old URL is reused. Redirects are unavailable while the collection is private.
 
 Starting with alpha.32, the **Extensions** section lists resources and actions enabled for you by the host Laravel application. Choose a resource to browse its rows or choose an action, enter its fields, and select **Run action**. See the [integration guide](../developer/README.md#show-laravel-resources-and-actions-in-the-panel) for setup.
+
+Starting with alpha.33, **Private** fields are filtered from public pages, catalogs and cards. Private page blocks remain available in the editor preview. The URL slug is part of the public address. In **Build → Edit model**, clear **Private** for `slug` to make the addresses public, or turn off **Public content collection** to keep them private. The upgrade hides collections with private slugs until you review their configuration and preserves their drafts and revisions.
 
 ## Dostęp do kolekcji
 

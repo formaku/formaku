@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.33 — 2026-11-12
+
+- Respect private title, name and block fields in public page output, catalogs and cards. Public pages use a visible name or URL slug when the title is private.
+- Hide public collections whose URL slug field is private. The model editor can make a collection non-public or mark its slug public. Stored drafts and revisions are preserved.
+- No new database migrations since alpha.30.
+
 ## 0.1.0-alpha.32 — 2026-11-12
 
 - Expose selected Laravel resources and actions in the Formaku panel. The host app opts in per extension, supplies an authorization callback, and declares the visible columns or input fields.

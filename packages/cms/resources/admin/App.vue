@@ -188,6 +188,11 @@ watch(record, () => {
 const publicContentSchema = computed(
   () => schema.value?.kind === "content" && schema.value.definition.public,
 );
+const privatePublicSlug = computed(() =>
+  publicContentSchema.value && schema.value.definition.fields.some(
+    (field: Field) => field.key === "slug" && field.private,
+  ),
+);
 const seoFields = computed<Field[]>(() =>
   publicContentSchema.value
     ? schema.value.definition.fields.filter(
@@ -1090,6 +1095,13 @@ const title = computed(
                 </select></label
               >
             </div>
+            <label v-if="schema.kind === 'content'" class="flex items-center gap-3">
+              <input type="checkbox" class="checkbox" v-model="schema.definition.public" />
+              {{ t("Publiczna kolekcja treści") }}
+            </label>
+            <p v-if="privatePublicSlug" class="alert alert-warning" role="alert">
+              {{ t("Pole slug jest częścią publicznego adresu. Wyłącz jego prywatność albo ustaw kolekcję jako niepubliczną.") }}
+            </p>
             <div class="bg-base-100 border border-base-300 rounded-xl p-6">
               <h2 class="text-lg mb-5">{{ t("Pola formularza") }}</h2>
               <div
@@ -1282,7 +1294,7 @@ const title = computed(
               </div>
               <p class="text-xs text-base-content/50 mt-3">{{ t("Administrator buildera zachowuje pełny dostęp. Po skonfigurowaniu reguł pozostałe role wymagają jawnego wpisu.") }}</p>
             </section>
-            <button class="btn btn-primary" :disabled="busy">
+            <button class="btn btn-primary" :disabled="busy || privatePublicSlug">
               {{ t("Aktywuj konfigurację") }}<Check :size="16" />
             </button>
           </form>

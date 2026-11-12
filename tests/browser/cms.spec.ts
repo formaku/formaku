@@ -267,6 +267,19 @@ test("collection forms save SEO metadata, related records and a private file", a
   await page.getByLabel("Nazwa", { exact: true }).fill(collectionName);
   await page.getByLabel("Identyfikator").fill("seo_" + suffix);
   await page.getByLabel("Rodzaj").selectOption("content");
+  const publicCollection = page.getByRole("checkbox", { name: "Publiczna kolekcja treści" });
+  const privateSlug = page.getByRole("checkbox", { name: "Prywatne", exact: true }).nth(1);
+  const activateModel = page.getByRole("button", { name: "Aktywuj konfigurację" });
+  await expect(page.getByLabel("Klucz", { exact: true }).nth(1)).toHaveValue("slug");
+  await expect(publicCollection).toBeChecked();
+  await privateSlug.check();
+  await expect(page.getByRole("alert")).toContainText("Pole slug jest częścią publicznego adresu");
+  await expect(activateModel).toBeDisabled();
+  await publicCollection.uncheck();
+  await expect(activateModel).toBeEnabled();
+  await publicCollection.check();
+  await privateSlug.uncheck();
+  await expect(activateModel).toBeEnabled();
   await page.getByLabel("Opis SEO").selectOption("title");
   await page.getByRole("button", { name: "Aktywuj konfigurację" }).click();
 

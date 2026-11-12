@@ -257,6 +257,8 @@ export const messages: Record<string, string> = {
   "Poprzednia": "Previous",
   "Portal klienta": "Customer portal",
   "Prywatne": "Private",
+  "Publiczna kolekcja treści": "Public content collection",
+  "Pole slug jest częścią publicznego adresu. Wyłącz jego prywatność albo ustaw kolekcję jako niepubliczną.": "The slug is part of the public URL. Clear its Private setting or make the collection non-public.",
   "Prywatny": "Private",
   "Przypisane": "Assigned",
   "Przypisany pracownik": "Assigned staff member",

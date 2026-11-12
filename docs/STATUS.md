@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.32**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.33**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- The public page, catalog, cards and sitemap respect private fields and reject public content collections with private URL slugs.
 
 - Opt-in Laravel resources and actions in the admin panel, with per-extension authorization, paginated scalar columns, and validated action inputs.
 
