@@ -442,6 +442,8 @@ test("system theme follows visitor preferences while manual themes take preceden
 
   const theme = page.getByLabel("Motyw witryny");
   const saveTheme = async (value: string) => {
+    await expect(theme).toBeEnabled();
+    if (await theme.inputValue() === value) return;
     await theme.selectOption(value);
     await page.getByRole("button", { name: "Zapisz menu i stopkę" }).click();
     await expect(page.getByText("Zapisano menu i stopkę.", { exact: true })).toBeVisible();
