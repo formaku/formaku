@@ -7,6 +7,7 @@ use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Models\Revision;
 use Formaku\Cms\Services\CollectionAccess;
+use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\MediaUsage;
 use Formaku\Cms\Services\MediaVariants;
 use Formaku\Cms\Services\RecordService;
@@ -16,18 +17,23 @@ use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 class ApiController
 {
+    public function __construct(private FieldAccess $fieldAccess) {}
+
     public function bootstrap(Request $r)
     {
-        return ['staff' => is_callable(config('formaku.staff')) ? (config('formaku.staff'))() : [], 'abilities' => collect(['work', 'build', 'publish'])->mapWithKeys(fn ($ability) => [$ability => (config('formaku.authorize'))($r->user(), $ability)])->all(), 'user' => ['name' => $r->user()->name, 'id' => $r->user()->id], 'collections' => $this->visibleCollections($r->user()), 'counts' => ['records' => $this->visibleCount($r->user()), 'published' => $this->visibleCount($r->user(), true), 'media' => Media::count()], 'providers' => collect(config('formaku.ai'))->map(fn ($p) => ['configured' => ! empty($p['key']) && ! empty($p['model']), 'model' => $p['model']]), 'blocks' => ['hero', 'text', 'cta', 'image', 'cards', 'faq', 'container', 'columns'], 'extensions' => app(Registry::class)->panelExtensions($r->user())];
+        return ['staff' => is_callable(config('formaku.staff')) ? (config('formaku.staff'))() : [], 'abilities' => collect(['work', 'build', 'publish'])->mapWithKeys(fn ($ability) => [$ability => (config('formaku.authorize'))($r->user(), $ability)])->all(), 'user' => ['name' => $r->user()->name, 'id' => $r->user()->id], 'collections' => $this->collections($r), 'counts' => ['records' => $this->visibleCount($r->user()), 'published' => $this->visibleCount($r->user(), true), 'media' => Media::count()], 'providers' => collect(config('formaku.ai'))->map(fn ($p) => ['configured' => ! empty($p['key']) && ! empty($p['model']), 'model' => $p['model']]), 'blocks' => ['hero', 'text', 'cta', 'image', 'cards', 'faq', 'container', 'columns'], 'extensions' => app(Registry::class)->panelExtensions($r->user())];
     }
 
     public function collections(Request $request)
     {
-        return $this->visibleCollections($request->user());
+        return $this->visibleCollections($request->user())
+            ->map(fn (Collection $collection) => $this->collectionDocument($collection, $request->user()));
     }
 
     public function schema(Request $r, SchemaValidator $v)
@@ -49,21 +55,42 @@ class ApiController
         });
     }
 
-    public function records(Request $r, Collection $collection)
+    public function records(Request $r, Collection $collection): LengthAwarePaginator
     {
-        $q = app(CollectionAccess::class)->query($collection, $r->user());
+        $user = $r->user();
+        $hidden = $this->hiddenFields($collection, $user);
+        $query = app(CollectionAccess::class)->query($collection, $user)->with('draft:id,record_id,data');
         if ($r->filled('state')) {
-            $q->where('state', $r->string('state'));
-        }if ($r->filled('search')) {
-            $q->where('published_title', 'like', '%'.$r->string('search').'%');
+            $query->where('state', $r->string('state'));
+        }
+        if ($r->filled('search')) {
+            if ($this->titleIsHidden($hidden)) {
+                $query->whereRaw('1 = 0');
+            } else {
+                $query->where('published_title', 'like', '%'.$r->string('search').'%');
+            }
+        }
+        if ($this->titleIsHidden($hidden)) {
+            $query->with('published:id,record_id,data');
         }
 
-        return $q->orderByDesc('id')->paginate(25)->through(fn ($x) => $this->document($x));
+        return $query->orderByDesc('id')->paginate(25)->through(
+            fn (Record $record) => $this->document($record, $collection, $user, $hidden),
+        );
     }
 
-    public function show(Record $record)
+    public function show(Request $request, Record $record): array
     {
-        return $this->document($record) + ['history' => Revision::where('record_id', $record->id)->latest('id')->get()];
+        $collection = Collection::findOrFail($record->collection_id);
+        $user = $request->user();
+        $history = Revision::where('record_id', $record->id)->latest('id')->get();
+        if ($this->fieldAccess->hasRules($collection)) {
+            $history = $history->map(fn (Revision $revision) => array_replace($revision->toArray(), [
+                'data' => $this->fieldAccess->readableData($collection, $revision->data, $user),
+            ]));
+        }
+
+        return $this->document($record, $collection, $user, $this->hiddenFields($collection, $user)) + ['history' => $history];
     }
 
     public function relationOptions(Request $request, Collection $collection): array
@@ -73,7 +100,8 @@ class ApiController
             'selected.*' => 'required|integer|min:1',
         ]);
         $labelFields = collect($collection->definition['fields'])
-            ->reject(fn (array $field) => $field['private'] ?? false)
+            ->filter(fn (array $field) => ! ($field['private'] ?? false)
+                && $this->fieldAccess->canRead($collection, $field, $request->user()))
             ->pluck('key')->all();
         $labelKeys = array_intersect(['title', 'name'], $labelFields);
         $query = app(CollectionAccess::class)->query($collection, $request->user())
@@ -96,33 +124,47 @@ class ApiController
             + ['selected' => $selected];
     }
 
-    public function save(Request $r, Collection $collection, RecordService $s)
+    public function save(Request $r, Collection $collection, RecordService $s): array
     {
         $d = $r->validate(['id' => 'nullable|integer', 'version' => 'required|integer|min:0', 'data' => 'required|array']);
         $record = isset($d['id']) ? Record::where('collection_id', $collection->id)->findOrFail($d['id']) : null;
+        $user = $r->user();
+        $saved = $s->save($collection, $record, $d['data'], $d['version'], $user->id, actorUser: $user);
+        $collection = Collection::findOrFail($saved->collection_id);
 
-        return $this->document($s->save($collection, $record, $d['data'], $d['version'], $r->user()->id));
+        return $this->document($saved, $collection, $user, $this->hiddenFields($collection, $user));
     }
 
-    public function publish(Request $r, Record $record, RecordService $s)
+    public function publish(Request $r, Record $record, RecordService $s): array
     {
         $d = $r->validate(['version' => 'required|integer']);
 
-        return $s->publish($record, $d['version'], $r->user()->id);
+        try {
+            $published = $s->publish($record, $d['version'], $r->user()->id);
+        } catch (ValidationException | HttpExceptionInterface $error) {
+            if ($error instanceof ValidationException || $error->getStatusCode() === 422) {
+                $collection = Collection::findOrFail($record->collection_id);
+                abort_if($this->hiddenFields($collection, $r->user()) !== [], 422, 'The draft could not be published.');
+            }
+            throw $error;
+        }
+
+        return $this->mutationDocument($published, $r->user());
     }
 
-    public function transition(Request $r, Record $record, RecordService $s)
+    public function transition(Request $r, Record $record, RecordService $s): array
     {
         $d = $r->validate(['version' => 'required|integer', 'state' => 'required|string', 'assignee_id' => 'nullable|integer']);
+        $updated = $s->transition($record, $d['version'], $r->user()->id, $d['state'], $d['assignee_id'] ?? null);
 
-        return $s->transition($record, $d['version'], $d['state'], $r->user()->id, $d['assignee_id'] ?? null);
+        return $this->mutationDocument($updated, $r->user());
     }
 
-    public function schedule(Request $r, Record $record)
+    public function schedule(Request $r, Record $record): array
     {
         $d = $r->validate(['version' => 'required|integer', 'publish_at' => 'required|date|after:now']);
 
-        return DB::transaction(function () use ($record, $d) {
+        $updated = DB::transaction(function () use ($record, $d) {
             $record = Record::lockForUpdate()->findOrFail($record->id);
             abort_unless($record->version === $d['version'], 409);
             abort_unless(Collection::findOrFail($record->collection_id)->kind === 'content', 422);
@@ -130,23 +172,30 @@ class ApiController
 
             return $record;
         });
+
+        return $this->mutationDocument($updated, $r->user());
     }
 
-    public function restore(Request $r, Record $record, Revision $revision, RecordService $s)
+    public function restore(Request $r, Record $record, Revision $revision, RecordService $s): array
     {
         abort_unless($revision->record_id === $record->id, 404);
+        $collection = Collection::findOrFail($record->collection_id);
+        $version = (int) $r->validate(['version' => 'required|integer'])['version'];
+        $user = $r->user();
+        $restored = $s->save($collection, $record, $revision->data, $version, $user->id, actorUser: $user, restore: true);
 
-        return $s->save(Collection::findOrFail($record->collection_id), $record, $revision->data, (int) $r->validate(['version' => 'required|integer'])['version'], $r->user()->id);
+        return $this->mutationDocument($restored, $user);
     }
 
-    public function preview(Record $record, Renderer $renderer)
+    public function preview(Request $request, Record $record, Renderer $renderer): \Illuminate\Http\Response
     {
-        $definition = Collection::findOrFail($record->collection_id)->definition;
+        $collection = Collection::findOrFail($record->collection_id);
         $draft = Revision::where('record_id', $record->id)->findOrFail($record->draft_id)->data;
-        $slug = is_string($draft['slug'] ?? null) ? $draft['slug'] : 'page-'.$record->id;
-        $title = $draft['title'] ?? $draft['name'] ?? $slug;
+        $data = $this->fieldAccess->readableData($collection, $draft, $request->user());
+        $slug = is_string($data['slug'] ?? null) ? $data['slug'] : 'page-'.$record->id;
+        $title = $data['title'] ?? $data['name'] ?? $slug;
 
-        return response()->view('formaku::page', $renderer->page($definition, $draft, is_string($title) ? $title : $slug, $slug))
+        return response()->view('formaku::page', $renderer->page($collection->definition, $data, is_string($title) ? $title : $slug, $slug))
             ->header('Cache-Control', 'no-store')->header('X-Robots-Tag', 'noindex');
     }
 
@@ -212,24 +261,26 @@ class ApiController
 
     public function export(Request $r)
     {
-        return ['format' => 'formaku.project', 'version' => 1, 'collections' => $this->visibleCollections($r->user())->map(fn ($c) => $c->only('key', 'name', 'kind', 'definition'))->values()];
+        return ['format' => 'formaku.project', 'version' => 1, 'collections' => $this->collections($r)->map(fn ($c) => $c->only('key', 'name', 'kind', 'definition'))->values()];
     }
 
     public function import(Request $r, SchemaValidator $v)
     {
         $d = $r->validate(['format' => 'required|in:formaku.project', 'version' => 'required|in:1', 'collections' => 'required|array|max:50']);
+        $collections = [];
         foreach ($d['collections'] as $c) {
-            $v->validate($c);
-            abort_if(Collection::where('key', $c['key'])->exists(), 409, 'Collection already exists');
+            $validated = $v->validate($c);
+            abort_if(Collection::where('key', $validated['key'])->exists(), 409, 'Collection already exists');
+            $collections[] = $validated;
         }
 
-        return DB::transaction(function () use ($d) {
-            foreach ($d['collections'] as $c) {
-                $c = Collection::create(collect($c)->only('key', 'name', 'kind', 'definition')->all());
+        return DB::transaction(function () use ($collections) {
+            foreach ($collections as $c) {
+                $c = Collection::create($c);
                 DB::table('formaku_schema_versions')->insert(['collection_id' => $c->id, 'version' => 1, 'definition' => json_encode($c->definition), 'created_at' => now(), 'updated_at' => now()]);
             }
 
-            return ['imported' => count($d['collections'])];
+            return ['imported' => count($collections)];
         });
     }
 
@@ -251,8 +302,81 @@ class ApiController
         });
     }
 
-    private function document(Record $r): array
+    private function collectionDocument(Collection $collection, object $user): array
     {
-        return $r->toArray() + ['data' => Revision::find($r->draft_id)?->data ?? []];
+        $document = $collection->toArray();
+        if (! $this->fieldAccess->hasRules($collection) || (config('formaku.authorize'))($user, 'build')) {
+            return $document;
+        }
+
+        $fields = [];
+        foreach ($collection->definition['fields'] as $field) {
+            if (! $this->fieldAccess->canRead($collection, $field, $user)) {
+                continue;
+            }
+            if (! $this->fieldAccess->canWrite($collection, $field, $user)) {
+                $field['writable'] = false;
+            }
+            unset($field['access']);
+            $fields[] = $field;
+        }
+        $document['definition']['fields'] = $fields;
+
+        return $document;
+    }
+
+    /** @return list<string> */
+    private function hiddenFields(Collection $collection, object $user): array
+    {
+        if (! $this->fieldAccess->hasRules($collection)) {
+            return [];
+        }
+
+        return collect($collection->definition['fields'])
+            ->reject(fn (array $field) => $this->fieldAccess->canRead($collection, $field, $user))
+            ->pluck('key')->all();
+    }
+
+    private function titleIsHidden(array $hidden): bool
+    {
+        return array_intersect(['title', 'name'], $hidden) !== [];
+    }
+
+    private function mutationDocument(Record $record, object $user): array
+    {
+        $collection = Collection::findOrFail($record->collection_id);
+
+        return $this->recordAttributes($record, $collection, $user, $this->hiddenFields($collection, $user));
+    }
+
+    private function recordAttributes(Record $record, Collection $collection, object $user, array $hidden): array
+    {
+        $document = $record->attributesToArray();
+        if ($hidden !== []) {
+            unset($document['search_text']);
+        }
+        if ($this->titleIsHidden($hidden) && $record->published_id !== null) {
+            $record->loadMissing('published:id,record_id,data');
+            $data = $this->fieldAccess->readableData($collection, $this->revisionData($record, $record->published), $user);
+            $fallback = $record->published_slug ?? '#'.$record->id;
+            $title = $data['title'] ?? $data['name'] ?? $fallback;
+            $document['published_title'] = is_string($title) && trim($title) !== '' ? $title : $fallback;
+        }
+
+        return $document;
+    }
+
+    private function document(Record $record, Collection $collection, object $user, array $hidden): array
+    {
+        $record->loadMissing('draft:id,record_id,data');
+        $data = $this->revisionData($record, $record->draft);
+
+        return $this->recordAttributes($record, $collection, $user, $hidden)
+            + ['data' => $this->fieldAccess->readableData($collection, $data, $user)];
+    }
+
+    private function revisionData(Record $record, ?Revision $revision): array
+    {
+        return $revision && (int) $revision->record_id === (int) $record->id ? $revision->data : [];
     }
 }
