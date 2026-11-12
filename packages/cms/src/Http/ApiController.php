@@ -546,10 +546,15 @@ class ApiController
 
         $fields = [];
         foreach ($collection->definition['fields'] as $field) {
-            if (! $this->fieldAccess->canRead($collection, $field, $user)) {
+            $readable = $this->fieldAccess->canRead($collection, $field, $user);
+            $writable = $readable && $this->fieldAccess->canWrite($collection, $field, $user);
+            if (! $writable && ($field['required'] ?? false)) {
+                $document['can_create'] = false;
+            }
+            if (! $readable) {
                 continue;
             }
-            if (! $this->fieldAccess->canWrite($collection, $field, $user)) {
+            if (! $writable) {
                 $field['writable'] = false;
             }
             unset($field['access']);

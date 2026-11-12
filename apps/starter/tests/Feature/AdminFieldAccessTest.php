@@ -77,6 +77,67 @@ class AdminFieldAccessTest extends TestCase
         $this->getJson($recordsUrl.'?search=hidden-title')->assertOk()->assertJsonPath('total', 1);
     }
 
+    public function test_creation_eligibility_requires_write_access_to_every_required_field(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $editor = User::factory()->create(['role' => 'editor']);
+        $hiddenField = [
+            'key' => 'hidden_required_field', 'label' => 'Hidden creation value', 'type' => 'text',
+            'required' => true, 'private' => true, 'access' => ['read' => []],
+        ];
+        $readOnlyField = [
+            'key' => 'readonly_required_field', 'label' => 'Read only creation value', 'type' => 'text',
+            'required' => true, 'access' => ['write' => []],
+        ];
+        $title = ['key' => 'title', 'label' => 'Title', 'type' => 'text', 'required' => true];
+        $cases = [
+            'hidden_required' => ['own', [$hiddenField]],
+            'readonly_required' => ['all', [$readOnlyField]],
+            'protected_optional' => ['own', [
+                array_replace($hiddenField, ['required' => false]),
+                array_replace($readOnlyField, ['required' => false]),
+            ]],
+        ];
+        $collections = [];
+        foreach ($cases as $key => [$scope, $fields]) {
+            $collections[$key] = Collection::create([
+                'key' => $key,
+                'name' => $key,
+                'kind' => 'data',
+                'definition' => [
+                    'access' => ['editor' => ['scope' => $scope, 'write' => true]],
+                    'fields' => [$title, ...$fields],
+                ],
+            ]);
+        }
+
+        $bootstrap = $this->actingAs($editor)->getJson(self::API.'/bootstrap')->assertOk()
+            ->assertDontSee('hidden_required_field')->assertDontSee('Hidden creation value');
+        $documents = collect($bootstrap->json('collections'))->keyBy('key');
+        $this->assertFalse($documents['hidden_required']['can_create']);
+        $this->assertFalse($documents['readonly_required']['can_create']);
+        $this->assertTrue($documents['protected_optional']['can_create']);
+        $this->assertEquals([$title], $documents['hidden_required']['definition']['fields']);
+        $this->assertFalse($documents['readonly_required']['definition']['fields'][1]['writable']);
+
+        $data = ['version' => 0, 'data' => ['title' => 'New record']];
+        foreach (['hidden_required', 'readonly_required'] as $key) {
+            $this->postJson(self::API.'/collections/'.$collections[$key]->id.'/records', $data)->assertForbidden();
+        }
+        $this->assertDatabaseCount('formaku_records', 0);
+        $this->postJson(self::API.'/collections/'.$collections['protected_optional']->id.'/records', $data)
+            ->assertSuccessful()->assertJsonPath('data.title', 'New record');
+
+        $adminDocuments = collect($this->actingAs($admin)->getJson(self::API.'/bootstrap')
+            ->assertOk()->json('collections'))->keyBy('key');
+        foreach (array_keys($collections) as $key) {
+            $this->assertTrue($adminDocuments[$key]['can_create']);
+        }
+        $data['data']['hidden_required_field'] = 'Authorized value';
+        $this->postJson(self::API.'/collections/'.$collections['hidden_required']->id.'/records', $data)
+            ->assertSuccessful()->assertJsonPath('data.hidden_required_field', 'Authorized value');
+    }
+
     public function test_mutations_preserve_protected_data_and_project_the_response(): void
     {
         [, $publisher, $collection, $record] = $this->publishedRecordWithNewRules();

@@ -2025,7 +2025,7 @@ const title = computed(
                   <option value="">{{ t("Wszystkie stany") }}</option>
                   <option v-for="state in recordsStates" :key="state" :value="state">{{ state }}</option>
                 </select>
-                <button class="btn btn-primary ml-auto" :disabled="busy" @click="fresh">
+                <button v-if="selected.can_create === true" class="btn btn-primary ml-auto" :disabled="busy" @click="fresh">
                   <Plus :size="16" />{{ t("Dodaj rekord") }}
                 </button>
               </div>

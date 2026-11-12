@@ -10,6 +10,8 @@ Od wersji `0.1.0-alpha.16` wybierz **Polski** lub **English** w polu języka w n
 
 Wybierz kolekcję i dodaj rekord. Zapis tworzy nową rewizję. W treściach poprzednia publikacja pozostaje widoczna do użycia „Opublikuj treść”. Podgląd wymaga uprawnień panelu. Historia pozwala przywrócić rewizję do szkicu. Konflikt zapisu wymaga ponownego pobrania i porównania zmian.
 
+Przycisk **Dodaj rekord** i wybór kolekcji w podglądzie AI uwzględniają uprawnienia do tworzenia rekordu oraz do zapisu wszystkich pól wymaganych przez kolekcję.
+
 Od wersji `0.1.0-alpha.5` po zapisaniu szkicu wybierz **Pokaż podgląd**, aby zobaczyć stronę w panelu. Przełącz szerokość między komputerem (1280 px), tabletem (768 px) i telefonem (390 px). Podgląd korzysta z ostatniego zapisanego szkicu, w tym z jego metadanych SEO. Możesz go też otworzyć w nowej karcie.
 
 ### Kontenery i kolumny
@@ -173,6 +175,8 @@ Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie”
 ## English quick guide
 
 Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Under **Releases**, request a build, click **Refresh status** and open the matching GitHub Actions run for the image digest. Deployment is a separate workflow. Customer portal access is scoped to the signed-in owner.
+
+**Add record** and the collection picker in AI proposal review require permission to create records and edit all required fields in that collection.
 
 Administrators can set `OPENAI_MAX_OUTPUT_TOKENS` or `GEMINI_MAX_OUTPUT_TOKENS` to limit output tokens per proposal request. The default is 3000 for each provider. Use an integer from 16 to 3000. Rebuild the configuration cache if used and restart queue workers after changing the settings.
 

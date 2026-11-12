@@ -24,7 +24,7 @@ test("field permissions persist across draft saves and restoration", async ({ pa
       definition: {
         fields: [
           { key: "title", label: "Title", type: "text", required: true },
-          { key: "status_note", label: "Status note", type: "text", access: { write: [] } },
+          { key: "status_note", label: "Status note", type: "text", required: true, access: { write: [] } },
           { key: "internal_note", label: "Internal note", type: "text", private: true, access: { read: [] } },
         ],
       },
@@ -59,8 +59,14 @@ test("field permissions persist across draft saves and restoration", async ({ pa
   try {
     const editor = await editorContext.newPage();
     await signIn(editor, "field-editor@formaku.test");
+    const addRecord = editor.getByRole("button", { name: "Dodaj rekord", exact: true });
+    await editor.getByRole("button", { name: "Strony i oferta", exact: true }).click();
+    await expect(addRecord).toBeVisible();
     await editor.getByRole("button", { name, exact: true }).click();
-    await editor.getByRole("row").filter({ hasText: "Current title" }).getByRole("button", { name: "Edytuj" }).click();
+    const editableRow = editor.getByRole("row").filter({ hasText: "Current title" });
+    await expect(editableRow).toBeVisible();
+    await expect(addRecord).toHaveCount(0);
+    await editableRow.getByRole("button", { name: "Edytuj" }).click();
     await expect(editor.getByText("Status note · Tylko odczyt", { exact: true })).toBeVisible();
     await expect(editor.getByText("Current status", { exact: true })).toBeVisible();
     await expect(editor.getByText("Internal note", { exact: true })).toHaveCount(0);
