@@ -2,6 +2,7 @@
 
 namespace Formaku\Cms\Http;
 
+use DateTimeInterface;
 use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\Record;
@@ -20,6 +21,7 @@ use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -226,18 +228,34 @@ class ApiController
 
     public function schedule(Request $r, Record $record): array
     {
-        $d = $r->validate(['version' => 'required|integer', 'publish_at' => 'required|date|after:now']);
+        $data = $r->validate(['version' => 'required|integer', 'publish_at' => 'required|date|after:now']);
+        $timezone = config('app.timezone');
+        $publishAt = Date::parse($data['publish_at'], $timezone)->setTimezone($timezone);
+        $updated = $this->updateSchedule($record, $data['version'], $publishAt);
 
-        $updated = DB::transaction(function () use ($record, $d) {
+        return $this->mutationDocument($updated, $r->user());
+    }
+
+    public function cancelSchedule(Request $r, Record $record): array
+    {
+        $data = $r->validate(['version' => 'required|integer']);
+        $updated = $this->updateSchedule($record, $data['version'], null);
+
+        return $this->mutationDocument($updated, $r->user());
+    }
+
+    private function updateSchedule(Record $record, int $version, ?DateTimeInterface $publishAt): Record
+    {
+        return DB::transaction(function () use ($record, $version, $publishAt): Record {
             $record = Record::lockForUpdate()->findOrFail($record->id);
-            abort_unless($record->version === $d['version'], 409);
+            abort_unless((int) $record->version === $version, 409);
             abort_unless(Collection::findOrFail($record->collection_id)->kind === 'content', 422);
-            $record->update(['publish_at' => $d['publish_at'], 'version' => $record->version + 1]);
+            if ($publishAt !== null || $record->publish_at !== null) {
+                $record->update(['publish_at' => $publishAt, 'version' => $record->version + 1]);
+            }
 
             return $record;
         });
-
-        return $this->mutationDocument($updated, $r->user());
     }
 
     public function restore(Request $r, Record $record, Revision $revision, RecordService $s): array
