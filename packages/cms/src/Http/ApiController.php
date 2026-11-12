@@ -360,6 +360,22 @@ class ApiController
         $collection = Collection::findOrFail($record->collection_id);
         $draft = Revision::where('record_id', $record->id)->findOrFail($record->draft_id)->data;
         $data = $this->fieldAccess->readableData($collection, $draft, $request->user());
+
+        return $this->renderPreview($record, $collection, $data, $renderer);
+    }
+
+    public function revisionPreview(Request $request, Record $record, Revision $revision, Renderer $renderer): Response
+    {
+        $collection = Collection::findOrFail($record->collection_id);
+        abort_unless($collection->kind === 'content' && (int) $revision->record_id === (int) $record->id, 404);
+        $keys = array_flip(array_column($collection->definition['fields'] ?? [], 'key'));
+        $data = $this->fieldAccess->readableData($collection, array_intersect_key($revision->data, $keys), $request->user());
+
+        return $this->renderPreview($record, $collection, $data, $renderer);
+    }
+
+    private function renderPreview(Record $record, Collection $collection, array $data, Renderer $renderer): Response
+    {
         $slug = is_string($data['slug'] ?? null) ? $data['slug'] : 'page-'.$record->id;
         $title = $data['title'] ?? $data['name'] ?? $slug;
 
