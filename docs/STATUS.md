@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.64**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.65**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -71,6 +71,7 @@ This is **0.1.0-alpha.64**. The remaining v1 work is listed below.
 - Docker runtime with PHP/HTTP/queue/scheduler, pinned base-image digests, non-root execution, and Formaku OCI labels verified on published images by digest. GitHub build/GHCR and deployment workflow templates pin action SHAs.
 - GitHub alpha releases include a Composer ZIP with compiled panel assets and a SHA-256 checksum for Laravel 13 hosts. The public Formaku Composer repository serves release metadata for direct installation.
 - The Releases panel can refresh the state of a dispatched image build from its GitHub Actions run and open that run directly.
+- Releases can read the historical deployment receipt from GitHub Actions for a matching run ID, release UUID and image digest. The host observation and SSH exit code are shown separately.
 - Host deployment and encrypted backup helper, restricted SSH dispatch, and rollback status matched by release UUID and image digest in GitHub Actions. CI checks deployment failures, backup retention and status reporting with synthetic Compose and SSH fixtures. Target VPS acceptance remains pending.
 
 ## Evidence
@@ -89,7 +90,7 @@ This is **0.1.0-alpha.64**. The remaining v1 work is listed below.
 - Broader configurable role management and a broader portal form and attachment builder.
 - Further page composition controls and theme management.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
-- GitHub project snapshot PR creation, deployment status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
+- GitHub project snapshot PR creation, live deployment status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
 - Composer VCS split and Packagist registration, full PL/EN manuals, public synthetic demo and release/security review.
 - Reference 2-vCPU/4-GB p95 benchmark.
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.65 — 2026-11-12
+
+- Check the GitHub Actions receipt for a deployment attempt in Releases. The panel shows the SSH exit code and the verified host observation separately, with rollback details when available.
+- No new migrations since alpha.64.
+
 ## 0.1.0-alpha.64 — 2026-11-12
 
 - Compare the saved draft with the current published revision through the paired website assistant. The read-only tool returns changed fields and the record version for review before publication.
