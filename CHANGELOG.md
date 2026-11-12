@@ -2,7 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.60 — 2026-11-12
+
 - Add and edit registered custom blocks in the page editor, including blocks that accept nested content.
+- No new migrations since alpha.37.
 
 ## 0.1.0-alpha.59 — 2026-11-12
 
