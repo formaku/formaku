@@ -148,6 +148,12 @@ jobs:
       - run: npm run build
       - name: Build Composer package
         run: bash scripts/build-composer-package.sh "$GITHUB_REF_NAME" "$RUNNER_TEMP/formaku-composer"
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, zip
+      - name: Install the release Composer archive in Laravel
+        run: bash scripts/smoke-composer-package.sh "$RUNNER_TEMP/formaku-composer/formaku-cms-$GITHUB_REF_NAME.zip"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: formaku-composer

@@ -69,6 +69,16 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: bash tests/css-sources.sh
       - run: node --test tests/assistant-adapter.test.mjs
+      - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
+        with:
+          php-version: '8.4'
+          extensions: pdo_sqlite, zip
+      - name: Install a test Composer archive in Laravel
+        run: |
+          tag=v0.0.0-alpha.0
+          archive_dir="$RUNNER_TEMP/formaku-composer"
+          bash scripts/build-composer-package.sh "$tag" "$archive_dir"
+          bash scripts/smoke-composer-package.sh "$archive_dir/formaku-cms-$tag.zip"
 
   browser:
     if: github.event_name != 'workflow_dispatch'
