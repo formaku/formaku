@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.66 — 2026-11-12
+
+- Configure the file count, maximum size and allowed formats for customer request attachments. The portal displays and enforces the selected policy.
+- Read the host controller’s latest record for a deployment attempt through a status-only GitHub Actions workflow.
+- Run the reference performance benchmark with fixed per-service limits totaling 2 vCPU and 4 GiB.
+- No new migrations since alpha.65.
+
 ## 0.1.0-alpha.65 — 2026-11-12
 
 - Check the GitHub Actions receipt for a deployment attempt in Releases. The panel shows the SSH exit code and the verified host observation separately, with rollback details when available.
