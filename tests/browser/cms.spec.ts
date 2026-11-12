@@ -75,8 +75,12 @@ test("browser authoring and publication", async ({ page }, info) => {
   await page.getByRole("button", { name: "Zaplanuj publikację", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Publikacja zaplanowana.");
   await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
-  await page.getByRole("row").filter({ hasText: "Browser test " + info.project.name })
-    .getByRole("button", { name: "Edytuj", exact: true }).click();
+  const scheduledFilter = page.getByRole("button", { name: "Zaplanowane", exact: true });
+  await scheduledFilter.click();
+  await expect(scheduledFilter).toHaveAttribute("aria-pressed", "true");
+  const draftRow = page.getByRole("row").filter({ hasText: "Browser test " + info.project.name });
+  await expect(draftRow.locator("time")).toBeVisible();
+  await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
   const schedule = page.getByText("Zaplanowany termin publikacji", { exact: false });
   const scheduledTime = await schedule.locator("time").getAttribute("datetime");
   expect(new Date(scheduledTime ?? "").toISOString()).toBe(
@@ -85,6 +89,11 @@ test("browser authoring and publication", async ({ page }, info) => {
   await page.getByRole("button", { name: "Anuluj zaplanowaną publikację", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Anulowano zaplanowaną publikację.");
   await expect(schedule).toHaveCount(0);
+  await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
+  await expect(scheduledFilter).toHaveAttribute("aria-pressed", "true");
+  await expect(draftRow).toHaveCount(0);
+  await page.getByRole("button", { name: "Wszystkie", exact: true }).click();
+  await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
   await expect(page.getByLabel("Tytuł", { exact: true })).toHaveValue("Browser test " + info.project.name);
   await page.getByRole("button", { name: "Pokaż podgląd" }).click();
   const preview = page.frameLocator('iframe[title="Podgląd zapisanego szkicu"]');

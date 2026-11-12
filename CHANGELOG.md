@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.49 — 2026-11-12
+
+- Find scheduled content drafts in the collection list. The panel shows their publication times and keeps the selected filter when returning from the editor.
+- Browse additional pages of records in the panel. The scheduled filter includes overdue drafts and orders them by earliest publication time.
+- New tagged releases run an installation check in the public image by digest before publication.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.48 — 2026-11-12
 
 - Run `php artisan formaku:doctor` to check Formaku migrations, the panel guard and authorization callback, and the published JavaScript and CSS.

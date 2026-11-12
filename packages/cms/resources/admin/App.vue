@@ -142,7 +142,7 @@ const boot = ref<any>(null),
   mode = ref("work"),
   collections = ref<Collection[]>([]),
   selected = ref<Collection | null>(null),
-  records = ref<any[]>([]),
+  recordsPage = ref<{ data: any[]; current_page: number; last_page: number } | null>(null),
   record = ref<any>(null),
   schema = ref<any>(null),
   tasks = ref<any[]>([]),
@@ -155,6 +155,8 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+const scheduledOnly = ref(false);
+let recordsRequest = 0;
 const portalAttachments = ref<PortalAttachment[]>([]);
 const portalAttachmentsFailed = ref(false);
 const portalRecordId = computed<number | undefined>(() =>
@@ -372,21 +374,42 @@ async function load() {
     selected.value = current ?? null;
     if (!current && section.value === "records") {
       setDraft(null);
-      records.value = [];
+      recordsPage.value = null;
       dirty.value = false;
       section.value = "dashboard";
     }
   }
 }
-async function choose(c: Collection) {
+async function loadRecords(page: number, onlyScheduled: boolean) {
+  const collectionId = selected.value!.id;
+  const requestId = ++recordsRequest;
+  const query = new URLSearchParams({ page: String(page) });
+  if (onlyScheduled) query.set("scheduled", "1");
+  const path = `/collections/${collectionId}/records`;
+  let result = await request(`${path}?${query}`);
+  if (requestId !== recordsRequest || selected.value?.id !== collectionId) return;
+  if (result.current_page > result.last_page) {
+    query.set("page", String(result.last_page));
+    result = await request(`${path}?${query}`);
+    if (requestId !== recordsRequest || selected.value?.id !== collectionId) return;
+  }
+  recordsPage.value = result;
+  scheduledOnly.value = onlyScheduled;
+}
+async function choose(c: Collection, keepList = false) {
   if (hasUnsavedChanges.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
+  const page = keepList ? (recordsPage.value?.current_page ?? 1) : 1;
+  const onlyScheduled = keepList && scheduledOnly.value;
   selected.value = c;
   section.value = "records";
   setDraft(null);
-  records.value = [];
+  recordsPage.value = null;
+  scheduledOnly.value = onlyScheduled;
   dirty.value = false;
-  const d = await request("/collections/" + c.id + "/records");
-  records.value = d.data;
+  await loadRecords(page, onlyScheduled);
+}
+function formatPublicationTime(value: string): string {
+  return new Date(value).toLocaleString(locale.value, { dateStyle: "medium", timeStyle: "short" });
 }
 function contentTemplate() {
   if (schema.value.kind === "content") {
@@ -545,8 +568,9 @@ async function save() {
       dirty.value = false;
       message.value = t("Szkic zapisany.");
     }
-    const d = await request("/collections/" + collectionId + "/records");
-    if (selected.value?.id === collectionId) records.value = d.data;
+    if (selected.value?.id === collectionId) {
+      await loadRecords(recordsPage.value?.current_page ?? 1, scheduledOnly.value);
+    }
     await load();
   });
 }
@@ -1543,8 +1567,26 @@ const title = computed(
           </form>
           <section v-if="section === 'records' && selected">
             <div v-if="!record">
-              <div class="flex justify-end mb-4">
-                <button class="btn btn-primary" @click="fresh">
+              <div class="mb-4 flex flex-wrap justify-between gap-2">
+                <div v-if="selected.kind === 'content'" class="join" role="group" :aria-label='t("Filtr publikacji")'>
+                  <button
+                    type="button"
+                    class="btn join-item"
+                    :class="{ 'btn-active': !scheduledOnly }"
+                    :aria-pressed="!scheduledOnly"
+                    :disabled="busy || !recordsPage"
+                    @click="run(() => loadRecords(1, false))"
+                  >{{ t("Wszystkie") }}</button>
+                  <button
+                    type="button"
+                    class="btn join-item"
+                    :class="{ 'btn-active': scheduledOnly }"
+                    :aria-pressed="scheduledOnly"
+                    :disabled="busy || !recordsPage"
+                    @click="run(() => loadRecords(1, true))"
+                  >{{ t("Zaplanowane") }}</button>
+                </div>
+                <button class="btn btn-primary ml-auto" :disabled="busy" @click="fresh">
                   <Plus :size="16" />{{ t("Dodaj rekord") }}
                 </button>
               </div>
@@ -1556,17 +1598,21 @@ const title = computed(
                     <tr>
                       <th>{{ t("Tytuł") }}</th>
                       <th>{{ t("Stan") }}</th>
+                      <th v-if="selected.kind === 'content'">{{ t("Termin publikacji") }}</th>
                       <th>{{ t("Wersja") }}</th>
                       <th />
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="r in records" :key="r.id">
+                    <tr v-for="r in recordsPage?.data" :key="r.id">
                       <td>{{ r.data.title ?? r.data.name ?? "#" + r.id }}</td>
                       <td>
                         <span class="badge badge-outline">{{
                           r.published_id ? t("Opublikowano") : r.state
                         }}</span>
+                      </td>
+                      <td v-if="selected.kind === 'content'">
+                        <time v-if="r.publish_at" :datetime="r.publish_at">{{ formatPublicationTime(r.publish_at) }}</time>
                       </td>
                       <td class="mono">{{ r.version }}</td>
                       <td>
@@ -1575,21 +1621,36 @@ const title = computed(
                         </button>
                       </td>
                     </tr>
-                    <tr v-if="!records.length">
+                    <tr v-if="recordsPage && !recordsPage.data.length">
                       <td
-                        colspan="4"
+                        :colspan="selected.kind === 'content' ? 5 : 4"
                         class="p-10 text-center text-base-content/50"
                       >
-                        {{ t("Tu pojawią się pierwsze rekordy.") }}
+                        {{ scheduledOnly ? t("Brak zaplanowanych publikacji.") : t("Tu pojawią się pierwsze rekordy.") }}
                       </td>
                     </tr>
                   </tbody>
                 </table>
               </div>
+              <div v-if="recordsPage && recordsPage.last_page > 1" class="mt-3 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  :disabled="busy || recordsPage.current_page === 1"
+                  @click="run(() => loadRecords(recordsPage!.current_page - 1, scheduledOnly))"
+                >{{ t("Poprzednia strona") }}</button>
+                <span class="text-sm" aria-live="polite">{{ recordsPage.current_page }} / {{ recordsPage.last_page }}</span>
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  :disabled="busy || recordsPage.current_page >= recordsPage.last_page"
+                  @click="run(() => loadRecords(recordsPage!.current_page + 1, scheduledOnly))"
+                >{{ t("Następna strona") }}</button>
+              </div>
             </div>
             <div v-else>
               <div class="flex flex-wrap justify-between gap-3 mb-6">
-                <button class="btn" :disabled="busy" @click="run(() => choose(selected!))">
+                <button class="btn" :disabled="busy" @click="run(() => choose(selected!, true))">
                   {{ t("Wróć do listy") }}
                 </button>
                 <div class="flex flex-wrap gap-2 items-center">
@@ -1926,7 +1987,7 @@ const title = computed(
                 <p v-if="record.publish_at" class="mb-3 text-sm">
                   {{ t("Zaplanowany termin publikacji") }}
                   <time :datetime="record.publish_at" class="font-medium">
-                    {{ new Date(record.publish_at).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" }) }}
+                    {{ formatPublicationTime(record.publish_at) }}
                   </time>
                 </p>
                 <div class="flex flex-wrap gap-3 items-end">

@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.48**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.49**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Filter scheduled content drafts in the panel and browse paginated collection records.
 
 - A read-only Artisan command checks Formaku migrations, panel authorization configuration, and the installed JavaScript and CSS.
 
