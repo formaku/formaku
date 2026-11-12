@@ -120,9 +120,9 @@ test("browser authoring and publication", async ({ page }, info) => {
   await page.getByRole("button", { name: "Zaplanuj publikację", exact: true }).click();
   await expect(page.getByRole("status")).toContainText("Publikacja zaplanowana.");
   await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
-  const scheduledFilter = page.getByRole("button", { name: "Zaplanowane", exact: true });
-  await scheduledFilter.click();
-  await expect(scheduledFilter).toHaveAttribute("aria-pressed", "true");
+  const publicationFilter = page.getByRole("combobox", { name: "Filtr publikacji" });
+  await publicationFilter.selectOption("scheduled");
+  await expect(publicationFilter).toHaveValue("scheduled");
   const contentState = page.getByRole("combobox", { name: "Filtr stanu" });
   await contentState.selectOption("new");
   const contentSearch = page.getByRole("searchbox", { name: "Szukaj po tytule lub nazwie" });
@@ -137,6 +137,7 @@ test("browser authoring and publication", async ({ page }, info) => {
   await scheduledSearchResult;
   const draftRow = page.getByRole("row").filter({ hasText: "Browser test " + info.project.name });
   await expect(draftRow.locator("time")).toBeVisible();
+  await expect(draftRow.getByText("Szkic", { exact: true })).toBeVisible();
   await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
   const schedule = page.getByText("Zaplanowany termin publikacji", { exact: false });
   const scheduledTime = await schedule.locator("time").getAttribute("datetime");
@@ -147,11 +148,11 @@ test("browser authoring and publication", async ({ page }, info) => {
   await expect(page.getByRole("status")).toContainText("Anulowano zaplanowaną publikację.");
   await expect(schedule).toHaveCount(0);
   await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
-  await expect(scheduledFilter).toHaveAttribute("aria-pressed", "true");
+  await expect(publicationFilter).toHaveValue("scheduled");
   await expect(contentState).toHaveValue("new");
   await expect(contentSearch).toHaveValue("Browser test " + info.project.name);
   await expect(draftRow).toHaveCount(0);
-  await page.getByRole("button", { name: "Wszystkie", exact: true }).click();
+  await publicationFilter.selectOption("unpublished");
   await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
   await expect(page.getByLabel("Tytuł", { exact: true })).toHaveValue("Browser test " + info.project.name);
   await page.getByRole("button", { name: "Pokaż podgląd" }).click();
@@ -193,6 +194,29 @@ test("browser authoring and publication", async ({ page }, info) => {
     .getByRole("button", { name: "Opublikuj treść", exact: true })
     .click();
   await expect(page.getByRole("status")).toContainText("Treść opublikowana");
+
+  await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
+  await expect(publicationFilter).toHaveValue("unpublished");
+  await expect(draftRow).toHaveCount(0);
+  await publicationFilter.selectOption("published");
+  await expect(draftRow.getByText("Opublikowano", { exact: true })).toBeVisible();
+  await expect(draftRow.getByText("Nowszy szkic", { exact: true })).toHaveCount(0);
+  await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
+  await page.getByLabel("title", { exact: true }).fill("A newer saved draft");
+  await page.getByRole("button", { name: "Zapisz szkic" }).click();
+  await expect(page.getByRole("status")).toContainText("Szkic zapisany");
+  await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
+  await expect(draftRow.getByText("Nowszy szkic", { exact: true })).toBeVisible();
+  const changedDrafts = page.waitForResponse((response) => {
+    const query = new URL(response.url()).searchParams;
+    return query.get("publication") === "changed" && query.get("label") === draftTitle
+      && query.get("state") === "new" && response.ok();
+  });
+  await publicationFilter.selectOption("changed");
+  await changedDrafts;
+  await expect(publicationFilter).toBeEnabled();
+  await expect(draftRow.getByText("Opublikowano", { exact: true })).toBeVisible();
+  await expect(draftRow.getByText("Nowszy szkic", { exact: true })).toBeVisible();
 
   await page.getByRole("button", { name: "Media", exact: true }).click();
   await card.getByRole("button", { name: "Użycie pliku" }).click();

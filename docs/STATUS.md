@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.51**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.52**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Filter the content list by publication status and see when an already published record has a newer saved draft.
 
 - Search current record titles and names across a collection’s pages, respecting field permissions.
 

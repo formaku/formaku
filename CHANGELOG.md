@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.52 — 2026-11-12
+
+- Filter content by publication status, including unpublished records and published records with a newer saved draft.
+- Use the same publication filter to find scheduled records. Row badges show the publication status and whether a newer draft exists.
+- The release workflow tests the Composer archive in Laravel before publication. No new migrations since alpha.37.
+
 ## 0.1.0-alpha.51 — 2026-11-12
 
 - Find content drafts and data records by a fragment of the current title or name. Search respects field permissions and can be combined with workflow state and scheduled publication.

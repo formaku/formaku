@@ -155,7 +155,7 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
-const emptyRecordsFilter = { scheduled: false, state: "", label: "" };
+const emptyRecordsFilter = { publication: "", state: "", label: "" };
 const recordsFilter = ref(emptyRecordsFilter);
 const recordsLabelInput = ref("");
 const recordsStates = computed(() => {
@@ -391,7 +391,11 @@ async function loadRecords(page: number, filters = recordsFilter.value) {
   const requestId = ++recordsRequest;
   const query = new URLSearchParams();
   if (page > 1) query.set("page", String(page));
-  if (filters.scheduled) query.set("scheduled", "1");
+  if (filters.publication === "scheduled") {
+    query.set("scheduled", "1");
+  } else if (filters.publication) {
+    query.set("publication", filters.publication);
+  }
   if (filters.state) query.set("state", filters.state);
   if (filters.label) query.set("label", filters.label);
   const path = `/collections/${collectionId}/records`;
@@ -405,10 +409,10 @@ async function loadRecords(page: number, filters = recordsFilter.value) {
   recordsPage.value = result;
   recordsFilter.value = filters;
 }
-async function changeRecordsState(event: Event) {
+async function changeRecordsFilter(key: "state" | "publication", event: Event) {
   const control = event.target as HTMLSelectElement;
-  await run(() => loadRecords(1, { ...recordsFilter.value, state: control.value }));
-  control.value = recordsFilter.value.state;
+  await run(() => loadRecords(1, { ...recordsFilter.value, [key]: control.value }));
+  control.value = recordsFilter.value[key];
 }
 async function choose(c: Collection, keepList = false) {
   if (hasUnsavedChanges.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
@@ -1599,30 +1603,26 @@ const title = computed(
                 <button type="submit" class="btn" :disabled="busy || !recordsPage">{{ t("Szukaj") }}</button>
               </form>
               <div class="mb-4 flex flex-wrap justify-between gap-2">
-                <div v-if="selected.kind === 'content'" class="join" role="group" :aria-label='t("Filtr publikacji")'>
-                  <button
-                    type="button"
-                    class="btn join-item"
-                    :class="{ 'btn-active': !recordsFilter.scheduled }"
-                    :aria-pressed="!recordsFilter.scheduled"
-                    :disabled="busy || !recordsPage"
-                    @click="run(() => loadRecords(1, { ...recordsFilter, scheduled: false }))"
-                  >{{ t("Wszystkie") }}</button>
-                  <button
-                    type="button"
-                    class="btn join-item"
-                    :class="{ 'btn-active': recordsFilter.scheduled }"
-                    :aria-pressed="recordsFilter.scheduled"
-                    :disabled="busy || !recordsPage"
-                    @click="run(() => loadRecords(1, { ...recordsFilter, scheduled: true }))"
-                  >{{ t("Zaplanowane") }}</button>
-                </div>
+                <select
+                  v-if="selected.kind === 'content'"
+                  class="select w-full sm:w-auto"
+                  :aria-label='t("Filtr publikacji")'
+                  :value="recordsFilter.publication"
+                  :disabled="busy || !recordsPage"
+                  @change="changeRecordsFilter('publication', $event)"
+                >
+                  <option value="">{{ t("Wszystkie stany publikacji") }}</option>
+                  <option value="unpublished">{{ t("Nieopublikowane") }}</option>
+                  <option value="published">{{ t("Opublikowane") }}</option>
+                  <option value="changed">{{ t("Z nowszym szkicem") }}</option>
+                  <option value="scheduled">{{ t("Zaplanowane") }}</option>
+                </select>
                 <select
                   class="select w-full sm:w-auto"
                   :aria-label='t("Filtr stanu")'
                   :value="recordsFilter.state"
                   :disabled="busy || !recordsPage"
-                  @change="changeRecordsState"
+                  @change="changeRecordsFilter('state', $event)"
                 >
                   <option value="">{{ t("Wszystkie stany") }}</option>
                   <option v-for="state in recordsStates" :key="state" :value="state">{{ state }}</option>
@@ -1649,7 +1649,13 @@ const title = computed(
                       <td>{{ r.data.title ?? r.data.name ?? "#" + r.id }}</td>
                       <td>
                         <span class="badge badge-outline">{{ r.state }}</span>
-                        <span v-if="r.published_id" class="badge badge-outline ms-1">{{ t("Opublikowano") }}</span>
+                        <template v-if="selected.kind === 'content'">
+                          <span class="badge badge-outline ms-1">{{ r.published_id ? t("Opublikowano") : t("Szkic") }}</span>
+                          <span
+                            v-if="r.published_id && r.draft_id && r.draft_id !== r.published_id"
+                            class="badge badge-outline ms-1"
+                          >{{ t("Nowszy szkic") }}</span>
+                        </template>
                       </td>
                       <td v-if="selected.kind === 'content'">
                         <time v-if="r.publish_at" :datetime="r.publish_at">{{ formatPublicationTime(r.publish_at) }}</time>
@@ -1666,8 +1672,8 @@ const title = computed(
                         :colspan="selected.kind === 'content' ? 5 : 4"
                         class="p-10 text-center text-base-content/50"
                       >
-                        <template v-if="recordsFilter.state || recordsFilter.label">{{ t("Brak rekordów pasujących do filtrów.") }}</template>
-                        <template v-else-if="recordsFilter.scheduled">{{ t("Brak zaplanowanych publikacji.") }}</template>
+                        <template v-if="recordsFilter.publication === 'scheduled' && !recordsFilter.state && !recordsFilter.label">{{ t("Brak zaplanowanych publikacji.") }}</template>
+                        <template v-else-if="recordsFilter.publication || recordsFilter.state || recordsFilter.label">{{ t("Brak rekordów pasujących do filtrów.") }}</template>
                         <template v-else>{{ t("Tu pojawią się pierwsze rekordy.") }}</template>
                       </td>
                     </tr>
