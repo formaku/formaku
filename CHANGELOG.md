@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.53 — 2026-11-12
+
+- Withdraw a published page from the editor while keeping its saved draft and revision history.
+- Withdrawing a publication also cancels its scheduled publication. The record can be published again from its saved draft.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.52 — 2026-11-12
 
 - Filter content by publication status, including unpublished records and published records with a newer saved draft.

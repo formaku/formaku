@@ -270,6 +270,74 @@ test("browser authoring and publication", async ({ page }, info) => {
       .toHaveAttribute("href", "https://formaku.eu/pl/docs/");
   }
 });
+test("withdraw and republish content while keeping the latest draft", async ({ page }, info) => {
+  test.slow();
+  const slug = "withdraw-" + info.project.name + "-" + Date.now();
+  const initialTitle = "Published " + slug;
+  const revisedTitle = "Revised " + slug;
+
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  const csrf = await page.locator('meta[name="csrf-token"]').getAttribute("content");
+  const api = "/formaku/api/v1";
+  const post = async (path: string, data: object) => {
+    const response = await page.request.post(api + path, {
+      data, headers: { "X-CSRF-TOKEN": csrf ?? "" },
+    });
+    await expect(response).toBeOK();
+    return response.json();
+  };
+
+  const collections = await (await page.request.get(api + "/collections")).json();
+  const pages = collections.find((collection: { key: string }) => collection.key === "pages");
+  const recordPath = `/collections/${pages.id}/records`;
+  const created = await post(recordPath, { version: 0, data: { title: initialTitle, slug, blocks: [] } });
+  const published = await post(`/records/${created.id}/publish`, { version: created.version });
+  const revised = await post(recordPath, {
+    id: created.id, version: published.version, data: { title: revisedTitle, slug, blocks: [] },
+  });
+  await post(`/records/${created.id}/schedule`, {
+    version: revised.version, publish_at: new Date(Date.now() + 86_400_000).toISOString(),
+  });
+  await expect(await page.request.get("/p/" + slug)).toBeOK();
+
+  await page.getByRole("button", { name: "Strony i oferta", exact: true }).click();
+  const search = page.getByRole("searchbox", { name: "Szukaj po tytule lub nazwie" });
+  await search.fill(revisedTitle);
+  await search.press("Enter");
+  const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: revisedTitle, exact: true }) });
+  await row.getByRole("button", { name: "Edytuj", exact: true }).click();
+  const unpublish = page.getByRole("button", { name: "Wycofaj publikację", exact: true });
+  const scheduled = page.getByText("Zaplanowany termin publikacji", { exact: false });
+  await expect(scheduled).toBeVisible();
+
+  const cancellation = page.waitForEvent("dialog").then((dialog) => dialog.dismiss());
+  await unpublish.click();
+  await cancellation;
+  await expect(unpublish).toBeEnabled();
+  await expect(await page.request.get("/p/" + slug)).toBeOK();
+
+  const confirmation = page.waitForEvent("dialog").then((dialog) => dialog.accept());
+  await unpublish.click();
+  await confirmation;
+  await expect(page.getByRole("status")).toContainText("Publikacja wycofana.");
+  await expect(unpublish).toHaveCount(0);
+  await expect(scheduled).toHaveCount(0);
+  await expect(page.getByLabel("Tytuł", { exact: true })).toHaveValue(revisedTitle);
+  expect((await page.request.get("/p/" + slug)).status()).toBe(404);
+
+  await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
+  await page.getByRole("combobox", { name: "Filtr publikacji" }).selectOption("unpublished");
+  await expect(row.getByText("Szkic", { exact: true })).toBeVisible();
+  await row.getByRole("button", { name: "Edytuj", exact: true }).click();
+  await page.getByRole("button", { name: "Opublikuj treść", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Treść opublikowana.");
+  await page.goto("/p/" + slug);
+  await expect(page).toHaveTitle(revisedTitle);
+});
+
 test("mobile login stays within viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/login");

@@ -28,6 +28,8 @@ Zapisz szkic, wybierz **Data publikacji** i kliknij **Zaplanuj publikację**. Pa
 
 W kolekcji treści użyj pola **Filtr publikacji**, aby znaleźć rekordy **Nieopublikowane**, **Opublikowane** lub **Z nowszym szkicem**. Ostatnia opcja pokazuje opublikowane rekordy, których bieżący szkic zapisano po publikacji. Wiersz wyświetla wtedy odznaki **Opublikowano** i **Nowszy szkic**.
 
+W otwartym opublikowanym rekordzie wybierz **Wycofaj publikację** i potwierdź. Potrzebujesz uprawnienia publikowania i zapisu rekordu. Strona znika z katalogu i mapy witryny, a zapisany szkic i historia zostają w panelu. Wycofanie anuluje zapisany termin publikacji. Aby przywrócić stronę, otwórz zapisany szkic i ponownie wybierz **Opublikuj treść**.
+
 Na liście rekordów wpisz fragment aktualnego tytułu lub nazwy i kliknij **Szukaj**. Wyszukiwanie obejmuje wszystkie strony listy i uwzględnia uprawnienia odczytu pól. Aby je wyczyścić, usuń frazę i ponownie kliknij **Szukaj**.
 
 Na liście rekordów wybierz stan w polu **Filtr stanu**. Wybór pozostaje aktywny podczas zmiany stron i po powrocie z edytora. W kolekcjach treści możesz połączyć go z filtrem **Zaplanowane**. Wybierz **Wszystkie stany**, aby wyczyścić filtr stanu.
@@ -153,6 +155,8 @@ Work: create and edit collection records; save a draft, inspect its preview and 
 To schedule a saved draft, choose **Publication date** and select **Schedule publication**. The editor shows the saved time in your browser’s time zone. Use **Cancel scheduled publication** to remove the time and keep the draft. Saving another revision clears the earlier schedule. In the content list, open **Publication filter** and select **Scheduled** to see saved publication times, including overdue ones, in chronological order. Returning from the editor keeps the current filter and page. For the starter, keep its scheduler running to publish at the chosen time. For a Composer host, [register the scheduled publication command](../developer/README.md#enable-scheduled-publication-in-a-composer-host).
 
 In the content list, use **Publication filter** to find **Unpublished**, **Published**, or **With newer draft**. The last option shows published records that have a later saved draft. The row displays both **Published** and **Newer draft**.
+
+In an open published record, select **Unpublish** and confirm. You need permission to publish and edit the record. The page is removed from the catalog and sitemap, the scheduled publication is cancelled, and the saved draft and history remain in the panel. Open the saved draft and select **Publish content** to publish it again.
 
 In a collection's record list, enter part of the current title or name and select **Search**. Search covers all result pages and respects field read permissions. Clear the field and select **Search** again to reset.
 

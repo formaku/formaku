@@ -625,6 +625,22 @@ async function publish() {
     await load();
   });
 }
+async function unpublish() {
+  const draft = record.value;
+  if (!draft?.published_id || busy.value || hasUnsavedChanges.value) return;
+  if (!confirm(t("Wycofać publikację? Zapisany szkic pozostanie w panelu, a zaplanowana publikacja zostanie anulowana."))) return;
+
+  await run(async () => {
+    const updated = await request(`/records/${draft.id}/publish`, "DELETE", {
+      version: draft.version,
+    });
+    if (record.value !== draft) return;
+    Object.assign(draft, updated);
+    scheduledAt.value = "";
+    message.value = t("Publikacja wycofana.");
+    await load();
+  });
+}
 function newSchema() {
   schema.value = {
     key: "",
@@ -1735,6 +1751,15 @@ const title = computed(
                     @click="publish"
                   >
                     {{ t("Opublikuj treść") }}
+                  </button>
+                  <button
+                    v-if="record.published_id && selected.kind === 'content' && boot?.abilities?.publish"
+                    type="button"
+                    class="btn btn-outline btn-error"
+                    :disabled="hasUnsavedChanges || busy"
+                    @click="unpublish"
+                  >
+                    {{ t("Wycofaj publikację") }}
                   </button>
                 </div>
               </div>
