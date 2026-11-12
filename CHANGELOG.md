@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.40 — 2026-11-12
+
+- Record the outcome of a failed host deployment and make the current status readable during deployment. The controller attempts to bring the previous image back once and waits for Compose health checks.
+- Keep finalized encrypted backups and their identifiers when deployment fails. The controller rejects reuse of a release UUID with an existing backup.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.39 — 2026-11-12
 
 - Published Docker images carry Formaku OCI metadata, including the source repository, exact commit and release version. The workflow verifies these labels on the public AMD64 image by digest.
