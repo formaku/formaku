@@ -354,9 +354,9 @@ async function applyProposal(task: any) {
   const c = collections.value.find(
     (c) =>
       c.kind === "content" &&
-      c.definition.fields.some((f) => f.key === "blocks"),
+      c.definition.fields.some((f) => f.key === "blocks" && f.writable !== false),
   );
-  if (!c) throw Error(t("Utwórz kolekcję stron z polem blocks."));
+  if (!c) throw Error(t("Potrzebujesz kolekcji stron z prawem zapisu sekcji."));
   await choose(c);
   fresh();
   record.value.data = { ...task.result, slug: "proposal-" + task.id };

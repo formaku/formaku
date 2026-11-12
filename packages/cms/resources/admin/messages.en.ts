@@ -162,7 +162,7 @@ export const messages: Record<string, string> = {
   "Usuń sekcję": "Remove section",
   "Usuń z wyboru {0}": "Remove {0} from selection",
   "powiązany rekord {0}": "related record {0}",
-  "Utwórz kolekcję stron z polem blocks.": "Create a page collection with a blocks field.",
+  "Potrzebujesz kolekcji stron z prawem zapisu sekcji.": "Choose a page collection where you can write page sections.",
   "Użycie pliku": "File usage",
   "Użyj ścieżki, np. /p/kontakt, albo pełnego adresu HTTP lub HTTPS.": "Use a path such as /p/contact, or a full HTTP or HTTPS URL.",
   "W Codexie możesz teraz napisać „Utwórz szkic strony Kontakt”.": "You can now ask Codex to draft a Contact page.",
