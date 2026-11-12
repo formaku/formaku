@@ -119,6 +119,7 @@ type Collection = {
     public?: boolean;
     seo?: CollectionSeo;
     access?: CollectionRoleRules | CollectionRoleRule[];
+    portal_fields?: string[];
   };
 };
 const clone = (v: any) => JSON.parse(JSON.stringify(v));
@@ -227,6 +228,29 @@ function canRestrictFieldRead(field: Field) {
 const invalidFieldRead = computed(() => schema.value?.definition.fields.some(
   (field: Field) => field.access?.read !== undefined && !canRestrictFieldRead(field),
 ));
+const portalSchema = computed(() => schema.value?.key === "requests" && schema.value.kind === "data");
+const portalFieldTypes = new Set(["text", "number", "date", "boolean", "select"]);
+const portalModelFields = computed<Field[]>(() => {
+  if (!portalSchema.value) return [];
+  return schema.value.definition.fields.filter((field: Field) => {
+    if (field.private || !portalFieldTypes.has(field.type)) return false;
+    if (!/^[a-z][a-z0-9_]{0,48}$/.test(field.key) || field.key === "title" || field.key === "description") return false;
+    if (field.type !== "select") return true;
+    const options = field.options;
+    return Array.isArray(options) && options.length > 0 && new Set(options).size === options.length
+      && options.every((option) => typeof option === "string" && option !== "" && option.trim() === option
+        && !option.includes(",") && !option.startsWith('"'));
+  });
+});
+const portalFieldSelection = computed<string[]>({
+  get() {
+    const keys = schema.value?.definition.portal_fields;
+    return Array.isArray(keys) ? keys : [];
+  },
+  set(keys) {
+    schema.value.definition.portal_fields = keys;
+  },
+});
 function readonlyFieldValue(value: unknown): string {
   if (value == null || value === "") return "—";
   if (typeof value === "boolean") return value ? t("Tak") : t("Nie");
@@ -531,7 +555,14 @@ function newSchema() {
 }
 async function saveSchema() {
   await run(async () => {
-    await request("/collections", "POST", schema.value);
+    const definition = { ...schema.value.definition };
+    if (portalSchema.value && Array.isArray(definition.portal_fields)) {
+      const eligibleKeys = new Set(portalModelFields.value.map((field) => field.key));
+      definition.portal_fields = [...new Set(portalFieldSelection.value.filter((key) => eligibleKeys.has(key)))];
+    } else {
+      delete definition.portal_fields;
+    }
+    await request("/collections", "POST", { ...schema.value, definition });
     await load();
     schema.value = null;
     section.value = "builder";
@@ -1264,6 +1295,19 @@ const title = computed(
                 <Plus :size="15" />{{ t("Dodaj pole") }}
               </button>
             </div>
+            <fieldset v-if="portalSchema" class="fieldset bg-base-100 border border-base-300 rounded-xl p-6">
+              <legend class="fieldset-legend text-lg">{{ t("Pola portalu klienta") }}</legend>
+              <p class="text-sm text-base-content/70">
+                {{ t("Wybierz dodatkowe pola formularza zgłoszenia. Formularz zawsze zawiera temat i opis.") }}
+              </p>
+              <p v-if="!portalModelFields.length" class="text-sm">
+                {{ t("Dodaj pole tekstowe, liczbowe, datę, pole Tak/Nie lub listę z opcjami, aby je tu wybrać.") }}
+              </p>
+              <label v-for="field in portalModelFields" :key="field.key" class="flex items-center gap-2 text-sm py-1">
+                <input v-model="portalFieldSelection" type="checkbox" class="checkbox checkbox-sm" :value="field.key" />
+                <span class="min-w-0 wrap-anywhere">{{ field.label }} ({{ field.key }})</span>
+              </label>
+            </fieldset>
             <fieldset
               v-if="publicContentSchema"
               class="fieldset bg-base-100 border border-base-300 rounded-xl p-6"
