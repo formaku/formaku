@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.55 — 2026-11-12
+
+- A draft save conflict preserves local edits and pauses automatic and manual saves.
+- Download the locally edited form values as JSON, or load the current server draft after confirmation to resume saving.
+- The first field edit reliably starts autosave for an existing draft.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.54 — 2026-11-12
 
 - Preview a saved content revision in a new tab from revision history. The preview respects current access and field permissions.

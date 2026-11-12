@@ -171,6 +171,7 @@ const portalRecordId = computed<number | undefined>(() =>
     : undefined,
 );
 const translationDirty = ref(false);
+const draftSaveConflict = ref(false);
 const translationsRecordId = computed<number | undefined>(() =>
   selected.value?.kind === "content" && selected.value.definition.public && boot.value?.abilities?.publish
     ? record.value?.id
@@ -445,7 +446,7 @@ async function openHistory() {
     const draft = record.value;
     const result = await request("/records/" + draft.id);
     if (record.value !== draft) return;
-    if (hasUnsavedChanges.value) {
+    if (hasUnsavedChanges.value || draftSaveConflict.value) {
       draft.history = result.history;
     } else if (JSON.stringify(draft.data) !== JSON.stringify(result.data)) {
       setDraft(result);
@@ -493,6 +494,7 @@ async function applyProposal(task: any) {
 }
 function setDraft(draft: any) {
   record.value = draft;
+  draftSaveConflict.value = false;
   removedBlock.value = null;
 }
 function fresh() {
@@ -564,6 +566,7 @@ async function deletePageTemplate() {
   });
 }
 async function save() {
+  if (draftSaveConflict.value) return;
   clearTimeout(autosaveTimer);
   pendingAutosave = null;
   await run(async () => {
@@ -578,8 +581,12 @@ async function save() {
       "/collections/" + collectionId + "/records",
       "POST",
       { id: snapshot.id, version: snapshot.version, data },
-    );
-    if (record.value !== draft || selected.value?.id !== collectionId) return;
+    ).catch((failure: unknown) => {
+      if (!(failure instanceof Error && "status" in failure && failure.status === 409)) throw failure;
+      if (record.value === draft && selected.value?.id === collectionId) draftSaveConflict.value = true;
+      return null;
+    });
+    if (!result || record.value !== draft || selected.value?.id !== collectionId) return;
     if (JSON.stringify(draft.data) !== JSON.stringify(snapshot.data)) {
       record.value.id = result.id;
       record.value.version = result.version;
@@ -597,6 +604,28 @@ async function save() {
     }
     await load();
   });
+}
+async function loadCurrentDraft() {
+  const draft = record.value;
+  if (!draftSaveConflict.value || busy.value) return;
+  if (dirty.value && !confirm(t("Odrzucić niezapisane zmiany szkicu i wczytać aktualną wersję?"))) return;
+  const confirmedData = JSON.stringify(draft.data);
+
+  await run(async () => {
+    const current = await request(`/records/${draft.id}`);
+    if (record.value !== draft || JSON.stringify(draft.data) !== confirmedData) return;
+    setDraft(current);
+    dirty.value = false;
+    scheduledAt.value = "";
+    message.value = t("Wczytano aktualny szkic.");
+  });
+}
+function downloadDraftEdits() {
+  const draft = record.value;
+  const fields = selected.value!.definition.fields
+    .filter((field) => field.writable !== false && Object.hasOwn(draft.data, field.key));
+  const values = Object.fromEntries(fields.map((field) => [field.key, draft.data[field.key]]));
+  downloadJson(`formaku-draft-${draft.id}.json`, values);
 }
 async function updateSchedule(cancel = false) {
   await run(async () => {
@@ -849,16 +878,17 @@ async function refreshRelease(id: string) {
     refreshingReleases.value.delete(id);
   }
 }
+function downloadJson(filename: string, data: unknown) {
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  link.href = url;
+  link.download = filename;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
 async function exportProject() {
   await run(async () => {
-    const d = await request("/project");
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(
-      new Blob([JSON.stringify(d, null, 2)], { type: "application/json" }),
-    );
-    a.download = "formaku-project.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadJson("formaku-project.json", await request("/project"));
   });
 }
 function scheduleAutosave() {
@@ -868,20 +898,20 @@ function scheduleAutosave() {
     pendingAutosave = null;
     return;
   }
-  if (!draft.id || busy.value || blockMoveSource.value) return;
+  if (!draft.id || busy.value || blockMoveSource.value || draftSaveConflict.value) return;
 
   autosaveTimer = setTimeout(() => {
-    if (record.value === draft && dirty.value && !busy.value && !blockMoveSource.value) {
+    if (record.value === draft && dirty.value && !busy.value && !blockMoveSource.value && !draftSaveConflict.value) {
       void save();
     }
   }, 1800);
 }
 
-watch(() => record.value?.data, () => {
+watch([() => record.value?.data, dirty], () => {
   pendingAutosave = dirty.value ? record.value : null;
   scheduleAutosave();
 }, { deep: true });
-watch([busy, blockMoveSource], scheduleAutosave);
+watch([busy, blockMoveSource, draftSaveConflict], scheduleAutosave);
 function dropBlock(i: number) {
   if (draggedBlock.value === null) return;
   const [block] = record.value.data.blocks.splice(draggedBlock.value, 1);
@@ -1743,7 +1773,7 @@ const title = computed(
                     target="_blank"
                     rel="noopener"
                     >{{ t("Podgląd w nowej karcie") }}<ArrowUpRight :size="16" /></a
-                  ><button class="btn" @click="save" :disabled="busy">
+                  ><button class="btn" @click="save" :disabled="busy || draftSaveConflict">
                     <Save :size="16" />{{ t("Zapisz szkic") }}</button
                   ><button
                     v-if="
@@ -1752,7 +1782,7 @@ const title = computed(
                       boot?.abilities?.publish
                     "
                     class="btn btn-primary"
-                    :disabled="dirty || busy"
+                    :disabled="dirty || busy || draftSaveConflict"
                     @click="publish"
                   >
                     {{ t("Opublikuj treść") }}
@@ -1761,13 +1791,27 @@ const title = computed(
                     v-if="record.published_id && selected.kind === 'content' && boot?.abilities?.publish"
                     type="button"
                     class="btn btn-outline btn-error"
-                    :disabled="hasUnsavedChanges || busy"
+                    :disabled="hasUnsavedChanges || busy || draftSaveConflict"
                     @click="unpublish"
                   >
                     {{ t("Wycofaj publikację") }}
                   </button>
                 </div>
               </div>
+              <section v-if="draftSaveConflict" class="alert alert-warning alert-vertical sm:alert-horizontal mb-6">
+                <div role="alert">
+                  <p class="font-semibold">{{ t("Szkic zmienił się na serwerze.") }}</p>
+                  <p class="text-sm">{{ t("Twoje zmiany są w edytorze. Aby wznowić zapisywanie, wczytaj aktualny szkic.") }}</p>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <button type="button" class="btn btn-sm" @click="downloadDraftEdits">
+                    {{ t("Pobierz moje zmiany") }}
+                  </button>
+                  <button type="button" class="btn btn-sm" :disabled="busy" @click="loadCurrentDraft">
+                    {{ t("Wczytaj aktualny szkic") }}
+                  </button>
+                </div>
+              </section>
               <section
                 v-if="previewOpen && previewUrl"
                 id="record-preview"
@@ -2073,10 +2117,10 @@ const title = computed(
                     <span class="field-label">{{ t("Data publikacji") }}</span>
                     <input type="datetime-local" class="input" v-model="scheduledAt" :disabled="busy" />
                   </label>
-                  <button type="button" class="btn" :disabled="dirty || busy || !scheduledAt" @click="updateSchedule()">
+                  <button type="button" class="btn" :disabled="dirty || busy || draftSaveConflict || !scheduledAt" @click="updateSchedule()">
                     {{ t("Zaplanuj publikację") }}
                   </button>
-                  <button v-if="record.publish_at" type="button" class="btn" :disabled="busy" @click="updateSchedule(true)">
+                  <button v-if="record.publish_at" type="button" class="btn" :disabled="busy || draftSaveConflict" @click="updateSchedule(true)">
                     {{ t("Anuluj zaplanowaną publikację") }}
                   </button>
                 </div>
@@ -2121,7 +2165,7 @@ const title = computed(
                       <button
                         type="button"
                         class="btn btn-xs"
-                        :disabled="busy || hasUnsavedChanges"
+                        :disabled="busy || hasUnsavedChanges || draftSaveConflict"
                         @click="restoreDraftRevision(h.id)"
                       >
                         {{ t("Przywróć do szkicu") }}
@@ -2148,6 +2192,7 @@ const title = computed(
                   )"
                   :key="transition.to"
                   class="btn"
+                  :disabled="busy || draftSaveConflict"
                   @click="
                     run(async () => {
                       record = await request(
