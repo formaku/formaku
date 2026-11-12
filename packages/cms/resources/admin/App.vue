@@ -334,7 +334,10 @@ async function restoreDraftRevision(revisionId: number) {
       { version: draft.version },
     );
     if (record.value !== draft) return;
+    clearTimeout(autosaveTimer);
+    pendingAutosave = null;
     setDraft(result);
+    dirty.value = false;
     message.value = t("Wersja przywrócona do szkicu.");
   });
 }

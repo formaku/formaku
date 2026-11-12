@@ -144,7 +144,7 @@ class ApiController
 
         try {
             $published = $s->publish($record, $d['version'], $r->user()->id);
-        } catch (ValidationException | HttpExceptionInterface $error) {
+        } catch (ValidationException|HttpExceptionInterface $error) {
             if ($error instanceof ValidationException || $error->getStatusCode() === 422) {
                 $collection = Collection::findOrFail($record->collection_id);
                 abort_if($this->hiddenFields($collection, $r->user()) !== [], 422, 'The draft could not be published.');
@@ -187,7 +187,9 @@ class ApiController
         $user = $r->user();
         $restored = $s->save($collection, $record, $revision->data, $version, $user->id, actorUser: $user, restore: true);
 
-        return $this->mutationDocument($restored, $user);
+        $collection = Collection::findOrFail($restored->collection_id);
+
+        return $this->document($restored, $collection, $user, $this->hiddenFields($collection, $user));
     }
 
     public function preview(Request $request, Record $record, Renderer $renderer): Response

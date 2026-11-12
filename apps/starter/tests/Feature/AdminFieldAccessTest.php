@@ -108,7 +108,10 @@ class AdminFieldAccessTest extends TestCase
             ->assertOk()
             ->assertJsonPath('published_title', 'Public listing label')
             ->assertJsonMissingPath('search_text')
-            ->assertJsonMissingPath('data')
+            ->assertJsonPath('data.summary', 'Previous summary')
+            ->assertJsonPath('data.name', 'Public listing label')
+            ->assertJsonMissingPath('data.title')
+            ->assertJsonMissingPath('data.blocks')
             ->json();
         $draft = $record->fresh()->draft->data;
         $this->assertSame('Previous summary', $draft['summary']);
