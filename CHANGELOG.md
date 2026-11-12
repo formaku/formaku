@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.51 — 2026-11-12
+
+- Find content drafts and data records by a fragment of the current title or name. Search respects field permissions and can be combined with workflow state and scheduled publication.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.50 — 2026-11-12
 
 - Filter collection records by workflow state. The panel keeps the filter when changing pages and returning from the editor.

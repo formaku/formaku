@@ -207,6 +207,8 @@ export const messages: Record<string, string> = {
   "Zaplanowane": "Scheduled",
   "Filtr publikacji": "Publication filter",
   "Filtr stanu": "Status filter",
+  "Szukaj po tytule lub nazwie": "Search by title or name",
+  "Szukaj": "Search",
   "Wszystkie stany": "All statuses",
   "Brak rekordów pasujących do filtrów.": "No records match the filters.",
   "Anuluj zaplanowaną publikację": "Cancel scheduled publication",

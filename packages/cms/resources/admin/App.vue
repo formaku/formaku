@@ -155,8 +155,9 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
-const scheduledOnly = ref(false);
-const recordsState = ref("");
+const emptyRecordsFilter = { scheduled: false, state: "", label: "" };
+const recordsFilter = ref(emptyRecordsFilter);
+const recordsLabelInput = ref("");
 const recordsStates = computed(() => {
   const states = (selected.value?.definition.states ?? []).filter(Boolean);
   return states.length ? [...new Set(states)] : ["new"];
@@ -385,13 +386,14 @@ async function load() {
     }
   }
 }
-async function loadRecords(page: number, onlyScheduled: boolean, state = recordsState.value) {
+async function loadRecords(page: number, filters = recordsFilter.value) {
   const collectionId = selected.value!.id;
   const requestId = ++recordsRequest;
   const query = new URLSearchParams();
   if (page > 1) query.set("page", String(page));
-  if (onlyScheduled) query.set("scheduled", "1");
-  if (state) query.set("state", state);
+  if (filters.scheduled) query.set("scheduled", "1");
+  if (filters.state) query.set("state", filters.state);
+  if (filters.label) query.set("label", filters.label);
   const path = `/collections/${collectionId}/records`;
   let result = await request(query.size ? `${path}?${query}` : path);
   if (requestId !== recordsRequest || selected.value?.id !== collectionId) return;
@@ -401,27 +403,25 @@ async function loadRecords(page: number, onlyScheduled: boolean, state = records
     if (requestId !== recordsRequest || selected.value?.id !== collectionId) return;
   }
   recordsPage.value = result;
-  scheduledOnly.value = onlyScheduled;
-  recordsState.value = state;
+  recordsFilter.value = filters;
 }
 async function changeRecordsState(event: Event) {
   const control = event.target as HTMLSelectElement;
-  await run(() => loadRecords(1, scheduledOnly.value, control.value));
-  control.value = recordsState.value;
+  await run(() => loadRecords(1, { ...recordsFilter.value, state: control.value }));
+  control.value = recordsFilter.value.state;
 }
 async function choose(c: Collection, keepList = false) {
   if (hasUnsavedChanges.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
   const page = keepList ? (recordsPage.value?.current_page ?? 1) : 1;
-  const onlyScheduled = keepList && scheduledOnly.value;
-  const state = keepList ? recordsState.value : "";
+  const filters = keepList ? recordsFilter.value : emptyRecordsFilter;
   selected.value = c;
   section.value = "records";
   setDraft(null);
   recordsPage.value = null;
-  scheduledOnly.value = onlyScheduled;
-  recordsState.value = state;
+  recordsFilter.value = filters;
+  recordsLabelInput.value = filters.label;
   dirty.value = false;
-  await loadRecords(page, onlyScheduled, state);
+  await loadRecords(page);
 }
 function formatPublicationTime(value: string): string {
   return new Date(value).toLocaleString(locale.value, { dateStyle: "medium", timeStyle: "short" });
@@ -584,7 +584,7 @@ async function save() {
       message.value = t("Szkic zapisany.");
     }
     if (selected.value?.id === collectionId) {
-      await loadRecords(recordsPage.value?.current_page ?? 1, scheduledOnly.value);
+      await loadRecords(recordsPage.value?.current_page ?? 1);
     }
     await load();
   });
@@ -1582,29 +1582,45 @@ const title = computed(
           </form>
           <section v-if="section === 'records' && selected">
             <div v-if="!record">
+              <form
+                class="mb-3 grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:max-w-md"
+                role="search"
+                @submit.prevent="run(() => loadRecords(1, { ...recordsFilter, label: recordsLabelInput.trim() }))"
+              >
+                <input
+                  v-model="recordsLabelInput"
+                  type="search"
+                  class="input w-full"
+                  maxlength="200"
+                  :aria-label='t("Szukaj po tytule lub nazwie")'
+                  :placeholder='t("Szukaj po tytule lub nazwie")'
+                  :disabled="busy || !recordsPage"
+                />
+                <button type="submit" class="btn" :disabled="busy || !recordsPage">{{ t("Szukaj") }}</button>
+              </form>
               <div class="mb-4 flex flex-wrap justify-between gap-2">
                 <div v-if="selected.kind === 'content'" class="join" role="group" :aria-label='t("Filtr publikacji")'>
                   <button
                     type="button"
                     class="btn join-item"
-                    :class="{ 'btn-active': !scheduledOnly }"
-                    :aria-pressed="!scheduledOnly"
+                    :class="{ 'btn-active': !recordsFilter.scheduled }"
+                    :aria-pressed="!recordsFilter.scheduled"
                     :disabled="busy || !recordsPage"
-                    @click="run(() => loadRecords(1, false))"
+                    @click="run(() => loadRecords(1, { ...recordsFilter, scheduled: false }))"
                   >{{ t("Wszystkie") }}</button>
                   <button
                     type="button"
                     class="btn join-item"
-                    :class="{ 'btn-active': scheduledOnly }"
-                    :aria-pressed="scheduledOnly"
+                    :class="{ 'btn-active': recordsFilter.scheduled }"
+                    :aria-pressed="recordsFilter.scheduled"
                     :disabled="busy || !recordsPage"
-                    @click="run(() => loadRecords(1, true))"
+                    @click="run(() => loadRecords(1, { ...recordsFilter, scheduled: true }))"
                   >{{ t("Zaplanowane") }}</button>
                 </div>
                 <select
                   class="select w-full sm:w-auto"
                   :aria-label='t("Filtr stanu")'
-                  :value="recordsState"
+                  :value="recordsFilter.state"
                   :disabled="busy || !recordsPage"
                   @change="changeRecordsState"
                 >
@@ -1650,8 +1666,8 @@ const title = computed(
                         :colspan="selected.kind === 'content' ? 5 : 4"
                         class="p-10 text-center text-base-content/50"
                       >
-                        <template v-if="recordsState">{{ t("Brak rekordów pasujących do filtrów.") }}</template>
-                        <template v-else-if="scheduledOnly">{{ t("Brak zaplanowanych publikacji.") }}</template>
+                        <template v-if="recordsFilter.state || recordsFilter.label">{{ t("Brak rekordów pasujących do filtrów.") }}</template>
+                        <template v-else-if="recordsFilter.scheduled">{{ t("Brak zaplanowanych publikacji.") }}</template>
                         <template v-else>{{ t("Tu pojawią się pierwsze rekordy.") }}</template>
                       </td>
                     </tr>
@@ -1663,14 +1679,14 @@ const title = computed(
                   type="button"
                   class="btn btn-sm"
                   :disabled="busy || recordsPage.current_page === 1"
-                  @click="run(() => loadRecords(recordsPage!.current_page - 1, scheduledOnly))"
+                  @click="run(() => loadRecords(recordsPage!.current_page - 1))"
                 >{{ t("Poprzednia strona") }}</button>
                 <span class="text-sm" aria-live="polite">{{ recordsPage.current_page }} / {{ recordsPage.last_page }}</span>
                 <button
                   type="button"
                   class="btn btn-sm"
                   :disabled="busy || recordsPage.current_page >= recordsPage.last_page"
-                  @click="run(() => loadRecords(recordsPage!.current_page + 1, scheduledOnly))"
+                  @click="run(() => loadRecords(recordsPage!.current_page + 1))"
                 >{{ t("Następna strona") }}</button>
               </div>
             </div>

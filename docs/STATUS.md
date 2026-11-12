@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.50**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.51**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Search current record titles and names across a collection’s pages, respecting field permissions.
 
 - Filter content and data records by workflow state across pages. Content records can also be filtered by scheduled publication.
 

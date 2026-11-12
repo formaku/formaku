@@ -1,5 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
-test("filter data records by workflow state across pages", async ({ page }) => {
+test("filter data records by title or name and workflow state across pages", async ({ page }) => {
   await page.goto("/login");
   await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
   await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
@@ -9,6 +9,13 @@ test("filter data records by workflow state across pages", async ({ page }) => {
   const state = page.getByRole("combobox", { name: "Filtr stanu" });
   await expect(state).toHaveValue("");
   await expect(page.getByRole("cell", { name: "Queue closed", exact: true })).toBeVisible();
+  const search = page.getByRole("searchbox", { name: "Szukaj po tytule lub nazwie" });
+  await search.fill("Queue");
+  const searchResult = page.waitForResponse((response) =>
+    new URL(response.url()).searchParams.get("label") === "Queue" && response.ok(),
+  );
+  await search.press("Enter");
+  await searchResult;
   await state.selectOption("new");
   await expect(page.getByRole("cell", { name: "Queue closed", exact: true })).toHaveCount(0);
   await expect(page.getByRole("cell", { name: "Queue 26", exact: true })).toBeVisible();
@@ -19,6 +26,7 @@ test("filter data records by workflow state across pages", async ({ page }) => {
   await row.getByRole("button", { name: "Edytuj" }).click();
   await page.getByRole("button", { name: "Wróć do listy" }).click();
   await expect(state).toHaveValue("new");
+  await expect(search).toHaveValue("Queue");
   await expect(row).toBeVisible();
 
   await state.selectOption("closed");
@@ -26,6 +34,13 @@ test("filter data records by workflow state across pages", async ({ page }) => {
   await expect(page.getByRole("cell", { name: "Queue closed", exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Następna strona" })).toHaveCount(0);
   await state.selectOption("");
+  await expect(page.getByRole("cell", { name: "Queue 26", exact: true })).toBeVisible();
+  await search.fill("Queue 1");
+  await page.getByRole("button", { name: "Szukaj", exact: true }).click();
+  await expect(page.getByRole("cell", { name: "Queue 26", exact: true })).toHaveCount(0);
+  await expect(row).toBeVisible();
+  await search.fill("");
+  await search.press("Enter");
   await expect(page.getByRole("cell", { name: "Queue 26", exact: true })).toBeVisible();
 });
 
@@ -110,6 +125,16 @@ test("browser authoring and publication", async ({ page }, info) => {
   await expect(scheduledFilter).toHaveAttribute("aria-pressed", "true");
   const contentState = page.getByRole("combobox", { name: "Filtr stanu" });
   await contentState.selectOption("new");
+  const contentSearch = page.getByRole("searchbox", { name: "Szukaj po tytule lub nazwie" });
+  const draftTitle = "Browser test " + info.project.name;
+  await contentSearch.fill(draftTitle);
+  const scheduledSearchResult = page.waitForResponse((response) => {
+    const query = new URL(response.url()).searchParams;
+    return query.get("label") === draftTitle && query.get("state") === "new"
+      && query.get("scheduled") === "1" && response.ok();
+  });
+  await contentSearch.press("Enter");
+  await scheduledSearchResult;
   const draftRow = page.getByRole("row").filter({ hasText: "Browser test " + info.project.name });
   await expect(draftRow.locator("time")).toBeVisible();
   await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
@@ -124,6 +149,7 @@ test("browser authoring and publication", async ({ page }, info) => {
   await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
   await expect(scheduledFilter).toHaveAttribute("aria-pressed", "true");
   await expect(contentState).toHaveValue("new");
+  await expect(contentSearch).toHaveValue("Browser test " + info.project.name);
   await expect(draftRow).toHaveCount(0);
   await page.getByRole("button", { name: "Wszystkie", exact: true }).click();
   await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
