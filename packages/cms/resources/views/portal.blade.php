@@ -8,11 +8,27 @@
     <div class="grid md:grid-cols-2 gap-8">
         <section>
             <h2 class="text-xl mb-4">Historia zgłoszeń</h2>
-            @foreach ($records as $record)
+            @if ($portalStates !== [])
+                <form method="get" action="{{ url('/portal') }}" class="mb-4">
+                    <label for="portal-state" class="field-label">Stan zgłoszenia</label>
+                    <div class="flex flex-wrap gap-2">
+                        <select id="portal-state" name="state" class="select w-full sm:w-auto">
+                            <option value="">Wszystkie stany</option>
+                            @foreach ($portalStates as $state)
+                                <option value="{{ $state }}" @selected($portalState === $state)>{{ $state }}</option>
+                            @endforeach
+                        </select>
+                        <button type="submit" class="btn">Filtruj</button>
+                    </div>
+                </form>
+            @endif
+            @forelse ($records as $record)
                 <a class="block p-5 bg-base-100 border border-base-300 rounded-lg mb-3" href="/portal/requests/{{ $record->id }}">
                     Zgłoszenie #{{ $record->id }} <span class="badge badge-outline">{{ $record->state }}</span>
                 </a>
-            @endforeach
+            @empty
+                <p class="text-base-content/70">Brak zgłoszeń na tej stronie.</p>
+            @endforelse
             {{ $records->links() }}
         </section>
         <form method="post" action="/portal/requests"

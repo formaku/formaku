@@ -2,7 +2,7 @@
 
 Project website and documentation are at [formaku.eu](https://formaku.eu/). Formaku is developed by [Strefa Badań](https://strefabadan.pl/).
 
-An open-source Laravel CMS and schema-driven application builder. **0.1.0-alpha.43**.
+An open-source Laravel CMS and schema-driven application builder. **0.1.0-alpha.44**.
 
 Vue 3 administration, server-rendered pages, versioned records, a customer portal and Docker delivery. MIT licensed. One installation hosts one application.
 
@@ -22,12 +22,22 @@ npm ci --ignore-scripts
 npm run build
 cd apps/starter
 php artisan formaku:install
+```
+
+Create the administrator in an interactive terminal. Replace the example email with your own and enter a password of at least 12 characters when prompted.
+
+```sh
 php artisan formaku:admin your-email@example.com
+```
+
+After the command confirms that the administrator was created, seed the demo and start the server.
+
+```sh
 php artisan formaku:demo
 php artisan serve
 ```
 
-Open `/formaku` and sign in with the administrator account you created. Use a password of at least 12 characters. The demo seeds example collections and publishes `/p/start` on a fresh installation. Run `php artisan queue:work --tries=1 --timeout=90` and `php artisan schedule:work` in separate terminals for AI, scheduled publication and notification delivery.
+Open `/formaku` and sign in with the administrator account you created. The demo seeds example collections and publishes `/p/start` on a fresh installation. Run `php artisan queue:work --tries=1 --timeout=90` and `php artisan schedule:work` in separate terminals for AI, scheduled publication and notification delivery.
 
 ## Package integration
 

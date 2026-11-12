@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.44 — 2026-11-12
+
+- Customers can filter their own request history by state. The filter is retained when moving between pages.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.43 — 2026-11-12
 
 - Show one set of pagination controls in the public catalog and customer portal. Narrow screens show previous and next links, and wider screens show page numbers and the result count.

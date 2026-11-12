@@ -100,6 +100,8 @@ Kolekcje z regułami pól są niedostępne dla sparowanego asystenta. Szablony w
 
 Po włączeniu rejestracji użytkownik tworzy konto klienta i potwierdza e-mail. Klient składa zgłoszenie w `/portal` i widzi własne zgłoszenia. Personel obsługuje je w panelu i może przypisać zgłoszenie pracownikowi w trakcie zmiany statusu. Notatki prywatne nie trafiają do odpowiedzi klienta. Poczta wymaga skonfigurowanego transportu oraz działającej kolejki i schedulera.
 
+W **Historii zgłoszeń** wybierz **Stan zgłoszenia** i kliknij **Filtruj**. Wybór obowiązuje także na kolejnych stronach listy. Wybierz **Wszystkie stany**, aby wrócić do pełnej historii.
+
 W **Buduj → Edytuj model** otwórz kolekcję danych `requests` i zaznacz wybrane pola w sekcji **Pola portalu klienta**. Temat i opis są zawsze częścią formularza. Możesz dodać tekst, liczbę, datę, pole tak/nie lub listę wyboru. Zapisz model i otwórz `/portal` jako klient. Formularz uwzględnia wymagane pola i uprawnienia do zapisu. W szczegółach własnego zgłoszenia klient widzi zapisane wartości dostępne do odczytu.
 
 W modelu `requests` włącz **Załączniki do zgłoszeń**, aby klient mógł przesłać do trzech plików PDF, JPEG lub PNG o rozmiarze do 5 MiB każdy. Pobieranie jest dostępne w szczegółach zgłoszenia dla właściciela i personelu zgodnie z dostępem do rekordu. Wyłączenie opcji zamyka przesyłanie nowych plików. Zapisane załączniki pozostają dostępne według tych samych uprawnień.
@@ -141,6 +143,8 @@ Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie”
 ## English quick guide
 
 Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Under **Releases**, request a build, click **Refresh status** and open the matching GitHub Actions run for the image digest. Deployment is a separate workflow. Customer portal access is scoped to the signed-in owner.
+
+In request history, choose a request state and select **Filtruj** (Filter). The selection stays active when you change pages. Select **Wszystkie stany** (All states) and apply the filter to return to the full list.
 
 To add fields to the customer request form, open the `requests` data collection in **Build → Edit model** and select the fields under **Customer portal fields**. The portal respects the model’s field requirements and customer permissions.
 

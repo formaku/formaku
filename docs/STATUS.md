@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.42**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.44**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Filter customer request history by states present in the signed-in customer’s own requests. The selected state stays active when changing pages.
 
 - Site name and optional public media logo in the shared site header.
 
