@@ -19,6 +19,7 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::delete('/collections/{collection}/page-templates/{templateId}', [PageTemplateController::class, 'destroy'])->whereNumber('templateId')->middleware(Access::class.':build');
   Route::post('/records/{record}/page-templates', [PageTemplateController::class, 'store'])->middleware(Access::class.':build');
   Route::get('/records/{record}',[ApiController::class,'show']);Route::get('/records/{record}/preview',[ApiController::class,'preview']);
+  Route::get('/records/{record}/revisions', [ApiController::class, 'revisions']);
   Route::get('/records/{record}/revisions/{revision}/preview', [ApiController::class, 'revisionPreview'])->whereNumber('revision');
   Route::get('/records/{record}/attachments', [ApiController::class, 'attachmentIndex']);
   Route::get('/records/{record}/attachments/{attachment}', [ApiController::class, 'attachment'])

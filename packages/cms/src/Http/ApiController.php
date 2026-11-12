@@ -191,8 +191,18 @@ class ApiController
 
     public function show(Request $request, Record $record): array
     {
+        $includeHistory = $request->query('history');
+        if ($request->query->has('history') && ! in_array($includeHistory, ['0', '1'], true)) {
+            throw ValidationException::withMessages(['history' => 'The history option must be 0 or 1.']);
+        }
+
         $collection = Collection::findOrFail($record->collection_id);
         $user = $request->user();
+        $document = $this->document($record, $collection, $user, $this->hiddenFields($collection, $user));
+        if ($includeHistory === '0') {
+            return $document;
+        }
+
         $history = Revision::where('record_id', $record->id)->latest('id')->get();
         if ($this->fieldAccess->hasRules($collection)) {
             $history = $history->map(fn (Revision $revision) => array_replace($revision->toArray(), [
@@ -200,7 +210,12 @@ class ApiController
             ]));
         }
 
-        return $this->document($record, $collection, $user, $this->hiddenFields($collection, $user)) + ['history' => $history];
+        return $document + ['history' => $history];
+    }
+
+    public function revisions(Record $record): LengthAwarePaginator
+    {
+        return Revision::where('record_id', $record->id)->latest('id')->paginate(25, ['id', 'created_at']);
     }
 
     /** @return list<array{id: int, name: string, size: int, url: string}> */
