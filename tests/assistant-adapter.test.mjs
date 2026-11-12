@@ -55,6 +55,15 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   let catalogPath;
   let variantsPath;
   let categoriesPath;
+  let canComparePage;
+  const comparison = {
+    id: 12, version: 9, draft_revision_id: 51, published_revision_id: 39,
+    changes: [{ key: "title", label: "Tytuł", type: "text", previous: "Opublikowany", current: "Zmieniony" }],
+  };
+  const unpublishedComparison = {
+    id: 13, version: 1, draft_revision_id: 52, published_revision_id: null,
+    changes: [{ key: "title", label: "Tytuł", type: "text", current: "Nowy" }],
+  };
   const server = createServer(async (request, response) => {
     const url = new URL(request.url, "http://localhost");
     const body = [];
@@ -63,7 +72,16 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
     response.setHeader("Content-Type", "application/json");
     switch (url.pathname) {
       case "/cms/assistant/v1/connection":
-        response.end(JSON.stringify({ public_catalog_path: catalogPath, public_variants_catalog_path: variantsPath, public_categories_path: categoriesPath }));
+        response.end(JSON.stringify({
+          public_catalog_path: catalogPath, public_variants_catalog_path: variantsPath, public_categories_path: categoriesPath,
+          can_compare_page: canComparePage,
+        }));
+        break;
+      case "/cms/assistant/v1/pages/12/comparison":
+        response.end(JSON.stringify(comparison));
+        break;
+      case "/cms/assistant/v1/pages/13/comparison":
+        response.end(JSON.stringify(unpublishedComparison));
         break;
       case "/cms/assistant/v1/pages/validate":
         response.statusCode = 422;
@@ -113,12 +131,16 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   t.after(() => child.kill());
   const replies = createInterface({ input: child.stdout })[Symbol.asyncIterator]();
   let id = 0;
-  async function call(name, args = {}) {
-    child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: ++id, method: "tools/call", params: { name, arguments: args } }) + "\n");
+  async function rpc(method, params) {
+    child.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: ++id, method, params }) + "\n");
     const { value } = await replies.next();
     const reply = JSON.parse(value);
     assert.equal(reply.id, id);
     return reply.result;
+  }
+
+  function call(name, args = {}) {
+    return rpc("tools/call", { name, arguments: args });
   }
 
   const validation = await call("formaku_validate_draft", { data: { slug: "demo" } });
@@ -184,4 +206,38 @@ test("the MCP adapter validates drafts and reads Commerce without forwarding its
   assert.equal(requests[16].authorization, undefined);
   assert.equal(requests[16].url.searchParams.get("category"), "blue-shoes");
   assert.equal(requests[16].url.searchParams.get("cursor"), "variant+2");
+
+  await t.test("comparison is a capability-gated read that preserves the reviewed version", async () => {
+    const start = requests.length;
+    const { tools } = await rpc("tools/list");
+    const compare = tools.find(({ name }) => name === "formaku_compare_page");
+    assert.equal(compare.annotations.readOnlyHint, true);
+    assert.equal(compare.annotations.destructiveHint, false);
+    assert.deepEqual(compare.inputSchema, {
+      type: "object", properties: { id: { type: "integer", minimum: 1 } }, required: ["id"], additionalProperties: false,
+    });
+    for (const id of [0, "12", 1.5]) {
+      assert.equal((await call("formaku_compare_page", { id })).isError, true);
+    }
+    assert.equal(requests.length, start);
+
+    const unsupported = await call("formaku_compare_page", { id: 12 });
+    assert.equal(unsupported.isError, true);
+    assert.match(unsupported.content[0].text, /nie udostępnia porównania/);
+
+    canComparePage = true;
+    const site = `http://127.0.0.1:${server.address().port}`;
+    for (const expected of [comparison, unpublishedComparison]) {
+      const response = await call("formaku_compare_page", { id: expected.id });
+      assert.deepEqual(JSON.parse(response.content[0].text), { site, ...expected });
+    }
+    assert.deepEqual(
+      requests.slice(start).map(({ url, method, authorization, body }) => [url.pathname, method, authorization, body]),
+      [
+        "/connection",
+        "/connection", "/pages/12/comparison",
+        "/connection", "/pages/13/comparison",
+      ].map((path) => ["/cms/assistant/v1" + path, "GET", `Bearer ${token}`, ""]),
+    );
+  });
 });

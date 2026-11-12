@@ -6,9 +6,11 @@ use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\PageTemplate;
 use Formaku\Cms\Models\Record;
+use Formaku\Cms\Models\Revision;
 use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
+use Formaku\Cms\Services\RevisionChanges;
 use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -121,6 +123,7 @@ class AssistantController
             'collection' => $collection->only(['id', 'key', 'name', 'version']),
             'fields' => $collection->definition['fields'],
             'can_validate_draft' => true,
+            'can_compare_page' => true,
             'can_read_templates' => PageTemplate::supportsCollection($collection),
             'can_list_images' => true,
             'can_publish' => $canPublish,
@@ -194,6 +197,33 @@ class AssistantController
 
         return response()->json($this->summary($record) + [
             'data' => array_intersect_key($record->draft?->data ?? [], $keys),
+        ]);
+    }
+
+    public function comparison(Request $request, int $page): JsonResponse
+    {
+        [, $collection] = $this->connection($request);
+        $record = $this->records($collection)->findOrFail($page, ['id', 'version', 'draft_id', 'published_id']);
+        abort_if($record->draft_id === null, 404);
+
+        $ids = [$record->draft_id];
+        if ($record->published_id !== null) {
+            $ids[] = $record->published_id;
+        }
+        $revisions = Revision::where('record_id', $record->id)->whereKey($ids)
+            ->get(['id', 'data'])->keyBy('id');
+        $draft = $revisions->get($record->draft_id);
+        $published = $record->published_id === null ? null : $revisions->get($record->published_id);
+        abort_if($draft === null || ($record->published_id !== null && $published === null), 404);
+
+        return response()->json([
+            'id' => $record->id,
+            'version' => $record->version,
+            'draft_revision_id' => $draft->id,
+            'published_revision_id' => $published?->id,
+            'changes' => RevisionChanges::between(
+                $collection->definition['fields'], RevisionChanges::data($published), RevisionChanges::data($draft),
+            ),
         ]);
     }
 

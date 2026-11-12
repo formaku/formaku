@@ -17,6 +17,7 @@ use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Registry;
 use Formaku\Cms\Services\Renderer;
+use Formaku\Cms\Services\RevisionChanges;
 use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -236,36 +237,17 @@ class ApiController
 
         $collection = Collection::findOrFail($record->collection_id);
         $user = $request->user();
-        // The array cast would conflate empty JSON objects and empty lists.
         $before = $this->fieldAccess->readableData(
-            $collection, (array) json_decode($previous->getRawOriginal('data'), flags: JSON_THROW_ON_ERROR), $user,
+            $collection, RevisionChanges::data($previous), $user,
         );
         $after = $this->fieldAccess->readableData(
-            $collection, (array) json_decode($draft->getRawOriginal('data'), flags: JSON_THROW_ON_ERROR), $user,
+            $collection, RevisionChanges::data($draft), $user,
         );
-        $changes = [];
-        foreach ($collection->definition['fields'] ?? [] as $field) {
-            $key = $field['key'];
-            $hasPrevious = array_key_exists($key, $before);
-            $hasCurrent = array_key_exists($key, $after);
-            if ($hasPrevious === $hasCurrent && $this->sameRevisionValue($before[$key] ?? null, $after[$key] ?? null)) {
-                continue;
-            }
-
-            $change = ['key' => $key, 'label' => $field['label'], 'type' => $field['type']];
-            if ($hasPrevious) {
-                $change['previous'] = $before[$key];
-            }
-            if ($hasCurrent) {
-                $change['current'] = $after[$key];
-            }
-            $changes[] = $change;
-        }
 
         return response()->json([
             'revision' => ['id' => $previous->id, 'created_at' => $previous->created_at],
             'draft' => ['id' => $draft->id, 'created_at' => $draft->created_at],
-            'changes' => $changes,
+            'changes' => RevisionChanges::between($collection->definition['fields'] ?? [], $before, $after),
         ])->header('Cache-Control', 'no-store');
     }
 
@@ -632,29 +614,6 @@ class ApiController
 
         return $this->recordAttributes($record, $collection, $user, $hidden)
             + ['data' => $this->fieldAccess->readableData($collection, $data, $user)];
-    }
-
-    private function sameRevisionValue(mixed $previous, mixed $current): bool
-    {
-        if (gettype($previous) !== gettype($current)) {
-            return false;
-        }
-        if (! is_array($previous) && ! is_object($previous)) {
-            return $previous === $current;
-        }
-
-        $previous = (array) $previous;
-        $current = (array) $current;
-        if (count($previous) !== count($current)) {
-            return false;
-        }
-        foreach ($previous as $key => $value) {
-            if (! array_key_exists($key, $current) || ! $this->sameRevisionValue($value, $current[$key])) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     private function revisionData(Record $record, ?Revision $revision): array

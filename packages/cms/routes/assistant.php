@@ -26,6 +26,7 @@ Route::prefix(config('formaku.prefix').'/assistant/v1')->group(function () {
         Route::post('/pages/validate', [AssistantController::class, 'validateDraft']);
         Route::post('/pages', [AssistantController::class, 'create']);
         Route::get('/pages/{page}', [AssistantController::class, 'page'])->whereNumber('page');
+        Route::get('/pages/{page}/comparison', [AssistantController::class, 'comparison'])->whereNumber('page');
         Route::put('/pages/{page}', [AssistantController::class, 'update'])->whereNumber('page');
         Route::post('/pages/{page}/publish', [AssistantController::class, 'publish'])->whereNumber('page');
     });

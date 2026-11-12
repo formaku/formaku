@@ -142,6 +142,8 @@ Od wersji `0.1.0-alpha.17` z aktualnym adapterem możesz poprosić agenta o spra
 
 Od wersji `0.1.0-alpha.20` pobierz nową kopię adaptera z panelu i uruchom `node formaku-assistant.mjs update ADRES_Z_PANELU` w katalogu pobranego pliku. Użyj adresu dotychczasowego połączenia. Uruchom ponownie klienta MCP. Jeśli połączenie wygasło lub zostało cofnięte, sparuj je ponownie poleceniem `setup`.
 
+Gdy `formaku_connection` zwraca `can_compare_page`, poproś asystenta o porównanie zapisanego szkicu z bieżącą publikacją. `formaku_compare_page` zwraca zmienione pola, identyfikatory rewizji i wersję rekordu. Dla strony przed pierwszą publikacją pokazuje wartości ze szkicu. Jeśli zlecisz publikację, asystent może użyć tej wersji. Po konflikcie wersji trzeba ponownie przejrzeć zmiany.
+
 Jeśli kolekcja ma zapisane szablony stron, agent może wybrać jeden z nich i użyć jego sekcji w nowym szkicu. Sekcje edytujesz dalej w szkicu.
 
 Od wersji `0.1.0-alpha.18` agent może odczytać i ponownie użyć publiczne obrazy wskazane w aktualnie opublikowanych wersjach stron sparowanej kolekcji. Do bloku obrazu wstawia identyfikator wybranej grafiki. Walidacja i zapis odrzucają zbyt długie lub zbyt głęboko zagnieżdżone listy bloków.
@@ -211,6 +213,8 @@ Starting with `0.1.0-alpha.8`, add an image block, including inside a container 
 Starting with `0.1.0-alpha.16`, choose **Polski** or **English** in the panel header. The browser remembers the choice. Content, collection names, and custom field labels keep their original language.
 
 Starting with `0.1.0-alpha.17`, a paired assistant can validate a draft made with built-in blocks before saving and return a link to its preview after saving. Open the link in a browser signed in to Formaku. The assistant can copy blocks from a template in the paired collection. When the installation exposes the public Commerce catalog, it can also read product names, current prices, and availability. Download the updated adapter from the panel to use the new tools.
+
+When `formaku_connection` reports `can_compare_page`, ask the assistant to compare the saved draft with the current published revision. `formaku_compare_page` returns the changed fields, revision IDs and record version. For a page awaiting its first publication, it shows the draft values. If you request publication, the assistant can use that version. Review the changes again after a version conflict.
 
 Starting with `0.1.0-alpha.18`, a paired assistant can reuse public images referenced by current published revisions in its collection. The selected media ID goes into an image block. Draft validation and saving reject block lists that exceed the renderer’s size or nesting limits.
 

@@ -105,6 +105,7 @@ class AssistantTest extends TestCase
         $headers = $this->bearer($this->exchange($this->start($admin, $collection, true)));
         $this->getJson(self::API.'/pages', $headers)->assertOk()->assertJsonCount(0, 'items');
         $this->getJson(self::API.'/pages/'.$otherPage->id, $headers)->assertNotFound();
+        $this->getJson(self::API.'/pages/'.$otherPage->id.'/comparison', $headers)->assertNotFound();
         $this->putJson(self::API.'/pages/'.$otherPage->id, ['version' => 1, 'data' => ['title' => 'Outside']], $headers)->assertNotFound();
         $this->postJson(self::API.'/pages/'.$otherPage->id.'/publish', ['version' => 1], $headers)->assertNotFound();
         auth()->forgetGuards();
@@ -112,6 +113,7 @@ class AssistantTest extends TestCase
 
         $collection->update(['definition' => array_replace($collection->definition, ['public' => false])]);
         $this->getJson(self::API.'/pages', $headers)->assertForbidden();
+        $this->getJson(self::API.'/pages/'.$otherPage->id.'/comparison', $headers)->assertForbidden();
     }
 
     public function test_agent_creates_edits_and_publishes_versioned_content(): void
@@ -153,6 +155,54 @@ class AssistantTest extends TestCase
 
         auth()->forgetGuards();
         $this->getJson($preview, $headers)->assertUnauthorized();
+    }
+
+    public function test_agent_compares_the_published_revision_with_a_versioned_draft_without_writing(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->pages();
+        $currentDefinition = $collection->definition;
+        $collection->update(['definition' => array_replace($currentDefinition, [
+            'fields' => [...$currentDefinition['fields'], ['key' => 'old_field', 'type' => 'text', 'label' => 'Old field']],
+        ])]);
+        $service = app(RecordService::class);
+        $page = $service->save($collection, null, [
+            'title' => 'First', 'slug' => 'first', 'old_field' => 'Omit after the field is removed',
+        ], 0, $admin->id);
+        $path = self::API.'/pages/'.$page->id;
+        $this->getJson($path.'/comparison')->assertUnauthorized();
+
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection)));
+        $this->getJson(self::API.'/connection', $headers)->assertOk()->assertJsonPath('can_compare_page', true);
+        $first = $this->getJson($path.'/comparison', $headers)->assertOk()
+            ->assertJsonPath('version', $page->version)
+            ->assertJsonPath('published_revision_id', null)
+            ->assertJsonPath('changes.0.current', 'First')
+            ->assertJsonMissingPath('changes.0.previous');
+        $this->assertStringContainsString('no-store', $first->headers->get('Cache-Control'));
+        $this->postJson($path.'/publish', ['version' => $page->version], $headers)->assertForbidden();
+
+        $page = $service->publish($page, $page->version, $admin->id);
+        $published = $page->published_id;
+        $this->getJson($path.'/comparison', $headers)->assertOk()->assertJsonCount(0, 'changes');
+        $collection->update(['definition' => $currentDefinition]);
+        $page = $service->save($collection, $page, ['title' => 'Second', 'slug' => 'first'], $page->version, $admin->id);
+        $review = $this->getJson($path.'/comparison', $headers)->assertOk()->assertExactJson([
+            'id' => $page->id,
+            'version' => $page->version,
+            'published_revision_id' => $published,
+            'draft_revision_id' => $page->draft_id,
+            'changes' => [['key' => 'title', 'label' => 'Tytuł', 'type' => 'text', 'previous' => 'First', 'current' => 'Second']],
+        ]);
+        $this->assertDatabaseCount('formaku_revisions', 2);
+        $this->assertDatabaseCount('formaku_events', 3);
+        $this->assertSame($published, $page->fresh()->published_id);
+        $this->assertSame($page->version, $page->fresh()->version);
+
+        $headers = $this->bearer($this->exchange($this->start($admin, $collection, true)));
+        $service->save($collection, $page, ['title' => 'Third', 'slug' => 'first'], $page->version, $admin->id);
+        $this->postJson($path.'/publish', ['version' => $review->json('version')], $headers)->assertConflict();
+        $this->assertSame($published, $page->fresh()->published_id);
     }
 
     public function test_agent_can_validate_a_draft_without_writing_records_or_running_extension_renderers(): void
