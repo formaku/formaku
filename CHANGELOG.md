@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.70 — 2026-11-12
+
+- AI page proposals with an invalid block map fail the generation task. Valid proposals preserve block order in review and in the new draft.
+- No new migrations since alpha.69.
+
 ## 0.1.0-alpha.69 — 2026-11-12
 
 - Configure separate output token limits for OpenAI and Gemini page proposals. The default is 3000 tokens per request.
