@@ -45,7 +45,6 @@ class RecordService
                 $data = app(SchemaValidator::class)->record($c->definition, $data);
             }
 
-            $user = $actorUser ?? auth(config('formaku.guard'))->user();
             foreach ($c->definition['fields'] as $f) {
                 if ($f['type'] !== 'relation' || array_key_exists($f['key'], $preserved)) {
                     continue;
@@ -55,7 +54,7 @@ class RecordService
                     abort_unless(is_int($id) || (is_string($id) && ctype_digit($id)), 422, 'Invalid relation.');
                     $related = Record::where('collection_id', $f['target'])->find($id);
                     abort_if($related === null, 422, 'Invalid relation.');
-                    if ($user !== null) {
+                    if ($user = $actorUser ?? auth(config('formaku.guard'))->user()) {
                         app(CollectionAccess::class)->check(Collection::findOrFail($f['target']), $user, false, $related);
                     }
                 }
