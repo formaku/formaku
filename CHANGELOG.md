@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.43 — 2026-11-12
+
+- Show one set of pagination controls in the public catalog and customer portal. Narrow screens show previous and next links, and wider screens show page numbers and the result count.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.42 — 2026-11-12
 
 - Compile the bundled Tailwind and daisyUI stylesheet from the CMS runtime templates and renderer. Unrelated repository files no longer affect the generated CSS.

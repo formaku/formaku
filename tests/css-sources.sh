@@ -4,6 +4,11 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 npm run build
 stylesheet=packages/cms/public/main.css
+# Laravel's mobile pagination row must be hidden at the desktop breakpoint.
+if ! grep -Fq '.sm\:hidden' "$stylesheet"; then
+    echo 'The compiled stylesheet is missing the responsive pagination visibility rule.' >&2
+    exit 1
+fi
 fixture=$(mktemp -d tests/css-source-fixture.XXXXXX)
 trap 'rm -rf -- "$fixture"' EXIT
 cp "$stylesheet" "$fixture/baseline.css"
