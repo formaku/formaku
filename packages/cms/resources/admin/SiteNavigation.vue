@@ -2,6 +2,7 @@
 import { t } from "./locale";
 import { computed, onMounted, ref, watch } from "vue";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-vue-next";
+import MediaPicker from "./MediaPicker.vue";
 
 type Link = { label: string; url: string };
 type ColorAccent = "formaku" | "blue" | "plum";
@@ -12,10 +13,14 @@ type Navigation = {
   footerText: string;
   theme: "light" | "dark" | "system";
   accent?: ColorAccent;
+  brandName?: string | null;
+  brandLogoId?: number | null;
 };
 type EditableLink = Link & { key: number };
-type EditableNavigation = Omit<Navigation, "header" | "footer" | "accent"> & {
+type EditableNavigation = Omit<Navigation, "header" | "footer" | "accent" | "brandName" | "brandLogoId"> & {
   accent: ColorAccent;
+  brandName: string;
+  brandLogoId: number | null;
   header: EditableLink[];
   footer: EditableLink[];
 };
@@ -30,7 +35,7 @@ const linkGroups = [
   { key: "footer", label: t("Linki stopki") },
 ] as const;
 const settings = ref<EditableNavigation | null>(null);
-const saved = ref("");
+const saved = ref<Navigation | null>(null);
 const busy = ref(false);
 const conflict = ref(false);
 const error = ref("");
@@ -46,10 +51,12 @@ function payload(source: EditableNavigation): Navigation {
     footerText: source.footerText,
     theme: source.theme,
     accent: source.accent,
+    brandName: source.brandName.trim() || null,
+    brandLogoId: source.brandLogoId,
   };
 }
 
-const dirty = computed(() => settings.value !== null && JSON.stringify(payload(settings.value)) !== saved.value);
+const dirty = computed(() => settings.value !== null && JSON.stringify(payload(settings.value)) !== JSON.stringify(saved.value));
 watch(dirty, (value) => emit("dirty", value));
 
 function applySettings(result: Navigation) {
@@ -57,10 +64,12 @@ function applySettings(result: Navigation) {
   const current = {
     ...result,
     accent: result.accent ?? "formaku",
+    brandName: result.brandName ?? "",
+    brandLogoId: result.brandLogoId ?? null,
     header: editableLinks(result.header),
     footer: editableLinks(result.footer),
   };
-  saved.value = JSON.stringify(payload(current));
+  saved.value = payload(current);
   settings.value = current;
   conflict.value = false;
 }
@@ -97,7 +106,9 @@ function save() {
   if (!current || !dirty.value || busy.value || conflict.value) return;
 
   return run(async () => {
-    applySettings(await props.request("/site-navigation", "PUT", payload(current)));
+    const data = payload(current);
+    if (data.brandLogoId === saved.value?.brandLogoId) delete data.brandLogoId;
+    applySettings(await props.request("/site-navigation", "PUT", data));
     message.value = t("Zapisano menu i stopkę.");
   });
 }
@@ -131,6 +142,17 @@ onMounted(load);
       </button>
 
       <form v-if="settings" class="space-y-5" @submit.prevent="save">
+        <fieldset class="fieldset rounded-box border border-base-300 p-4" :disabled="busy">
+          <legend class="fieldset-legend">{{ t("Marka witryny") }}</legend>
+          <label class="block">
+            <span class="field-label">{{ t("Nazwa witryny") }}</span>
+            <input v-model.trim="settings.brandName" class="input w-full" maxlength="80" placeholder="Formaku" />
+          </label>
+          <div class="mt-2" role="group" :aria-label='t("Logo witryny")'>
+            <span class="field-label">{{ t("Logo witryny") }}</span>
+            <MediaPicker mode="image" :selected-id="settings.brandLogoId" @select="settings.brandLogoId = $event ?? null" />
+          </div>
+        </fieldset>
         <label class="block">
           <span class="field-label">{{ t("Motyw witryny") }}</span>
           <select v-model="settings.theme" class="select w-full sm:w-auto" :disabled="busy">

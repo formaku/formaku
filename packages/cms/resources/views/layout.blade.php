@@ -15,7 +15,17 @@
 </head>
 <body>
     <header class="navbar flex-wrap justify-between gap-4 border-b border-base-300 p-6">
-        <a href="/" class="text-2xl font-semibold tracking-tight">formaku<span class="text-secondary">.</span></a>
+        @php($brandName = $siteNavigation['brandName'] ?? null)
+        @if ($brandName !== null || isset($siteBrandLogoUrl))
+            <a href="/" class="inline-flex min-w-0 max-w-full items-center gap-3 text-2xl font-semibold tracking-tight">
+                @isset($siteBrandLogoUrl)
+                    <img src="{{ $siteBrandLogoUrl }}" alt="" class="h-9 max-w-28 shrink-0 object-contain">
+                @endisset
+                <span class="min-w-0 wrap-anywhere">@if ($brandName !== null){{ $brandName }}@else formaku<span class="text-secondary">.</span>@endif</span>
+            </a>
+        @else
+            <a href="/" class="text-2xl font-semibold tracking-tight">formaku<span class="text-secondary">.</span></a>
+        @endif
         @if ($siteNavigation['header'])
             <nav class="min-w-0 max-w-full" aria-label="Menu główne">
                 <ul class="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
