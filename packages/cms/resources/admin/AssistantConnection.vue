@@ -169,7 +169,7 @@ onMounted(() => run(refresh));
         </li>
       </ol>
       <p v-else-if="settings">
-        {{ t("Dodaj publiczną kolekcję treści bez pól prywatnych i relacji, aby sparować asystenta.") }}
+        {{ t("Dodaj publiczną kolekcję treści bez pól prywatnych, reguł pól i relacji, aby sparować asystenta.") }}
       </p>
       <button v-else-if="error" class="btn self-start" @click="run(refresh)">{{ t("Spróbuj ponownie") }}</button>
     </div>

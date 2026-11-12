@@ -6,6 +6,7 @@ use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Models\Revision;
+use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\MediaVariants;
 use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
@@ -117,16 +118,17 @@ class PublicController
     {
         $d = $r->validate(['title' => 'required|string|max:200', 'description' => 'required|string|max:5000']);
         $c = Collection::where('key', 'requests')->firstOrFail();
-        $s->save($c, null, $d, 0, $r->user()->id);
+        $s->save($c, null, $d, 0, $r->user()->id, actorUser: $r->user());
 
         return redirect('/portal')->with('status', 'Zgłoszenie zapisane.');
     }
 
-    public function request(Request $r, Record $record)
+    public function request(Request $r, Record $record, FieldAccess $fields)
     {
         abort_unless($record->owner_id === $r->user()->id, 404);
         $c = Collection::findOrFail($record->collection_id);
-        $data = Revision::findOrFail($record->draft_id)->data;
+        $draft = Revision::where('record_id', $record->id)->findOrFail($record->draft_id);
+        $data = $fields->readableData($c, $draft->data, $r->user());
         $allowed = collect($c->definition['fields'])->reject(fn ($f) => $f['private'] ?? false)->pluck('key')->all();
         $result = ['id' => $record->id, 'state' => $record->state, 'data' => array_intersect_key($data, array_flip($allowed))];
 

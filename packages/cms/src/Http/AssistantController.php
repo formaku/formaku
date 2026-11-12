@@ -6,6 +6,7 @@ use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\PageTemplate;
 use Formaku\Cms\Models\Record;
+use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\SchemaValidator;
@@ -49,7 +50,7 @@ class AssistantController
     {
         $data = $request->validate(['collection_id' => 'required|integer', 'can_publish' => 'required|boolean']);
         $collection = Collection::findOrFail($data['collection_id']);
-        abort_unless($this->eligible($collection), 422, 'Wybierz publiczną kolekcję treści bez pól prywatnych i relacji.');
+        abort_unless($this->eligible($collection), 422, 'Wybierz publiczną kolekcję treści bez pól prywatnych, reguł pól i relacji.');
         abort_if($data['can_publish'] && ! (config('formaku.authorize'))($request->user(), 'publish'), 403);
 
         $code = bin2hex(random_bytes(32));
@@ -273,6 +274,7 @@ class AssistantController
     private function eligible(Collection $collection): bool
     {
         return $collection->kind === 'content' && ($collection->definition['public'] ?? false)
+            && ! app(FieldAccess::class)->hasRules($collection)
             && ! collect($collection->definition['fields'])->contains(fn (array $field) => ($field['private'] ?? false) || $field['type'] === 'relation');
     }
 

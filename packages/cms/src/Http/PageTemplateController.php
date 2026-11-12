@@ -7,6 +7,7 @@ use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\PageTemplate;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Services\CollectionAccess;
+use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Http\JsonResponse;
@@ -81,6 +82,8 @@ class PageTemplateController
         abort_unless(PageTemplate::supportsCollection($collection), 404);
         $access->check($collection, $request->user(), true);
         abort_if($access->rule($collection, $request->user())['scope'] === 'assigned', 403);
+        $blocks = collect($collection->definition['fields'])->firstWhere('key', 'blocks');
+        abort_unless(app(FieldAccess::class)->canWrite($collection, $blocks, $request->user()), 403);
     }
 
     private function findTemplate(Collection $collection, string $templateId): PageTemplate

@@ -32,7 +32,13 @@ class MediaUsage
 
     public function records(int $mediaId, object $user): LengthAwarePaginator
     {
-        $collections = Collection::select('id', 'name', 'definition')->get()->keyBy('id');
+        $fields = app(FieldAccess::class);
+        // The revision-level index cannot distinguish a hidden occurrence from a readable one.
+        $collections = Collection::select('id', 'name', 'kind', 'definition')->get()
+            ->reject(fn (Collection $collection) => collect($collection->definition['fields'] ?? [])->contains(
+                fn (array $field) => ($field['type'] === 'media' || $field['key'] === 'blocks')
+                    && ! $fields->canRead($collection, $field, $user),
+            ))->keyBy('id');
         $grammar = DB::connection()->getQueryGrammar();
         $revisionId = $grammar->wrap('revision.id');
         $draftId = $grammar->wrap('current_record.draft_id');

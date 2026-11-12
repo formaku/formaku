@@ -50,12 +50,15 @@ import {
   type BlockPath,
   type RemovedBlock,
 } from "./blocks";
+type FieldAbility = "read" | "write";
 type Field = {
   key: string;
   label: string;
   type: string;
   required?: boolean;
   private?: boolean;
+  access?: Partial<Record<FieldAbility, string[]>>;
+  writable?: boolean;
   options?: string[];
   target?: number;
 };
@@ -175,7 +178,7 @@ const supportsPageTemplates = computed(
   () =>
     selected.value?.kind === "content" &&
     selected.value.definition.fields.some(
-      (field) => field.key === "blocks" && field.type === "richtext" && !field.private,
+      (field) => field.key === "blocks" && field.type === "richtext" && !field.private && field.writable !== false,
     ),
 );
 watch(record, () => {
@@ -185,6 +188,27 @@ watch(record, () => {
   templateId.value = null;
   templateToDelete.value = null;
 });
+function toggleFieldAccess(field: Field, ability: FieldAbility, enabled: boolean) {
+  field.access ??= {};
+  if (enabled) field.access[ability] = [];
+  else delete field.access[ability];
+}
+function updateFieldRoles(field: Field, ability: FieldAbility, value: string) {
+  field.access ??= {};
+  field.access[ability] = Array.from(new Set(value.split(",").map((role) => role.trim()).filter(Boolean)));
+}
+function canRestrictFieldRead(field: Field) {
+  return field.private === true && field.key !== "slug";
+}
+const invalidFieldRead = computed(() => schema.value?.definition.fields.some(
+  (field: Field) => field.access?.read !== undefined && !canRestrictFieldRead(field),
+));
+function readonlyFieldValue(value: unknown): string {
+  if (value == null || value === "") return "—";
+  if (typeof value === "boolean") return value ? t("Tak") : t("Nie");
+  if (typeof value !== "object") return String(value);
+  return JSON.stringify(value, null, 2);
+}
 const publicContentSchema = computed(
   () => schema.value?.kind === "content" && schema.value.definition.public,
 );
@@ -414,10 +438,14 @@ async function save() {
     const draft = record.value;
     const collectionId = selected.value!.id;
     const snapshot = clone(draft);
+    const data = { ...snapshot.data };
+    for (const field of selected.value!.definition.fields) {
+      if (field.writable === false) delete data[field.key];
+    }
     const result = await request(
       "/collections/" + collectionId + "/records",
       "POST",
-      snapshot,
+      { ...snapshot, data },
     );
     if (record.value !== draft || selected.value?.id !== collectionId) return;
     if (JSON.stringify(draft.data) !== JSON.stringify(snapshot.data)) {
@@ -1294,7 +1322,38 @@ const title = computed(
               </div>
               <p class="text-xs text-base-content/50 mt-3">{{ t("Administrator buildera zachowuje pełny dostęp. Po skonfigurowaniu reguł pozostałe role wymagają jawnego wpisu.") }}</p>
             </section>
-            <button class="btn btn-primary" :disabled="busy || privatePublicSlug">
+            <details class="collapse collapse-arrow border border-base-300 bg-base-100">
+              <summary class="collapse-title">{{ t("Uprawnienia pól") }}</summary>
+              <div class="collapse-content space-y-4">
+                <p class="text-sm">{{ t("Zaznacz uprawnienie, aby ograniczyć je do podanych ról. Pusta lista daje dostęp tylko osobom z uprawnieniem Buduj.") }}</p>
+                <p v-if="invalidFieldRead" class="alert alert-warning" role="alert">
+                  {{ t("Odczyt można ograniczyć tylko dla pól prywatnych innych niż slug.") }}
+                </p>
+                <section v-for="field in schema.definition.fields" :key="field.key" class="space-y-2 border-t border-base-300 pt-3">
+                  <h3 class="font-medium">{{ field.label }}</h3>
+                  <div v-for="ability in (['read', 'write'] as const)" :key="ability" class="space-y-2">
+                    <label class="flex items-center gap-2">
+                      <input
+                        type="checkbox" class="checkbox checkbox-sm"
+                        :checked="field.access?.[ability] !== undefined"
+                        :disabled="ability === 'read' && !canRestrictFieldRead(field) && field.access?.read === undefined"
+                        @change="toggleFieldAccess(field, ability, ($event.target as HTMLInputElement).checked)"
+                      />
+                      {{ t(ability === 'read' ? 'Ogranicz odczyt' : 'Ogranicz zapis') }}
+                    </label>
+                    <label v-if="field.access?.[ability] !== undefined" class="block">
+                      <span class="field-label">{{ t(ability === 'read' ? 'Role z odczytem' : 'Role z zapisem') }}</span>
+                      <input
+                        class="input w-full"
+                        :value="field.access[ability]?.join(', ')"
+                        @change="updateFieldRoles(field, ability, ($event.target as HTMLInputElement).value)"
+                      />
+                    </label>
+                  </div>
+                </section>
+              </div>
+            </details>
+            <button class="btn btn-primary" :disabled="busy || privatePublicSlug || invalidFieldRead">
               {{ t("Aktywuj konfigurację") }}<Check :size="16" />
             </button>
           </form>
@@ -1520,8 +1579,11 @@ const title = computed(
                 @input="dirty = true"
               >
                 <template v-for="f in selected.definition.fields" :key="f.key"
-                  ><RelationPicker
-                    v-if="f.type === 'relation' && f.key !== 'blocks'"
+                  ><div v-if="f.writable === false && f.key !== 'blocks'">
+                    <span class="field-label">{{ f.label }} · {{ t("Tylko odczyt") }}</span>
+                    <p class="whitespace-pre-wrap wrap-anywhere">{{ readonlyFieldValue(record.data[f.key]) }}</p>
+                  </div><RelationPicker
+                    v-else-if="f.type === 'relation' && f.key !== 'blocks'"
                     v-model="record.data[f.key]"
                     :target="f.target"
                     :label="f.label"
@@ -1570,11 +1632,10 @@ const title = computed(
                       v-model="record.data[f.key]"
                       :required="f.required" /></label
                 ></template>
-                <template
-                  v-if="
-                    selected.definition.fields.some((f) => f.key === 'blocks')
-                  "
-                >
+                <p v-if="selected.definition.fields.some((f) => f.key === 'blocks' && f.writable === false)">
+                  {{ t("Sekcje strony są tylko do odczytu. Otwórz podgląd zapisanego szkicu.") }}
+                </p>
+                <template v-else-if="selected.definition.fields.some((f) => f.key === 'blocks')">
                   <div class="flex flex-wrap items-center gap-2">
                     <h2 ref="pageBlocksHeading" tabindex="-1" class="text-lg">{{ t("Sekcje strony") }}</h2>
                     <button
