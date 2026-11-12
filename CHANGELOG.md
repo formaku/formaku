@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.35 — 2026-11-12
+
+- Choose host-configured or custom roles in the collection model. Add and remove individual collection rules and choose suggested roles for field permissions.
+- New collection rules start with no access until a scope is selected. The editor distinguishes an empty restricted rule set from default collection access.
+- No new database migrations since alpha.30.
+
 ## 0.1.0-alpha.34 — 2026-11-12
 
 - Configure read and write permissions by role on individual fields. Record lists, history and previews respect field access. Saving or restoring drafts preserves protected values.

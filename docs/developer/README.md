@@ -10,7 +10,7 @@ On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.34' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.35' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -19,7 +19,7 @@ Configure the host guard and the `authorize` callback in `config/formaku.php` us
 
 ### Upgrade an existing Composer installation
 
-After updating to alpha.34, run these commands from the host Laravel app before serving traffic.
+After updating to alpha.35, run these commands from the host Laravel app before serving traffic.
 
 ```sh
 php artisan formaku:install
@@ -30,18 +30,31 @@ Starting with alpha.31, `formaku:install` removes cached copies of the package B
 
 ### Install from a local ZIP
 
-On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.34.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.34). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
+On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.35.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.35). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.34.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.35.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.34' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.35' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
 
 On macOS, use `shasum -a 256 -c` in the checksum command. Keep the ZIP available at the same relative path in environments where you run `composer install`. The archive includes the compiled panel assets, fonts and their license notices.
 
+
+## Provide a role catalog to the model editor
+
+Set `roles` in the host's `config/formaku.php` to an array of role keys and display labels.
+
+```php
+'roles' => [
+    'case_manager' => 'Case manager',
+    'reviewer' => 'Reviewer',
+],
+```
+
+Use the same keys that your `role` resolver returns for users. When the resolver is absent, Formaku reads the user's `role` property. The catalog supplies suggestions in the model editor for users with `build` access. Your Laravel application assigns roles, and its Formaku authorization callback and collection or field rules govern access. The editor also accepts role keys that are absent from the catalog.
 
 ## Configure field permissions
 

@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.34**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.35**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Host-configured role catalog and custom role keys in the collection and field permission editor.
 
 - Per-field role restrictions for reading private fields and writing fields in the panel and API, with protected values retained across draft writes and restores.
 

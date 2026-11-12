@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.34' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.35' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -30,18 +30,31 @@ Od alpha.31 `formaku:install` usuwa skompilowane kopie szablonów Blade pakietu.
 
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.34.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.34). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.35.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.35). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.34.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.35.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.34' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.35' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
 
 Na macOS w poleceniu sprawdzającym sumę użyj `shasum -a 256 -c`. Zachowaj ZIP pod tą samą ścieżką względną w środowiskach, w których uruchamiasz `composer install`. Archiwum zawiera zbudowane zasoby, fonty panelu i informacje o ich licencjach.
 
+
+## Udostępnij katalog ról w edytorze modelu
+
+W pliku `config/formaku.php` aplikacji gospodarza ustaw `roles` jako tablicę kluczy ról i wyświetlanych nazw.
+
+```php
+'roles' => [
+    'case_manager' => 'Opiekun sprawy',
+    'reviewer' => 'Weryfikator',
+],
+```
+
+Użyj kluczy zwracanych przez funkcję `role` dla użytkowników. Bez tej funkcji Formaku odczytuje właściwość `role` użytkownika. Katalog podpowiada role w edytorze modelu osobom z uprawnieniem `build`. Aplikacja Laravel przypisuje role, a funkcja autoryzacji Formaku i reguły kolekcji lub pól określają dostęp. W edytorze można też podać klucz spoza katalogu.
 
 ## Skonfiguruj uprawnienia pól
 

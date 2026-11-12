@@ -88,7 +88,7 @@ Od alpha.32 aplikacja Laravel może udostępnić w panelu własne zasoby i akcje
 
 ### Uprawnienia do odczytu i zapisu pól
 
-W **Buduj → Edytuj model → Uprawnienia pól** zaznacz **Ogranicz odczyt** albo **Ogranicz zapis**, a następnie wpisz role po przecinku. Włączone ograniczenie z pustą listą pozostawia dostęp osobom z uprawnieniem **Buduj**. Pole bez ograniczenia dziedziczy dostęp z kolekcji. Zapis wymaga także prawa do odczytu pola i edycji rekordu.
+W **Buduj → Edytuj model → Uprawnienia pól** zaznacz **Ogranicz odczyt** albo **Ogranicz zapis**, a następnie wybierz role z katalogu albo wpisz klucze po przecinku. Włączone ograniczenie z pustą listą pozostawia dostęp osobom z uprawnieniem **Buduj**. Pole bez ograniczenia dziedziczy dostęp z kolekcji. Zapis wymaga także prawa do odczytu pola i edycji rekordu.
 
 Odczyt można ograniczyć dla pól prywatnych innych niż `slug`. Pola niewidoczne znikają z edytora i historii, a pola dostępne tylko do odczytu pozostają widoczne. Zapis i przywrócenie wersji zachowują bieżące wartości pól, których użytkownik nie może zmienić.
 
@@ -196,10 +196,12 @@ Starting with alpha.32, the **Extensions** section lists resources and actions e
 
 Starting with alpha.33, **Private** fields are filtered from public pages, catalogs and cards. Private page blocks remain available in the editor preview. Set file visibility separately in the media library. The URL slug is part of the public address. In **Build → Edit model**, clear **Private** for `slug` to make the addresses public, or turn off **Public content collection** to keep them private. The upgrade hides collections with private slugs until you review their configuration and preserves their drafts and revisions.
 
-Under **Build → Edit model → Field permissions**, enable **Restrict reading** or **Restrict writing** and enter a comma-separated list of roles. An enabled restriction with an empty list permits only users with **Build** access. Fields inherit collection access where a restriction is off. A write requires field read access and record write access.
+Under **Build → Edit model → Field permissions**, enable **Restrict reading** or **Restrict writing** and choose roles from the catalog or enter their keys separated by commas. An enabled restriction with an empty list permits only users with **Build** access. Fields inherit collection access where a restriction is off. A write requires field read access and record write access.
 
 Read restrictions apply to private fields other than `slug`. The editor and history omit unreadable values. Read-only values remain visible. Saving and restoring a revision preserve current values the user cannot edit. Collections with field rules are unavailable to the paired assistant. Templates require permission to write page blocks. The file usage view omits a collection if the user cannot read one of its media-reference fields.
 
 ## Dostęp do kolekcji
 
-W edycji modelu wybierz „Skonfiguruj dostęp ról”. Dla redaktora i publikującego ustaw zakres rekordów: wszystkie, własne, przypisane albo brak dostępu oraz osobno prawo edycji. Po włączeniu reguł role bez wpisu nie mają dostępu. Administrator buildera zachowuje pełny dostęp. Te same ograniczenia obejmują API, listy, podgląd, historię i relacje.
+W edycji modelu wybierz **Skonfiguruj dostęp ról**. Dodaj rolę z katalogu aplikacji albo wpisz własny klucz. Nowa reguła zaczyna od **Brak dostępu**. Ustaw zakres rekordów i prawo edycji. Pusta konfiguracja ogranicza dostęp do osób z uprawnieniem **Buduj**. Aby wrócić do dostępu domyślnego, wyłącz reguły kolekcji i zapisz model. Te same ograniczenia obejmują API, listy, podgląd, historię i relacje.
+
+In **Build → Edit model**, configure collection access and add a role from the host catalog or enter its key. Each added rule starts at **No access**. Choose the record scope and write permission before saving. An empty rule set allows users with **Build** access. Turn off collection rules to restore default collection access.
