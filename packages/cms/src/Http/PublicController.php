@@ -6,8 +6,10 @@ use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Models\Revision;
+use Formaku\Cms\Services\CollectionAccess;
 use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\MediaVariants;
+use Formaku\Cms\Services\PortalAttachments;
 use Formaku\Cms\Services\PortalFields;
 use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
@@ -18,6 +20,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 class PublicController
 {
@@ -108,7 +111,7 @@ class PublicController
             ->get(['alternate.record_id', 'alternate.locale', 'records.published_slug']);
     }
 
-    public function portal(Request $request, FieldAccess $access): View
+    public function portal(Request $request, FieldAccess $access, PortalAttachments $attachments): View
     {
         $collection = Collection::where('key', 'requests')->firstOrFail();
         $user = $request->user();
@@ -117,25 +120,46 @@ class PublicController
         return view('formaku::portal', [
             'records' => $records,
             'portalFields' => $this->writablePortalFields($collection, $access, $user),
+            'portalAttachmentsEnabled' => $attachments->canUpload($collection, $user),
         ]);
     }
 
-    public function submit(Request $request, RecordService $records, FieldAccess $access): RedirectResponse
-    {
+    public function submit(
+        Request $request,
+        RecordService $records,
+        FieldAccess $access,
+        PortalAttachments $attachments,
+    ): RedirectResponse {
         $base = $request->validate(['title' => 'required|string|max:200', 'description' => 'required|string|max:5000']);
         $user = $request->user();
-        DB::transaction(function () use ($request, $records, $access, $base, $user) {
-            $collection = Collection::where('key', 'requests')->lockForUpdate()->firstOrFail();
-            $keys = array_column($this->writablePortalFields($collection, $access, $user), 'key');
-            $data = $base + $request->only($keys);
-            $records->save($collection, null, $data, 0, $user->id, actorUser: $user);
-        });
+        $paths = [];
+
+        try {
+            DB::transaction(function () use ($request, $records, $access, $attachments, $base, $user, &$paths) {
+                $collection = Collection::where('key', 'requests')->lockForUpdate()->firstOrFail();
+                $keys = array_column($this->writablePortalFields($collection, $access, $user), 'key');
+                $files = $attachments->validate($request, $collection, $user);
+                $record = $records->save($collection, null, $base + $request->only($keys), 0, $user->id, actorUser: $user);
+                foreach ($files as $file) {
+                    $attachments->store($record, $file, $paths);
+                }
+            });
+        } catch (Throwable $error) {
+            $attachments->discard($paths);
+
+            throw $error;
+        }
 
         return redirect('/portal')->with('status', 'Zgłoszenie zapisane.');
     }
 
-    public function request(Request $request, Record $record, FieldAccess $access): array|View
-    {
+    public function request(
+        Request $request,
+        Record $record,
+        FieldAccess $access,
+        CollectionAccess $collections,
+        PortalAttachments $attachments,
+    ): array|View {
         $user = $request->user();
         abort_unless($record->owner_id === $user->id, 404);
         $collection = Collection::findOrFail($record->collection_id);
@@ -153,7 +177,32 @@ class PublicController
             fn (array $field) => isset($result['data'][$field['key']]) && $access->canRead($collection, $field, $user),
         ));
 
-        return view('formaku::request', ['record' => $result, 'portalFields' => $portalFields]);
+        $portalAttachments = PortalFields::supportsCollection($collection->key, $collection->kind)
+            && $collections->query($collection, $user)->whereKey($record->id)->exists()
+            ? $attachments->metadata($record, 'formaku.portal.attachment')
+            : [];
+
+        return view('formaku::request', [
+            'record' => $result,
+            'portalFields' => $portalFields,
+            'portalAttachments' => $portalAttachments,
+        ]);
+    }
+
+    public function portalAttachment(
+        Request $request,
+        Record $record,
+        string $attachment,
+        CollectionAccess $collections,
+        PortalAttachments $attachments,
+    ): StreamedResponse {
+        $user = $request->user();
+        abort_unless($record->owner_id === $user->id, 404);
+        $collection = Collection::findOrFail($record->collection_id);
+        abort_unless(PortalFields::supportsCollection($collection->key, $collection->kind), 404);
+        $collections->check($collection, $user, false, $record);
+
+        return $attachments->download($record, $attachment);
     }
 
     /** @return list<array> */

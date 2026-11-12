@@ -10,6 +10,8 @@ use Formaku\Cms\Services\CollectionAccess;
 use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\MediaUsage;
 use Formaku\Cms\Services\MediaVariants;
+use Formaku\Cms\Services\PortalAttachments;
+use Formaku\Cms\Services\PortalFields;
 use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Registry;
@@ -20,6 +22,7 @@ use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
@@ -120,6 +123,37 @@ class ApiController
         }
 
         return $this->document($record, $collection, $user, $this->hiddenFields($collection, $user)) + ['history' => $history];
+    }
+
+    /** @return list<array{id: int, name: string, size: int, url: string}> */
+    public function attachmentIndex(
+        Request $request,
+        Record $record,
+        CollectionAccess $collections,
+        PortalAttachments $attachments,
+    ): array {
+        $this->checkAttachmentAccess($request, $record, $collections);
+
+        return $attachments->metadata($record, 'formaku.staff.attachment');
+    }
+
+    public function attachment(
+        Request $request,
+        Record $record,
+        string $attachment,
+        CollectionAccess $collections,
+        PortalAttachments $attachments,
+    ): StreamedResponse {
+        $this->checkAttachmentAccess($request, $record, $collections);
+
+        return $attachments->download($record, $attachment);
+    }
+
+    private function checkAttachmentAccess(Request $request, Record $record, CollectionAccess $collections): void
+    {
+        $collection = Collection::findOrFail($record->collection_id);
+        abort_unless(PortalFields::supportsCollection($collection->key, $collection->kind), 404);
+        $collections->check($collection, $request->user(), false, $record);
     }
 
     public function relationOptions(Request $request, Collection $collection): array

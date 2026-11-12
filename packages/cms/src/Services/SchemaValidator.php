@@ -25,6 +25,7 @@ class SchemaValidator
             'definition.access.*.scope' => 'required|in:all,own,assigned,none',
             'definition.access.*.write' => 'required|boolean',
             'definition.public' => 'sometimes|boolean',
+            'definition.portal_attachments' => 'sometimes|boolean',
             'definition.portal_fields' => 'sometimes|array|list|max:50',
             'definition.portal_fields.*' => 'required|string|distinct:strict',
             'definition.seo' => 'sometimes|array:title,description',
@@ -33,6 +34,14 @@ class SchemaValidator
         ])->validate();
         $this->validateFieldAccess($d['definition']['fields'], $input['definition']['fields'], $old['fields'] ?? []);
         $this->validatePortalFields($d['key'], $d['kind'], $d['definition']);
+        if (array_key_exists('portal_attachments', $d['definition'])) {
+            if (! PortalFields::supportsCollection($d['key'], $d['kind'])) {
+                throw ValidationException::withMessages([
+                    'definition.portal_attachments' => 'Portal attachments are only available on the requests data collection.',
+                ]);
+            }
+            $d['definition']['portal_attachments'] = (bool) $d['definition']['portal_attachments'];
+        }
 
         if ($d['kind'] === 'content' && ($d['definition']['public'] ?? false)) {
             foreach ($d['definition']['fields'] as $index => $field) {

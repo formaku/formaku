@@ -19,6 +19,9 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::delete('/collections/{collection}/page-templates/{templateId}', [PageTemplateController::class, 'destroy'])->whereNumber('templateId')->middleware(Access::class.':build');
   Route::post('/records/{record}/page-templates', [PageTemplateController::class, 'store'])->middleware(Access::class.':build');
   Route::get('/records/{record}',[ApiController::class,'show']);Route::get('/records/{record}/preview',[ApiController::class,'preview']);
+  Route::get('/records/{record}/attachments', [ApiController::class, 'attachmentIndex']);
+  Route::get('/records/{record}/attachments/{attachment}', [ApiController::class, 'attachment'])
+      ->whereNumber('attachment')->name('formaku.staff.attachment');
   Route::post('/records/{record}/publish',[ApiController::class,'publish'])->middleware(Access::class.':publish');
   Route::post('/records/{record}/schedule',[ApiController::class,'schedule'])->middleware(Access::class.':publish');
   Route::get('/records/{record}/translations', [RecordTranslationController::class, 'show'])->middleware(Access::class.':publish');
@@ -41,6 +44,8 @@ if (config('formaku.public_routes')) {
             Route::get('/portal', [PublicController::class, 'portal']);
             Route::post('/portal/requests', [PublicController::class, 'submit'])->middleware('throttle:10,1');
             Route::get('/portal/requests/{record}', [PublicController::class, 'request']);
+            Route::get('/portal/requests/{record}/attachments/{attachment}', [PublicController::class, 'portalAttachment'])
+                ->whereNumber('attachment')->name('formaku.portal.attachment');
         });
     });
 
