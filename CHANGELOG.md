@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.67 — 2026-11-12
+
+- Set the order of selected customer portal fields from the collection builder. Subject and Description remain first.
+- No new migrations since alpha.66.
+
 ## 0.1.0-alpha.66 — 2026-11-12
 
 - Configure the file count, maximum size and allowed formats for customer request attachments. The portal displays and enforces the selected policy.

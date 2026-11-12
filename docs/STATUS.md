@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.66**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.67**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -36,7 +36,7 @@ This is **0.1.0-alpha.66**. The remaining v1 work is listed below.
 
 - Optional private request attachments in the customer portal, with configurable file count, size and formats and scoped downloads for owners and staff.
 
-- Configurable scalar request fields in the customer portal, with collection and field permission checks.
+- Configurable scalar request fields and field order in the customer portal, with collection and field permission checks.
 
 - Host-configured role catalog and custom role keys in the collection and field permission editor.
 
