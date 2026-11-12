@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Przykłady dotyczą Formaku v0.1.0-alpha.14 i startera na Laravelu 13. Użyj lokalnej instalacji z osobną bazą testową. W samodzielnej aplikacji najpierw ustaw guard i autoryzację Formaku zgodnie z [instrukcją integracji pakietu](../../README.md#package-integration).
+Przykłady korzystają ze startera na Laravelu 13. Integracja z panelem wymaga Formaku alpha.32 lub nowszej wersji. Użyj lokalnej instalacji z osobną bazą testową. W samodzielnej aplikacji najpierw ustaw guard i autoryzację Formaku zgodnie z [instrukcją integracji pakietu](../../README.md#package-integration).
 
 ## Instalacja w istniejącej aplikacji Laravel
 

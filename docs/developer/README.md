@@ -2,7 +2,7 @@
 
 [Po polsku](README.pl.md)
 
-These examples target Formaku v0.1.0-alpha.14 and its Laravel 13 starter. Use a local installation with a disposable database. For a standalone host application, first configure the host guard and Formaku authorization as described in [Package integration](../../README.md#package-integration).
+These examples use the Laravel 13 starter. The panel integration requires Formaku alpha.32 or later. Use a local installation with a disposable database. For a standalone host application, first configure the host guard and Formaku authorization as described in [Package integration](../../README.md#package-integration).
 
 ## Install in an existing Laravel app
 
