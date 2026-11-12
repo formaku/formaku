@@ -2,7 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 export default defineConfig({
   testDir: "tests/browser",
   webServer: {
-    command: "php apps/starter/artisan serve --host=127.0.0.1 --port=8765",
+    command: "php -S 127.0.0.1:8765 -t apps/starter/public tests/browser/router.php",
     url: "http://127.0.0.1:8765/login",
     reuseExistingServer: !process.env.CI,
     // Browser projects share localhost. Keep their cache and login rate counters request-local.
