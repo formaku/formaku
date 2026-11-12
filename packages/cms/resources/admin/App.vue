@@ -108,6 +108,34 @@ type Release = {
   state: keyof typeof releaseStateLabels;
   run_url: string | null;
 };
+const deploymentHostStateLabels = {
+  deploying: "Wdrażanie w toku",
+  deployed: "Wdrożono",
+  failed: "Wdrożenie nieudane",
+};
+const deploymentRollbackLabels = {
+  not_attempted: "Nie rozpoczęto",
+  restored: "Przywrócono poprzednią wersję",
+  failed: "Przywrócenie nie powiodło się",
+  unavailable: "Przywrócenie niedostępne",
+};
+type DeploymentReceiptResult = {
+  state: "pending" | "unavailable" | "verified";
+  run_id: number;
+  run_attempt: number;
+  run_url: string;
+  receipt: {
+    format: 1;
+    release: string;
+    image: string;
+    ssh_exit_code: number;
+    host_status: {
+      state: keyof typeof deploymentHostStateLabels;
+      rollback: keyof typeof deploymentRollbackLabels | null;
+      backup: string | null;
+    } | null;
+  } | null;
+};
 type PortalAttachment = { id: number; name: string; size: number; url: string };
 type PageTemplate = { id: number; name: string };
 type PageTemplatePage = {
@@ -257,6 +285,10 @@ const availableBlockDestinations = computed(() =>
 );
 const refreshingReleases = ref(new Set<string>());
 const releaseRefreshErrors = ref(new Set<string>());
+const deploymentReceiptQuery = ref({ run_id: "", release_id: "", image: "" });
+const deploymentReceiptResult = ref<DeploymentReceiptResult | null>(null);
+const deploymentReceiptLoading = ref(false);
+const deploymentReceiptFailed = ref(false);
 const templateName = ref("");
 const templatePage = ref<PageTemplatePage | null>(null);
 const templateId = ref<number | null>(null);
@@ -1054,6 +1086,23 @@ async function refreshRelease(id: string) {
     releaseRefreshErrors.value.add(id);
   } finally {
     refreshingReleases.value.delete(id);
+  }
+}
+function clearDeploymentReceipt() {
+  deploymentReceiptResult.value = null;
+  deploymentReceiptFailed.value = false;
+}
+async function checkDeploymentReceipt() {
+  if (deploymentReceiptLoading.value) return;
+  clearDeploymentReceipt();
+  deploymentReceiptLoading.value = true;
+  const query = new URLSearchParams(deploymentReceiptQuery.value);
+  try {
+    deploymentReceiptResult.value = await request(`/deployments/receipt?${query}`);
+  } catch {
+    deploymentReceiptFailed.value = true;
+  } finally {
+    deploymentReceiptLoading.value = false;
   }
 }
 function downloadJson(filename: string, data: unknown) {
@@ -2635,6 +2684,109 @@ const title = computed(
                 {{ t("Zbuduj wydanie") }}<ArrowUpRight :size="16" />
               </button>
             </div>
+            <section
+              v-if="boot?.abilities?.build"
+              class="card card-border bg-base-100"
+              aria-labelledby="deployment-receipt-heading"
+            >
+              <div class="card-body gap-4">
+                <h2 id="deployment-receipt-heading" class="card-title">{{ t("Potwierdzenie wdrożenia") }}</h2>
+                <form @submit.prevent="checkDeploymentReceipt" @input="clearDeploymentReceipt">
+                  <fieldset :disabled="deploymentReceiptLoading" class="space-y-4">
+                    <div class="grid gap-4 md:grid-cols-2">
+                      <label>
+                        <span class="field-label">{{ t("ID uruchomienia GitHub Actions") }}</span>
+                        <input
+                          v-model.trim="deploymentReceiptQuery.run_id"
+                          class="input w-full mono"
+                          inputmode="numeric"
+                          pattern="[1-9][0-9]*"
+                          required
+                        />
+                      </label>
+                      <label>
+                        <span class="field-label">{{ t("ID wydania wdrożenia") }}</span>
+                        <input
+                          v-model.trim="deploymentReceiptQuery.release_id"
+                          class="input w-full mono"
+                          placeholder="00000000-0000-0000-0000-000000000000"
+                          pattern="[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+                          spellcheck="false"
+                          required
+                        />
+                      </label>
+                    </div>
+                    <label class="block">
+                      <span class="field-label">{{ t("Digest obrazu") }}</span>
+                      <input
+                        v-model.trim="deploymentReceiptQuery.image"
+                        class="input w-full mono"
+                        placeholder="ghcr.io/owner/image@sha256:…"
+                        pattern="ghcr\.io/[a-z0-9_.\-]+/[a-z0-9_.\-]+@sha256:[a-f0-9]{64}"
+                        maxlength="300"
+                        spellcheck="false"
+                        required
+                      />
+                    </label>
+                    <button type="submit" class="btn">
+                      <span v-if="deploymentReceiptLoading" class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+                      {{ t("Sprawdź potwierdzenie") }}
+                    </button>
+                  </fieldset>
+                </form>
+                <p v-if="deploymentReceiptFailed" class="alert alert-error" role="alert">
+                  {{ t("Nie udało się odczytać potwierdzenia. Sprawdź podane dane i spróbuj ponownie.") }}
+                </p>
+                <div role="status">
+                  <div v-if="deploymentReceiptResult" class="space-y-3 rounded-box bg-base-200 p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <p class="font-medium">
+                        {{ t("Uruchomienie {0}, próba {1}", deploymentReceiptResult.run_id, deploymentReceiptResult.run_attempt) }}
+                      </p>
+                      <a
+                        :href="deploymentReceiptResult.run_url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="link"
+                      >{{ t("Otwórz uruchomienie w GitHub Actions") }}</a>
+                    </div>
+                    <p v-if="deploymentReceiptResult.state === 'pending'">
+                      {{ t("Workflow wdrożenia nadal trwa.") }}
+                    </p>
+                    <p v-else-if="deploymentReceiptResult.state === 'unavailable'">
+                      {{ t("Potwierdzenie wdrożenia jest niedostępne dla tej próby.") }}
+                    </p>
+                    <template v-else-if="deploymentReceiptResult.receipt">
+                      <p class="text-sm text-base-content/70">{{ t("Wynik historyczny zapisany przez workflow dla tej próby.") }}</p>
+                      <dl class="grid gap-3 text-sm sm:grid-cols-2">
+                        <div>
+                          <dt class="font-medium">{{ t("Kod wyjścia SSH") }}</dt>
+                          <dd class="mono">{{ deploymentReceiptResult.receipt.ssh_exit_code }}</dd>
+                        </div>
+                        <template v-if="deploymentReceiptResult.receipt.host_status">
+                          <div>
+                            <dt class="font-medium">{{ t("Status hosta z potwierdzenia") }}</dt>
+                            <dd>{{ t(deploymentHostStateLabels[deploymentReceiptResult.receipt.host_status.state]) }}</dd>
+                          </div>
+                          <div v-if="deploymentReceiptResult.receipt.host_status.rollback">
+                            <dt class="font-medium">{{ t("Przywrócenie wersji") }}</dt>
+                            <dd>{{ t(deploymentRollbackLabels[deploymentReceiptResult.receipt.host_status.rollback]) }}</dd>
+                          </div>
+                          <div v-if="deploymentReceiptResult.receipt.host_status.backup">
+                            <dt class="font-medium">{{ t("Kopia zapasowa") }}</dt>
+                            <dd class="mono break-all">{{ deploymentReceiptResult.receipt.host_status.backup }}</dd>
+                          </div>
+                        </template>
+                        <div v-else>
+                          <dt class="font-medium">{{ t("Status hosta z potwierdzenia") }}</dt>
+                          <dd>{{ t("Status hosta jest niedostępny.") }}</dd>
+                        </div>
+                      </dl>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </section>
             <article
               v-for="r in releases"
               :key="r.id"

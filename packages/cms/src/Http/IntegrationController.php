@@ -5,7 +5,9 @@ namespace Formaku\Cms\Http;
 use Formaku\Cms\Jobs\GenerateProposal;
 use Formaku\Cms\Models\AiTask;
 use Formaku\Cms\Models\Release;
+use Formaku\Cms\Services\DeploymentReceipt;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -132,6 +134,19 @@ class IntegrationController
 
             return $current;
         });
+    }
+
+    public function deploymentReceipt(Request $request, DeploymentReceipt $receipt): JsonResponse
+    {
+        $data = $request->validate([
+            'run_id' => ['required', 'integer', 'min:1', 'max:9007199254740991'],
+            'release_id' => ['required', 'string', 'regex:/\A[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}\z/'],
+            'image' => ['required', 'string', 'max:300', 'regex:~\Aghcr\.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}\z~'],
+        ]);
+        $cfg = $this->githubConfiguration();
+
+        return response()->json($receipt->read($cfg['repository'], $cfg['token'], (int) $data['run_id'], $data['release_id'], $data['image']))
+            ->header('Cache-Control', 'no-store');
     }
 
     /** @return array{token: string, repository: string, workflow?: string} */

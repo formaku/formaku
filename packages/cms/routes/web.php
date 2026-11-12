@@ -39,6 +39,7 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::get('/ai',[IntegrationController::class,'tasks']);Route::post('/ai',[IntegrationController::class,'generate'])->middleware('throttle:10,1');Route::post('/ai/{task}/cancel',[IntegrationController::class,'cancel']);
   Route::get('/releases',[IntegrationController::class,'releases'])->middleware(Access::class.':build');Route::post('/releases',[IntegrationController::class,'release'])->middleware(Access::class.':build');
   Route::post('/releases/{release}/refresh', [IntegrationController::class, 'refreshRelease'])->whereUuid('release')->middleware(Access::class.':build');
+  Route::get('/deployments/receipt', [IntegrationController::class, 'deploymentReceipt'])->middleware(Access::class.':build');
  });
 });
 if (config('formaku.public_routes')) {

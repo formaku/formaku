@@ -186,6 +186,12 @@ After the deployment command returns, open the workflow run summary. It shows th
 
 For automation, download `formaku-deployment-<run attempt>` from that run’s artifacts. Its `formaku-deployment.json` identifies the release UUID and image digest and reports the SSH exit code separately from the host state observed after the command. An unavailable or mismatched host response yields `host_status: null`. Match both identifiers to the requested deployment before using the receipt. Use the controller’s status command for a fresh reading.
 
+### Check a deployment receipt in Formaku
+
+Open **Releases → Deployment receipt**. Enter the numeric GitHub Actions run ID, the deployment UUID and the full `ghcr.io/owner/repository@sha256:…` reference used to dispatch **Deploy existing image** on `main`. Select **Check receipt**. Formaku checks the report for the latest run attempt in `GITHUB_REPOSITORY`. Enable PHP’s ZIP extension and configure `GITHUB_TOKEN` with [Actions read permission](https://docs.github.com/en/rest/actions/artifacts#list-workflow-run-artifacts).
+
+The result shows the SSH exit code and, when available, the state reported by the host after that attempt. If the report is missing or the host status is unavailable, check the workflow summary and use the controller’s status command for a fresh reading.
+
 ### Read deployment and rollback status
 
 On an existing deployment host, install the controller from the alpha.64 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
