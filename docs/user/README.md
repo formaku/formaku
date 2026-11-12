@@ -126,7 +126,9 @@ W modelu `requests` włącz **Załączniki do zgłoszeń**, aby klient mógł pr
 
 ## AI
 
-Administrator ustawia klucz i model na serwerze. W zakładce AI wybierz dostawcę i opisz stronę. Odśwież stan zadania po wykonaniu przez worker. Gotową propozycję można zastosować jako nowy szkic, poprawić i osobno opublikować. Klucze nie są widoczne w panelu ani w eksporcie.
+Administrator ustawia klucz i model na serwerze. W zakładce AI wybierz dostawcę i opisz stronę. Odśwież stan zadania po wykonaniu przez worker. Przy gotowym zadaniu wybierz **Sprawdź propozycję**. Wybierz kolekcję, w której możesz tworzyć strony, i sprawdź tytuł, adres URL (jeśli kolekcja go obsługuje) oraz kolejność i treść sekcji.
+
+**Zastosuj jako nowy szkic** otwiera edytor z proponowaną treścią. **Zapisz szkic** dodaje rekord do kolekcji. Publikację uruchamiasz osobno z edytora. Klucze dostawców są przechowywane na serwerze.
 
 ## Asystent witryny od wersji 0.1.0-alpha.2
 

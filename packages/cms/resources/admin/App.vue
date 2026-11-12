@@ -121,6 +121,7 @@ type Collection = {
   name: string;
   kind: string;
   version: number;
+  can_create?: boolean;
   definition: {
     fields: Field[];
     states?: string[];
@@ -132,6 +133,13 @@ type Collection = {
     portal_attachments?: boolean;
   };
 };
+type AiTask = { id: number; state: string; prompt: string; error?: string | null; result?: unknown };
+type ProposalBlock = {
+  type: "hero" | "cta";
+  props: { title: string; text?: string; label?: string; url?: string };
+};
+type PageProposal = { title: string; slug: string; blocks: ProposalBlock[] };
+
 const clone = (v: any) => JSON.parse(JSON.stringify(v));
 const previewWidths = {
   desktop: "w-[1280px]",
@@ -153,7 +161,7 @@ const boot = ref<any>(null),
   recordsPage = ref<{ data: any[]; current_page: number; last_page: number } | null>(null),
   record = ref<any>(null),
   schema = ref<any>(null),
-  tasks = ref<any[]>([]),
+  tasks = ref<AiTask[]>([]),
   releases = ref<Release[]>([]),
   error = ref(""),
   message = ref(""),
@@ -163,6 +171,30 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+const reviewTaskId = ref<number | null>(null);
+const proposalCollectionId = ref<number | null>(null);
+function proposalField(collection: Collection, key: string, type: string): boolean {
+  return collection.definition.fields.some((field) =>
+    field.key === key && field.type === type && field.writable !== false,
+  );
+}
+const proposalCollections = computed(() => collections.value.filter((collection) =>
+  collection.can_create === true && collection.kind === "content"
+    && proposalField(collection, "title", "text") && proposalField(collection, "blocks", "richtext"),
+));
+const proposalCollection = computed(() =>
+  proposalCollections.value.find((collection) => collection.id === proposalCollectionId.value),
+);
+const reviewedProposal = computed(() => {
+  const task = tasks.value.find((item) => item.id === reviewTaskId.value);
+  return task ? pageProposal(task) : null;
+});
+const proposedSlug = computed(() =>
+  proposalCollection.value && proposalField(proposalCollection.value, "slug", "text")
+    ? reviewedProposal.value?.slug
+    : undefined,
+);
+
 const fieldTypes = computed(() => {
   const types = new Map<string, FieldTypeMetadata>(
     builtInFieldTypes.map((key) => [key, { key, label: key, input: key }]),
@@ -406,7 +438,7 @@ watch(portalRecordId, async (id, _previousId, onCleanup) => {
     if (active) portalAttachmentsFailed.value = true;
   }
 });
-async function run(fn: () => Promise<void>) {
+async function run(fn: () => Promise<unknown>) {
   busy.value = true;
   error.value = "";
   message.value = "";
@@ -491,8 +523,8 @@ async function changeRecordsFilter(key: "state" | "publication", event: Event) {
   await run(() => loadRecords(1, { ...recordsFilter.value, [key]: control.value }));
   control.value = recordsFilter.value[key];
 }
-async function choose(c: Collection, keepList = false) {
-  if (hasUnsavedChanges.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
+async function choose(c: Collection, keepList = false): Promise<boolean> {
+  if (hasUnsavedChanges.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return false;
   const page = keepList ? (recordsPage.value?.current_page ?? 1) : 1;
   const filters = keepList ? recordsFilter.value : emptyRecordsFilter;
   selected.value = c;
@@ -502,7 +534,11 @@ async function choose(c: Collection, keepList = false) {
   recordsFilter.value = filters;
   recordsLabelInput.value = filters.label;
   dirty.value = false;
-  await loadRecords(page);
+  const loading = loadRecords(page);
+  const requestId = recordsRequest;
+  await loading;
+  return requestId === recordsRequest && section.value === "records"
+    && selected.value?.id === c.id && record.value === null;
 }
 function formatPublicationTime(value: string): string {
   return new Date(value).toLocaleString(locale.value, { dateStyle: "medium", timeStyle: "short" });
@@ -576,17 +612,61 @@ async function importProject(e: Event) {
       message.value = t("Projekt zaimportowany.");
     });
 }
-async function applyProposal(task: any) {
-  const c = collections.value.find(
-    (c) =>
-      c.kind === "content" &&
-      c.definition.fields.some((f) => f.key === "blocks" && f.writable !== false),
-  );
-  if (!c) throw Error(t("Potrzebujesz kolekcji stron z prawem zapisu sekcji."));
-  await choose(c);
-  fresh();
-  record.value.data = { ...task.result, slug: "proposal-" + task.id };
+function proposalObject(value: unknown): Record<string, unknown> | null {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null;
+}
+function pageProposal(task: AiTask): PageProposal | null {
+  const data = proposalObject(task.result);
+  if (task.state !== "ready" || !Number.isSafeInteger(task.id) || task.id < 1
+    || typeof data?.title !== "string" || !data.title.trim()
+    || !Array.isArray(data.blocks) || data.blocks.length === 0 || data.blocks.length > 30) return null;
+
+  const blocks: ProposalBlock[] = [];
+  for (const item of data.blocks) {
+    const block = proposalObject(item);
+    const type = block?.type;
+    const props = proposalObject(block?.props);
+    if ((type !== "hero" && type !== "cta") || typeof props?.title !== "string" || !props.title.trim()) {
+      return null;
+    }
+
+    const draftProps: ProposalBlock["props"] = { title: props.title };
+    if (type === "hero" && typeof props.text === "string") draftProps.text = props.text;
+    if (type === "cta") {
+      if (typeof props.label === "string") draftProps.label = props.label;
+      if (typeof props.url === "string") draftProps.url = props.url;
+    }
+    blocks.push({ type, props: draftProps });
+  }
+
+  return { title: data.title, slug: "proposal-" + task.id, blocks };
+}
+function toggleProposalReview(task: AiTask) {
+  if (reviewTaskId.value === task.id) {
+    reviewTaskId.value = null;
+    return;
+  }
+
+  reviewTaskId.value = task.id;
+  proposalCollectionId.value = proposalCollections.value.length === 1 ? proposalCollections.value[0].id : null;
+}
+async function applyProposal() {
+  const proposal = reviewedProposal.value;
+  const collection = proposalCollection.value;
+  if (!proposal || !collection || !(await choose(collection))) return;
+
+  const current = proposalCollections.value.find((item) => item.id === collection.id);
+  if (!current) return;
+  const data = {
+    title: proposal.title,
+    blocks: clone(proposal.blocks),
+    ...(proposalField(current, "slug", "text") ? { slug: proposal.slug } : {}),
+  };
+  setDraft({ version: 0, data });
   dirty.value = true;
+  reviewTaskId.value = null;
 }
 function setDraft(draft: any) {
   record.value = draft;
@@ -2468,14 +2548,70 @@ const title = computed(
               <p v-if="task.error" class="text-error">{{ task.error }}</p>
               <button
                 v-if="task.state === 'ready'"
+                type="button"
                 class="btn btn-sm my-3"
-                @click="run(() => applyProposal(task))"
+                :disabled="busy"
+                :aria-expanded="reviewTaskId === task.id"
+                :aria-controls="'proposal-review-' + task.id"
+                @click="toggleProposalReview(task)"
               >
-                {{ t("Zastosuj jako nowy szkic") }}
+                {{ reviewTaskId === task.id ? t("Zamknij podgląd") : t("Sprawdź propozycję") }}
               </button>
-              <pre v-if="task.result" class="whitespace-pre-wrap text-xs">{{
-                JSON.stringify(task.result, null, 2)
-              }}</pre>
+              <section
+                v-if="reviewTaskId === task.id && task.state === 'ready'"
+                :id="'proposal-review-' + task.id"
+                class="mt-4 space-y-4 border-t border-base-300 pt-4"
+                :aria-label='t("Podgląd nowego szkicu")'
+              >
+                <h2 class="text-lg font-semibold">{{ t("Podgląd nowego szkicu") }}</h2>
+                <template v-if="reviewedProposal">
+                  <label v-if="proposalCollections.length">
+                    <span class="field-label">{{ t("Kolekcja docelowa") }}</span>
+                    <select v-model="proposalCollectionId" class="select w-full max-w-md" :disabled="busy">
+                      <option :value="null" disabled>{{ t("Wybierz kolekcję") }}</option>
+                      <option v-for="collection in proposalCollections" :key="collection.id" :value="collection.id">
+                        {{ collection.name }}
+                      </option>
+                    </select>
+                  </label>
+                  <p v-else class="alert alert-warning">{{ t("Brak kolekcji stron, w której możesz zapisać tytuł i sekcje.") }}</p>
+                  <dl class="space-y-2">
+                    <div>
+                      <dt class="text-sm font-semibold">{{ t("Tytuł") }}</dt>
+                      <dd class="whitespace-pre-wrap wrap-anywhere">{{ reviewedProposal.title }}</dd>
+                    </div>
+                    <div v-if="proposalCollection">
+                      <dt class="text-sm font-semibold">{{ t("Proponowany adres URL") }}</dt>
+                      <dd v-if="proposedSlug"><code>{{ proposedSlug }}</code></dd>
+                      <dd v-else>{{ t("Model kolekcji nie ma zapisywalnego pola adresu URL.") }}</dd>
+                    </div>
+                  </dl>
+                  <h3 class="text-sm font-semibold">{{ t("Sekcje strony") }}</h3>
+                  <ol class="list-decimal list-inside space-y-3">
+                    <li v-for="(block, index) in reviewedProposal.blocks" :key="index" class="border border-base-300 rounded-lg p-3">
+                      <strong>{{ blockLabel(block.type, blockCatalog) }}</strong>
+                      <p class="whitespace-pre-wrap wrap-anywhere">{{ block.props.title }}</p>
+                      <p v-if="block.type === 'hero' && block.props.text" class="whitespace-pre-wrap wrap-anywhere">{{ block.props.text }}</p>
+                      <dl v-if="block.type === 'cta'" class="mt-2 text-sm">
+                        <dt class="font-semibold">{{ t("Etykieta przycisku") }}</dt>
+                        <dd class="whitespace-pre-wrap wrap-anywhere">{{ block.props.label ?? "Dalej" }}</dd>
+                        <dt class="font-semibold">{{ t("Adres odnośnika") }}</dt>
+                        <dd class="whitespace-pre-wrap wrap-anywhere">{{ block.props.url ?? "/" }}</dd>
+                      </dl>
+                    </li>
+                  </ol>
+                  <p class="text-sm">{{ t("Nowy szkic pojawi się w edytorze. Zapisz go, aby dodać rekord do kolekcji.") }}</p>
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    :disabled="busy || !proposalCollection"
+                    @click="run(applyProposal)"
+                  >
+                    {{ t("Zastosuj jako nowy szkic") }}
+                  </button>
+                </template>
+                <p v-else class="alert alert-warning">{{ t("Ta propozycja zawiera nieobsługiwane dane.") }}</p>
+              </section>
             </article>
             <button class="btn" @click="navigate('ai')">{{ t("Odśwież zadania") }}</button>
           </section>

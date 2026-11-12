@@ -21,6 +21,13 @@ class CollectionAccess
         return $rules[$this->role($user)] ?? ['scope' => 'none', 'write' => false];
     }
 
+    public function canCreate(Collection $collection, object $user): bool
+    {
+        $rule = $this->rule($collection, $user);
+
+        return ($rule['write'] ?? false) && in_array($rule['scope'], ['all', 'own'], true);
+    }
+
     public function canBuild(object $user): bool
     {
         $authorize = config('formaku.authorize');

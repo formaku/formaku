@@ -557,6 +557,7 @@ class ApiController
     private function collectionDocument(Collection $collection, object $user): array
     {
         $document = $collection->toArray();
+        $document['can_create'] = app(CollectionAccess::class)->canCreate($collection, $user);
         if (! $this->fieldAccess->hasRules($collection) || (config('formaku.authorize'))($user, 'build')) {
             return $document;
         }

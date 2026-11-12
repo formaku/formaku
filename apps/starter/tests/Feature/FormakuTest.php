@@ -1124,7 +1124,8 @@ class FormakuTest extends TestCase
         $this->getJson('/formaku/api/v1/records/'.$theirs->id)->assertNotFound();
         $this->postJson('/formaku/api/v1/collections/'.$collection->id.'/records', ['id' => $theirs->id, 'version' => 1, 'data' => ['title' => 'Hijacked']])->assertNotFound();
         $this->getJson('/formaku/api/v1/records/'.$theirs->id.'/preview')->assertNotFound();
-        $this->getJson('/formaku/api/v1/bootstrap')->assertJsonPath('counts.records', 1);
+        $this->getJson('/formaku/api/v1/bootstrap')->assertJsonPath('counts.records', 1)
+            ->assertJsonPath('collections.0.can_create', true);
     }
 
     public function test_assigned_scope_and_read_only_rule_are_enforced(): void
@@ -1142,6 +1143,12 @@ class FormakuTest extends TestCase
         $record->update(['assignee_id' => $editor->id]);
         $this->getJson('/formaku/api/v1/records/'.$record->id)->assertOk();
         $this->postJson('/formaku/api/v1/records/'.$record->id.'/transition', ['version' => 1, 'state' => 'closed'])->assertForbidden();
+        $this->postJson('/formaku/api/v1/collections/'.$c->id.'/records', ['version' => 0, 'data' => ['title' => 'New']])->assertForbidden();
+        $this->getJson('/formaku/api/v1/bootstrap')->assertJsonPath('collections.0.can_create', false);
+
+        $definition['access']['editor']['write'] = true;
+        $c->update(['definition' => $definition]);
+        $this->getJson('/formaku/api/v1/bootstrap')->assertJsonPath('collections.0.can_create', false);
         $this->postJson('/formaku/api/v1/collections/'.$c->id.'/records', ['version' => 0, 'data' => ['title' => 'New']])->assertForbidden();
     }
 }

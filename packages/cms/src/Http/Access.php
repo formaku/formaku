@@ -28,7 +28,7 @@ class Access
         if ($collection instanceof Collection) {
             $policy->check($collection, $user, ! $r->isMethod('GET'), $record instanceof Record ? $record : null);
             if ($r->isMethod('POST') && ! $record && ! $r->input('id')) {
-                abort_if($policy->rule($collection, $user)['scope'] === 'assigned', 403);
+                abort_unless($policy->canCreate($collection, $user), 403);
             }
             if ($r->input('id')) {
                 $target = Record::where('collection_id', $collection->id)->findOrFail($r->input('id'));
