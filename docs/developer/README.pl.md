@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.57' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.58' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -38,7 +38,7 @@ Jeśli brakuje plików panelu w kopii źródeł, zbuduj je w głównym katalogu 
 
 ### Aktualizacja istniejącej instalacji Composer
 
-Po aktualizacji do alpha.57 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
+Po aktualizacji do alpha.58 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
 
 ```sh
 php artisan formaku:install
@@ -63,12 +63,12 @@ Uruchom ręcznie `php artisan formaku:publish-scheduled`, aby zobaczyć podsumow
 
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.57.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.57). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.58.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.58). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.57.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.58.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.57' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.58' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -141,7 +141,7 @@ Jeśli migracja tabeli załączników wprowadzona w alpha.37 jest nadal oczekuj�
 
 1. Skopiuj pliki PHP z [examples/app](examples/app) do odpowiadających im ścieżek w katalogu `app/` aplikacji.
 2. Dodaj `App\Providers\FormakuExamplesServiceProvider::class` do tablicy zwracanej w pliku `bootstrap/providers.php`.
-3. [Przykładowy provider](examples/app/Providers/FormakuExamplesServiceProvider.php) rejestruje rozszerzenia w metodzie `boot(Registry $registry)`. Formaku udostępnia współdzielony rejestr podczas wywołania `register()` swojego providera. Wybierz prefiks kluczy właściwy dla projektu. Ponowna rejestracja tego samego klucza zastępuje wpis w danej mapie rejestru.
+3. [Przykładowy provider](examples/app/Providers/FormakuExamplesServiceProvider.php) rejestruje rozszerzenia w metodzie `boot(Registry $registry)`. Formaku udostępnia współdzielony rejestr podczas wywołania `register()` swojego providera. Wybierz prefiks kluczy właściwy dla projektu. Ponowna rejestracja klucza rozszerzenia zastępuje wpis w danej mapie rejestru. Klucze wbudowanych typów pól i bloków są zastrzeżone.
 
 ## Opublikuj stronę z własnym blokiem
 
@@ -191,7 +191,23 @@ require __DIR__.'/formaku-extension-examples.php';
 
 Trasy korzystają z sesji i ochrony CSRF Laravela. Korzystają ze stałych kluczy rejestru i ustalają wykonawcę na podstawie sesji. Zastosuj polityki aplikacji przed udostępnieniem zasobu biznesowego lub wywołaniem akcji ze skutkiem ubocznym. Umieść ograniczenie do właściciela lub tenanta w zapytaniu i jawnie wybierz zwracane pola. Po stronie klienta traktuj wynik akcji jak dane tekstowe.
 
-Rejestr przechowuje też wpisy `FieldType`. Walidator kolekcji i edytor obecnie korzystają z własnych wbudowanych list typów. Interfejsy `AiProvider` i `PipelineDriver` nie mają metod rejestracji. Starter korzysta z konkretnych usług integrujących AI i GitHuba.
+## Zarejestruj własne typy pól i metadane bloków
+
+Wywołaj `Registry::field()`, zanim utworzysz kolekcję z polem tego typu. Podczas walidacji rekordu Formaku przekazuje definicję pola do `FieldType::rules()`. Definicja kolekcji określa, czy pole jest wymagane. Jeśli typ potrzebuje reguł walidacji i metadanych, użyj `Formaku\Cms\Fields\Field`.
+
+```php
+$registry->field(new \Formaku\Cms\Fields\Field(
+    'example_price_cents', 'Cena w groszach', 'number', ['integer', 'min:0'],
+));
+```
+
+Ustaw `type` pola na `example_price_cents` przez API kolekcji. Zainstaluj rozszerzenie w każdej aplikacji, która zapisuje lub publikuje takie rekordy. Wbudowaną obsługę plików i relacji zapewniają klucze `media` i `relation`.
+
+API startowe zwraca `fieldTypes` dla pól wbudowanych i rozszerzeń implementujących `PanelFieldType` oraz `blockTypes` dla bloków wbudowanych i rozszerzeń implementujących `PanelBlockType`. Lista `blocks` nadal zawiera klucze bloków wbudowanych. Wbudowany edytor korzysta z własnych kontrolek. Własne typy pól i bloków obsłuż przez API lub edytor w aplikacji Laravel.
+
+Metoda `PanelBlockType::panelSchema()` opisuje ustawienia bloku dla edytora aplikacji. `BlockType::schema()` pozostaje dostępna do walidacji w rozszerzeniu. Gdy `acceptsChildren()` zwraca `true`, Formaku przekazuje wyrenderowaną zawartość zagnieżdżoną jako drugi argument metody `render()`. Rozszerzenia służące do samego renderowania lub walidacji mogą nadal implementować `BlockType` lub `FieldType`.
+
+Interfejsy `AiProvider` i `PipelineDriver` nie mają metod rejestracji. Starter korzysta z konkretnych usług integrujących AI i GitHuba.
 
 ## Sprawdź działanie w starterze
 
