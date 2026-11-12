@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.71 — 2026-11-12
+
+- AI proposal review lists the editable required fields left empty in the selected collection so editors can fill them before saving the draft.
+- No new migrations since alpha.70.
+
 ## 0.1.0-alpha.70 — 2026-11-12
 
 - AI page proposals with an invalid block map fail the generation task. Valid proposals preserve block order in review and in the new draft.
