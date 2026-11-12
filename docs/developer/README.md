@@ -76,7 +76,7 @@ The editor's built-in block picker has a fixed list. Use the API or an importer 
 
 Starting with alpha.32, use the optional panel configuration in `Registry::resource()` and `Registry::action()`. The [example provider](examples/app/Providers/FormakuExamplesServiceProvider.php) registers **My profile** and **Preview notice**. Install the example provider, sign in with permission to use Formaku, and open **Extensions**. You can view your own profile and submit a notice to get a preview. The panel uses Formaku's existing session routes.
 
-For a resource, provide a label, a list of columns with `key` and `label`, and an `authorize` callback. The adapter receives the signed-in user. Scope and order its query in the host application, and select the raw attributes or SQL aliases the panel displays. The panel shows scalar values and empty cells, with 25 rows per page.
+For a resource, provide a label, a list of columns with `key` and `label`, and an `authorize` callback. The adapter receives the signed-in user. Scope and order its query in the host application, and select the raw attributes or SQL aliases the panel displays. The panel shows scalar values and empty cells, with up to 25 rows per page. Apply row authorization in SQL. Post-query filtering can leave a page with fewer rows. Use a resource query without Laravel’s per-group limit.
 
 For an action, provide a label, a list of fields with `key`, `label`, `type`, and optional `required`, and an `authorize` callback. Supported types are `text`, `integer`, and `boolean`. The handler receives the signed-in user and validated inputs. Add business validation and record-level authorization inside the handler. Return only data the caller may see. The panel renders the returned data as text.
 

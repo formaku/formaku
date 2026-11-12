@@ -76,7 +76,7 @@ Lista bloków w edytorze jest stała. Przekaż przykładowy blok przez API lub w
 
 Od alpha.32 metody `Registry::resource()` i `Registry::action()` przyjmują opcjonalną konfigurację panelu. [Przykładowy provider](examples/app/Providers/FormakuExamplesServiceProvider.php) rejestruje **My profile** i **Preview notice**. Dodaj provider, zaloguj się z dostępem do Formaku i otwórz **Rozszerzenia**. Możesz zobaczyć własny profil i wysłać tekst do podglądu. Panel korzysta z istniejących tras sesyjnych Formaku.
 
-Dla zasobu podaj etykietę, listę kolumn z `key` i `label` oraz funkcję `authorize`. Adapter otrzymuje zalogowanego użytkownika. W aplikacji gospodarza określ zakres i kolejność zapytania oraz wybierz surowe atrybuty lub aliasy SQL do wyświetlenia. Panel pokazuje wartości skalarne i puste komórki, po 25 wierszy na stronę.
+Dla zasobu podaj etykietę, listę kolumn z `key` i `label` oraz funkcję `authorize`. Adapter otrzymuje zalogowanego użytkownika. W aplikacji gospodarza określ zakres i kolejność zapytania oraz wybierz surowe atrybuty lub aliasy SQL do wyświetlenia. Panel pokazuje wartości skalarne i puste komórki, do 25 wierszy na stronę. Uprawnienia do wierszy uwzględnij w zapytaniu SQL. Filtrowanie po odczycie może zmniejszyć liczbę wierszy na stronie. Zapytanie zasobu powinno działać bez limitu Laravela nakładanego na każdą grupę.
 
 Dla akcji podaj etykietę, listę pól z `key`, `label`, `type` i opcjonalnym `required` oraz funkcję `authorize`. Dostępne typy to `text`, `integer` i `boolean`. Handler otrzymuje zalogowanego użytkownika i zwalidowane pola. Dodaj w handlerze walidację biznesową i uprawnienia do konkretnych rekordów. Zwracaj wyłącznie dane, które użytkownik może zobaczyć. Panel wyświetla wynik jako tekst.
 
