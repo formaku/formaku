@@ -1,10 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.60**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.61**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
-- Browse revision history in pages of 25. Opening a record loads its current draft independently of the history.
+- Browse revision history in pages of 25. Opening a record loads its current draft independently of the history. PostgreSQL and SQLite use a composite index to find revisions for one record.
 
 - Open saved records from a panel link and reopen the same record after refreshing.
 
@@ -44,6 +44,8 @@ This is **0.1.0-alpha.60**. The remaining v1 work is listed below.
 
 - Opt-in Laravel resources and actions in the admin panel, with per-extension authorization, paginated scalar columns, and validated action inputs.
 
+- Choose registered custom field types in the collection model. Add and configure registered custom blocks in the page editor, including blocks with nested content.
+
 - The Composer installer refreshes compiled Formaku Blade templates during upgrades while preserving cached views owned by the host Laravel application.
 
 - Linked language versions of pages in a public content collection, with independent drafts, a public language switcher and HTML `hreflang` links.
@@ -71,8 +73,8 @@ This is **0.1.0-alpha.60**. The remaining v1 work is listed below.
 
 ## Evidence
 
-- PHP: 58 tests and 601 assertions pass on local SQLite with PHP 8.5.11. The suite covers navigation access, address validation, version conflicts, theme compatibility with existing settings, and template access, validation and draft independence. Media usage checks also pass on PostgreSQL 17.11 and MySQL 8.4.
-- Browser: 12 tests pass across Chromium, Firefox and WebKit. The suite covers authoring, media usage, responsive layouts, SEO, related records, private attachments, WebP variants and mobile login width. The suite also checks collection templates and their normal publication flow. Chromium verifies site navigation changes on a published page.
+- PHP CI runs on PHP 8.4 and 8.5 with PostgreSQL 17 and MySQL 8.4. The starter also supports running tests on SQLite.
+- Playwright CI covers Chromium, Firefox and WebKit, including authoring and publishing with registered field and block extensions.
 - Assistant adapter: the Node stdio test exercises validation errors, collection templates, image listing, public v1 and v2 catalog requests without the CMS token, filtering by category, and local adapter replacement.
 - Frontend: vue-tsc and Vite production build pass. A real rendered dashboard screenshot is in test-results/dashboard-chromium.png (ignored build artifact).
 - Docker: image built; Laravel command runs, HTTP login returns 200, runtime UID is 33 (www-data). GitHub CI verifies that the web process, database, queue worker and scheduler start with Compose.

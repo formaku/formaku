@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.61 — 2026-11-12
+
 - Index revision history by record and revision ID on PostgreSQL and SQLite.
 
 ## 0.1.0-alpha.60 — 2026-11-12

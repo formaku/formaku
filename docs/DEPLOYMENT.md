@@ -14,17 +14,17 @@ To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY
 
 ## Run the alpha locally with Docker Compose
 
-These instructions apply to `v0.1.0-alpha.60`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
+These instructions apply to `v0.1.0-alpha.61`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
 
 ```sh
-git clone --branch v0.1.0-alpha.60 --single-branch https://github.com/formaku/formaku.git
+git clone --branch v0.1.0-alpha.61 --single-branch https://github.com/formaku/formaku.git
 cd formaku
 cp .env.docker.example .env.docker
 ```
 
 Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local.
 
-If the [alpha.60 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.60) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
+If the [alpha.61 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.61) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
 
 ```sh
 docker pull "$FORMAKU_IMAGE"
@@ -69,14 +69,14 @@ For new tagged releases, the release workflow runs the SQLite installation check
 Run the same installation check locally with the ZIP and its adjacent `.sha256` file. It needs PHP 8.4 or later with PDO SQLite, Composer, Python 3, ZIP support and access to Packagist for the test host.
 
 ```sh
-bash scripts/smoke-composer-package.sh /absolute/path/formaku-cms-v0.1.0-alpha.60.zip
+bash scripts/smoke-composer-package.sh /absolute/path/formaku-cms-v0.1.0-alpha.61.zip
 ```
 
 The check creates a temporary Laravel 13 application and installs the ZIP as a Composer distribution. It verifies Formaku migrations, panel configuration and published assets, plus the host’s existing route and a synthetic database record.
 
 ### Upgrade an existing alpha installation
 
-Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.60`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.60 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
+Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.61`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.61 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
 
 ```sh
 docker compose --env-file .env.docker stop web worker scheduler
@@ -186,7 +186,7 @@ After the deployment command returns, open the workflow run summary. It shows th
 
 ### Read deployment and rollback status
 
-On an existing deployment host, install the controller from the alpha.60 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
+On an existing deployment host, install the controller from the alpha.61 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
 
 | Value | Meaning |
 | --- | --- |
