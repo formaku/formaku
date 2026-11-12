@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.74 — 2026-11-12
+
+- Read the current runtime status and verified active image from a manual GitHub Actions workflow using the host's restricted SSH dispatcher.
+- No new migrations since alpha.73.
+
 ## 0.1.0-alpha.73 — 2026-11-12
 
 - Operators can use the host controller's read-only runtime command to verify the image and health of the web, queue worker, and scheduler after deployment or rollback.
