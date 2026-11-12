@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.41 — 2026-11-12
+
+- The deploy workflow summarizes the host status for the requested release UUID and image digest, including the rollback outcome and completed backup when available.
+- A restricted SSH status command reads the matching deployment without acquiring the deployment lock. The workflow keeps the original deployment exit code.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.40 — 2026-11-12
 
 - Record the outcome of a failed host deployment and make the current status readable during deployment. The controller attempts to bring the previous image back once and waits for Compose health checks.
