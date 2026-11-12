@@ -399,6 +399,11 @@ test("preview a saved revision without restoring it", async ({ page }, info) => 
   expect(afterPreview.draft_id).toBe(draft.draft_id);
   expect(afterPreview.published_id).toBe(published.published_id);
 
+  await page.getByRole("button", { name: "Przywróć do szkicu", exact: true }).click();
+  await expect(page.getByRole("status")).toContainText("Wersja przywrócona do szkicu.");
+  await expect(page.getByLabel("Tytuł", { exact: true })).toHaveValue(historicalTitle);
+  expect(await (await page.request.get("/p/" + slug)).text()).toContain(`<title>${publishedTitle}</title>`);
+
   const historyRequested = Promise.withResolvers<void>();
   const returnHistory = Promise.withResolvers<void>();
   await page.route(`**${api}${recordPath}/revisions`, async (route) => {
