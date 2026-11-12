@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.44**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.45**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- The editor displays the scheduled publication time and lets publishers cancel it without changing the draft.
 
 - Filter customer request history by states present in the signed-in customer’s own requests. The selected state stays active when changing pages.
 

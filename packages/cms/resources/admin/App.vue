@@ -315,6 +315,7 @@ watch(
   () => record.value?.id,
   () => {
     previewOpen.value = false;
+    scheduledAt.value = "";
   },
 );
 async function request(path: string, method = "GET", data?: any) {
@@ -535,6 +536,7 @@ async function save() {
     if (JSON.stringify(draft.data) !== JSON.stringify(snapshot.data)) {
       record.value.id = result.id;
       record.value.version = result.version;
+      record.value.publish_at = result.publish_at;
       dirty.value = true;
       message.value =
         t("Zapisano wcześniejszy stan. Nowsze zmiany czekają na zapis.");
@@ -546,6 +548,23 @@ async function save() {
     const d = await request("/collections/" + collectionId + "/records");
     if (selected.value?.id === collectionId) records.value = d.data;
     await load();
+  });
+}
+async function updateSchedule(cancel = false) {
+  await run(async () => {
+    const draft = record.value;
+    const path = `/records/${draft.id}/schedule`;
+    const result = await request(path, cancel ? "DELETE" : "POST", {
+      version: draft.version,
+      ...(cancel ? {} : { publish_at: new Date(scheduledAt.value).toISOString() }),
+    });
+    if (record.value !== draft) return;
+    draft.version = result.version;
+    draft.publish_at = result.publish_at;
+    scheduledAt.value = "";
+    message.value = cancel
+      ? t("Anulowano zaplanowaną publikację.")
+      : t("Publikacja zaplanowana.");
   });
 }
 async function publish() {
@@ -1902,34 +1921,26 @@ const title = computed(
                   selected.kind === 'content' &&
                   boot?.abilities?.publish
                 "
-                class="flex gap-3 mt-5 items-end"
+                class="mt-5"
               >
-                <label
-                  ><span class="field-label">{{ t("Data publikacji") }}</span
-                  ><input
-                    type="datetime-local"
-                    class="input"
-                    v-model="scheduledAt" /></label
-                ><button
-                  class="btn"
-                  :disabled="dirty || busy || !scheduledAt"
-                  @click="
-                    run(async () => {
-                      await request(
-                        '/records/' + record.id + '/schedule',
-                        'POST',
-                        {
-                          version: record.version,
-                          publish_at: new Date(scheduledAt).toISOString(),
-                        },
-                      );
-                      record = await request('/records/' + record.id);
-                      message = t('Publikacja zaplanowana.');
-                    })
-                  "
-                >
-                  {{ t("Zaplanuj publikację") }}
-                </button>
+                <p v-if="record.publish_at" class="mb-3 text-sm">
+                  {{ t("Zaplanowany termin publikacji") }}
+                  <time :datetime="record.publish_at" class="font-medium">
+                    {{ new Date(record.publish_at).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" }) }}
+                  </time>
+                </p>
+                <div class="flex flex-wrap gap-3 items-end">
+                  <label>
+                    <span class="field-label">{{ t("Data publikacji") }}</span>
+                    <input type="datetime-local" class="input" v-model="scheduledAt" :disabled="busy" />
+                  </label>
+                  <button type="button" class="btn" :disabled="dirty || busy || !scheduledAt" @click="updateSchedule()">
+                    {{ t("Zaplanuj publikację") }}
+                  </button>
+                  <button v-if="record.publish_at" type="button" class="btn" :disabled="busy" @click="updateSchedule(true)">
+                    {{ t("Anuluj zaplanowaną publikację") }}
+                  </button>
+                </div>
               </div>
               <section
                 v-if="portalAttachments.length || portalAttachmentsFailed"

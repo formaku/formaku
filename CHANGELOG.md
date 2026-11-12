@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.45 — 2026-11-12
+
+- The editor shows the scheduled publication time in the browser’s local time and lets publishers cancel it without changing the draft.
+- Scheduling preserves the intended instant when an API client sends a date with a time-zone offset.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.44 — 2026-11-12
 
 - Customers can filter their own request history by state. The filter is retained when moving between pages.

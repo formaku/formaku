@@ -14,17 +14,17 @@ To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY
 
 ## Run the alpha locally with Docker Compose
 
-These instructions apply to `v0.1.0-alpha.44`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
+These instructions apply to `v0.1.0-alpha.45`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
 
 ```sh
-git clone --branch v0.1.0-alpha.44 --single-branch https://github.com/formaku/formaku.git
+git clone --branch v0.1.0-alpha.45 --single-branch https://github.com/formaku/formaku.git
 cd formaku
 cp .env.docker.example .env.docker
 ```
 
 Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local.
 
-If the [alpha.44 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.44) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
+If the [alpha.45 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.45) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
 
 ```sh
 docker pull "$FORMAKU_IMAGE"
@@ -60,7 +60,7 @@ Starting with alpha.39, `org.opencontainers.image.source` gives the Formaku repo
 
 ### Upgrade an existing alpha installation
 
-Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.44`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.44 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
+Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.45`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.45 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
 
 ```sh
 docker compose --env-file .env.docker stop web worker scheduler
@@ -168,7 +168,7 @@ After the deployment command returns, open the workflow run summary. It shows th
 
 ### Read deployment and rollback status
 
-On an existing deployment host, install the controller from the alpha.44 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
+On an existing deployment host, install the controller from the alpha.45 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
 
 | Value | Meaning |
 | --- | --- |

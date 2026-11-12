@@ -10,7 +10,7 @@ On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.44' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.45' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -26,7 +26,7 @@ Use your app's permissions in the method. Grant `work` to staff who may enter th
 
 ### Upgrade an existing Composer installation
 
-After updating to alpha.44, run these commands from the host Laravel app before serving traffic.
+After updating to alpha.45, run these commands from the host Laravel app before serving traffic.
 
 ```sh
 php artisan formaku:install
@@ -37,12 +37,12 @@ Starting with alpha.31, `formaku:install` removes cached copies of the package B
 
 ### Install from a local ZIP
 
-On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.44.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.44). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
+On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.45.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.45). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.44.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.45.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.44' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.45' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
