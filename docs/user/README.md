@@ -20,6 +20,8 @@ Kliknij **Powiel blok**, aby dodać kopię bezpośrednio za wybranym blokiem. Mo
 
 Kliknij **Przenieś blok** i wybierz **Poziom strony**, kontener albo kolumny. Blok trafia na koniec wybranej listy razem z zawartością. Okno pokazuje tylko miejsca, które mogą go przyjąć. Po przeniesieniu możesz zmienić kolejność w nowej liście, zapisać szkic i sprawdzić podgląd.
 
+Aby przywrócić ostatni usunięty blok, kliknij **Cofnij usunięcie bloku** obok nagłówka **Sekcje strony**. Blok wróci z zawartością i odwołaniami do mediów. Polecenie działa także po zapisie automatycznym, dopóki edytujesz ten szkic. Zapisz i opublikuj szkic, aby przywrócony blok był widoczny publicznie.
+
 Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera.
 
 Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
@@ -121,6 +123,8 @@ Starting with `0.1.0-alpha.7`, open **Media** to browse the library by page. Cho
 Choose **Duplicate block** to insert a copy after the selected block at the same level. Duplicating a container or columns copies its nested blocks. You can edit the copy independently. Image blocks keep their existing media references. Save and preview the draft before publishing.
 
 Choose **Move block** and select **Page level**, a container, or columns. The editor appends the block and its contents to the destination. The list shows only destinations that can accept the block. Reorder it in the destination as needed, then save and preview the draft.
+
+Select **Undo block removal** next to **Page sections** to restore the last block you removed. It retains its contents and media references. You can undo after autosave while editing the same draft. Save and publish the draft to show the restored block publicly.
 
 Starting with `0.1.0-alpha.8`, add an image block, including inside a container or columns, and choose **Wybierz obraz** (Choose image). Pick a public image by filename and thumbnail. Browse up to 30 images per page. Cancel or press Escape to keep the current selection. Enter a caption, save the draft and preview the page.
 

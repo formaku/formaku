@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.26 — 2026-11-12
+
+Undo the most recent block removal while editing a page draft, including after an autosave. The restored block keeps its nested content and media references. Publish the draft to apply the restoration to the public page. This release adds no database migrations.
+
 ## 0.1.0-alpha.25 — 2026-11-12
 
 Move page blocks between the page level, containers, and columns. The editor shows valid destinations and places the moved block last in the selected list, preserving its content and nested blocks. This release adds no database migrations.

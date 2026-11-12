@@ -2,7 +2,7 @@
 
 Project website and documentation are at [formaku.eu](https://formaku.eu/). Formaku is developed by [Strefa Badań](https://strefabadan.pl/).
 
-An open-source Laravel CMS and schema-driven application builder. **0.1.0-alpha.25**.
+An open-source Laravel CMS and schema-driven application builder. **0.1.0-alpha.26**.
 
 Vue 3 administration, server-rendered pages, versioned records, a customer portal and Docker delivery. MIT licensed. One installation hosts one application.
 
