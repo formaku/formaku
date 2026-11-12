@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.64 — 2026-11-12
+
+- Compare the saved draft with the current published revision through the paired website assistant. The read-only tool returns changed fields and the record version for review before publication.
+- No new migrations since alpha.63.
+
 ## 0.1.0-alpha.63 — 2026-11-12
 
 - Review an AI page proposal and choose a collection where you can create pages. Applying the proposal opens an unsaved draft.
