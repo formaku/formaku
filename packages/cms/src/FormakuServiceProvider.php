@@ -8,6 +8,8 @@ use Illuminate\View\View as BladeView;
 
 class FormakuServiceProvider extends ServiceProvider
 {
+    public const MIGRATION_PATH = __DIR__.'/../database/migrations';
+
     public const VIEW_PATH = __DIR__.'/../resources/views';
 
     public function register(): void
@@ -18,7 +20,7 @@ class FormakuServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadMigrationsFrom(self::MIGRATION_PATH);
         $this->loadViewsFrom(self::VIEW_PATH, 'formaku');
         View::composer('formaku::layout', function (BladeView $view): void {
             $navigation = $this->app->make(Services\SiteNavigation::class);
@@ -32,6 +34,7 @@ class FormakuServiceProvider extends ServiceProvider
         $this->publishes([__DIR__.'/../public' => public_path('vendor/formaku')], 'formaku-assets');
         if ($this->app->runningInConsole()) {
             $this->commands([
+                Console\DoctorCommand::class,
                 Console\InstallCommand::class,
                 Console\MediaVariantsCommand::class,
                 Console\PublishScheduledCommand::class,
