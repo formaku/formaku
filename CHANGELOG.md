@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.72 — 2026-11-12
+
+- Record creation controls and the AI proposal collection picker reflect whether the user can edit all required collection fields.
+- No new migrations since alpha.71.
+
 ## 0.1.0-alpha.71 — 2026-11-12
 
 - AI proposal review lists the editable required fields left empty in the selected collection so editors can fill them before saving the draft.
