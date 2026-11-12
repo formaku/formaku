@@ -762,7 +762,7 @@ const title = computed(
   <TooltipProvider
     ><div class="min-h-screen lg:grid lg:grid-cols-[244px_1fr]">
       <aside
-        class="bg-base-100 border-r border-base-300 p-6 lg:fixed lg:inset-y-0 lg:w-[244px] flex flex-col gap-8"
+        class="bg-base-100 border-r border-base-300 p-6 lg:fixed lg:inset-y-0 lg:w-[244px] lg:overflow-y-auto lg:overscroll-contain flex flex-col gap-8"
       >
         <a
           :href="base"
