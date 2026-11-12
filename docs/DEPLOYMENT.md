@@ -224,6 +224,16 @@ On the deployment host, run `sudo /usr/local/sbin/formaku-deployctl runtime` wit
 
 Use `status` to read the result of the last deployment attempt and its rollback outcome. Use the public URL to verify the external route separately.
 
+### Read the running image from GitHub Actions
+
+Update the host controller and forced-command dispatcher from the same release. If the deployment account should be able to read runtime remotely, add the exact `runtime` command to its existing sudoers configuration. Replace `formaku-deploy` with that account and validate the file with `visudo -c`.
+
+```sudoers
+formaku-deploy ALL=(root) NOPASSWD: /usr/local/sbin/formaku-deployctl runtime
+```
+
+On `main`, run **Read runtime status**. It uses the existing `production` environment and pinned SSH host key. The summary includes the observed state and, for `verified`, the full image digest. A failed run can report `transitioning`, `mismatch`, or `unavailable`. For deployment attempt history, use **Read deployment status** with the attempt's UUID and image.
+
 Automatic deployment supports backwards-compatible migrations. An image rollback uses the existing database and files. Recover data from the encrypted archive as a separate operation if needed. Store `backup.key` separately from the host and test data recovery before using real data. CI exercises deployment failures against a synthetic Compose fixture. The target VPS still needs its own acceptance test.
 
 Compose must read .env.docker for interpolation: use docker compose --env-file .env.docker. The host helper exports DB_PASSWORD from the runtime file through Compose's env-file option (see script).

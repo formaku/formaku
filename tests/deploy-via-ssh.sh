@@ -40,6 +40,11 @@ for filename in sys.argv[1:]:
 PYTHON
 printf '%s\n' "$2" >> "$TRACE"
 case "$2" in
+    runtime)
+        printf '%s\n' "$STATUS_RESPONSE"
+        echo 'private runtime diagnostic' >&2
+        exit "$STATUS_RESULT"
+        ;;
     "deploy $IMAGE $RELEASE_ID")
         echo 'private deployment output'
         echo 'deployment SSH diagnostic' >&2
@@ -56,8 +61,11 @@ MOCK
 cat > "$fixture/bin/timeout" <<'MOCK'
 #!/usr/bin/env bash
 set -euo pipefail
-[[ "$1 $2 $3" == '--kill-after=2s 15s ssh' ]]
-printf 'bounded status\n' >> "$TRACE"
+case "$1 $2 $3" in
+    '--kill-after=2s 15s ssh') printf 'bounded status\n' >> "$TRACE" ;;
+    '--kill-after=2s 55s ssh') printf 'bounded runtime\n' >> "$TRACE" ;;
+    *) exit 100 ;;
+esac
 shift 2
 if [[ "$STATUS_TIMEOUT" == 1 ]]; then
     "$@"
@@ -99,6 +107,18 @@ run_status() {
     printf 'bounded status\nstatus %s\n' "$RELEASE_ID" | cmp - "$TRACE"
     printf '### Deployment status read\n\nRelease: `%s`\n\n%s\n' \
         "$RELEASE_ID" "$expected_summary" | cmp - "$GITHUB_STEP_SUMMARY"
+}
+
+run_runtime() {
+    local expected=$1 expected_summary=$2 result=0
+    : > "$TRACE"
+    : > "$GITHUB_STEP_SUMMARY"
+    env -u IMAGE -u RELEASE_ID bash "$root/scripts/deploy-via-ssh.sh" --runtime-only \
+        > "$fixture/output" 2>&1 || result=$?
+    [[ "$result" == "$expected" ]]
+    [[ ! -s "$fixture/output" && -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
+    printf 'bounded runtime\nruntime\n' | cmp - "$TRACE"
+    printf '### Deployment runtime\n\n%s\n' "$expected_summary" | cmp - "$GITHUB_STEP_SUMMARY"
 }
 
 check_receipt() {
@@ -199,6 +219,43 @@ run_status 3 'Host status unavailable.'
 STATUS_TIMEOUT=0
 [[ ! -e "$receipt" ]]
 
+runtime_valid=$(jq -nc --arg image "$IMAGE" '{state:"verified", $image}')
+STATUS_RESPONSE=$runtime_valid
+printf 'existing deployment receipt\n' > "$receipt"
+run_runtime 0 "$(printf 'Host runtime: `verified`\n\nActive image: `%s`' "$IMAGE")"
+printf 'existing deployment receipt\n' | cmp - "$receipt"
+rm -f -- "$receipt"
+
+result=0
+GITHUB_STEP_SUMMARY="$fixture" env -u IMAGE -u RELEASE_ID bash "$root/scripts/deploy-via-ssh.sh" --runtime-only \
+    > "$fixture/output" 2>&1 || result=$?
+[[ "$result" == 3 && ! -e "$receipt" ]]
+grep -Fxq 'Could not write the deployment runtime summary.' "$fixture/output"
+
+for state in transitioning mismatch unavailable; do
+    STATUS_RESPONSE=$(jq -nc --arg state "$state" '{$state}')
+    run_runtime 3 "$(printf 'Host runtime: `%s`' "$state")"
+done
+
+for STATUS_RESPONSE in '' '{' '[]' "$runtime_valid"$'\n'"$runtime_valid" \
+    '{"state":"verified"}' '{"state":"mismatch","state":"transitioning"}' \
+    "$(jq -c '. + {extra: "private field"}' <<< "$runtime_valid")" \
+    "$(jq -c '.state = "transitioning"' <<< "$runtime_valid")" \
+    "$(jq -c '.image = "ghcrXio/example/site@sha256:" + ("a" * 64)' <<< "$runtime_valid")" \
+    "$(jq -c '.image = .image + "\nprivate data"' <<< "$runtime_valid")" \
+    "$(jq -c '.image = "ghcr.io/example/site@sha256:bad"' <<< "$runtime_valid")" \
+    "$(printf '%4097s%s' '' "$runtime_valid")"; do
+    run_runtime 3 'Host runtime: `unavailable`'
+done
+STATUS_RESPONSE=$runtime_valid
+STATUS_RESULT=255
+run_runtime 3 'Host runtime: `unavailable`'
+STATUS_RESULT=0
+STATUS_TIMEOUT=1
+run_runtime 3 'Host runtime: `unavailable`'
+STATUS_TIMEOUT=0
+[[ ! -e "$receipt" ]]
+
 : > "$TRACE"
 : > "$GITHUB_STEP_SUMMARY"
 for bad_input in IMAGE RELEASE_ID HOST USER; do
@@ -213,12 +270,21 @@ for bad_arg in --unknown ''; do
     result=0
     bash "$root/scripts/deploy-via-ssh.sh" "$bad_arg" > "$fixture/output" 2>&1 || result=$?
     [[ "$result" == 2 ]]
-    grep -Fxq 'Usage: deploy-via-ssh.sh [--status-only]' "$fixture/output"
+    grep -Fxq 'Usage: deploy-via-ssh.sh [--status-only|--runtime-only]' "$fixture/output"
 done
 result=0
 bash "$root/scripts/deploy-via-ssh.sh" --status-only --status-only > "$fixture/output" 2>&1 || result=$?
 [[ "$result" == 2 ]]
+for bad_input in HOST USER SSH_KEY KNOWN_HOSTS; do
+    result=0
+    env -u IMAGE -u RELEASE_ID -u "$bad_input" bash "$root/scripts/deploy-via-ssh.sh" --runtime-only \
+        > "$fixture/output" 2>&1 || result=$?
+    [[ "$result" == 2 ]]
+done
+result=0
+bash "$root/scripts/deploy-via-ssh.sh" --runtime-only extra > "$fixture/output" 2>&1 || result=$?
+[[ "$result" == 2 ]]
 [[ ! -s "$TRACE" && ! -s "$GITHUB_STEP_SUMMARY" && ! -e "$receipt" ]]
 [[ -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
 
-printf 'PASS: pinned SSH deploy and read-only status, scoped summaries and receipt, bounded query and credential cleanup\n'
+printf 'PASS: pinned SSH deploy, status and runtime reads, scoped summaries and receipt, bounded queries and credential cleanup\n'

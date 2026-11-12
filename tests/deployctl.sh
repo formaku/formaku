@@ -494,16 +494,19 @@ dispatch() {
     PATH="$scratch/bin:$PATH" SUDO_TRACE="$sudo_trace" SSH_ORIGINAL_COMMAND="$1" bash "$dispatcher"
 }
 
+dispatch runtime
+printf '%s\n' -n /usr/local/sbin/formaku-deployctl runtime | cmp - "$sudo_trace"
 dispatch "status $release"
 printf '%s\n' -n /usr/local/sbin/formaku-deployctl status "$release" | cmp - "$sudo_trace"
 dispatch "deploy $candidate $release"
 printf '%s\n' /usr/bin/systemd-run --quiet --collect --wait "--unit=formaku-$release" \
     /usr/local/sbin/formaku-deployctl deploy "$candidate" "$release" | cmp - "$sudo_trace"
 : > "$sudo_trace"
-for request in '' 'status' 'status invalid' "status $release extra" "status $candidate $release" \
+for request in '' "runtime $release" 'runtime ' $'runtime\n' $'runtime\r' \
+    'status' 'status invalid' "status $release extra" "status $candidate $release" \
     "deploy $candidate" "deploy $candidate $release extra" "unknown $release" \
     "status $release"$'\n' "status $release"$'\r' "deploy $candidate $release"$'\n'"status $release"; do
     assert_rejected dispatch "$request"
 done
 [[ ! -s "$sudo_trace" ]]
-printf 'PASS: SSH dispatcher forwards only allowed deploy and scoped status commands\n'
+printf 'PASS: SSH dispatcher forwards only allowed runtime, deploy and scoped status commands\n'

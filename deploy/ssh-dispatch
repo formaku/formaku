@@ -5,6 +5,10 @@ request=${SSH_ORIGINAL_COMMAND:-}
 IFS=$' \t' read -r action first second extra <<< "$request"
 [[ -z "$extra" ]] || exit 2
 case "$action" in
+    runtime)
+        [[ "$request" == runtime ]] || exit 2
+        exec sudo -n /usr/local/sbin/formaku-deployctl runtime
+        ;;
     status)
         [[ -z "$second" && "$first" =~ ^[a-f0-9-]{36}$ ]] || exit 2
         exec sudo -n /usr/local/sbin/formaku-deployctl status "$first"
