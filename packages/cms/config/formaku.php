@@ -8,17 +8,11 @@ return [
     'authorize' => null,
     'roles' => [],
     'registration' => env('FORMAKU_REGISTRATION', false),
-    'ai' => [
-        'openai' => [
-            'key' => env('OPENAI_API_KEY'),
-            'model' => env('OPENAI_MODEL'),
-            'max_output_tokens' => env('OPENAI_MAX_OUTPUT_TOKENS', 3000),
-        ],
-        'gemini' => [
-            'key' => env('GEMINI_API_KEY'),
-            'model' => env('GEMINI_MODEL'),
-            'max_output_tokens' => env('GEMINI_MAX_OUTPUT_TOKENS', 3000),
-        ],
+    'ai' => ['openai' => ['key' => env('OPENAI_API_KEY'), 'model' => env('OPENAI_MODEL')], 'gemini' => ['key' => env('GEMINI_API_KEY'), 'model' => env('GEMINI_MODEL')]],
+    // Keep these defaults available when an existing host defines its own 'ai' configuration.
+    'ai_output_tokens' => [
+        'openai' => env('OPENAI_MAX_OUTPUT_TOKENS', 3000),
+        'gemini' => env('GEMINI_MAX_OUTPUT_TOKENS', 3000),
     ],
     'github' => ['token' => env('GITHUB_TOKEN'), 'repository' => env('GITHUB_REPOSITORY'), 'workflow' => 'release.yml'],
 ];

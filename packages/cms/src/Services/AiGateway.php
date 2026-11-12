@@ -9,7 +9,7 @@ class AiGateway
 {
     public function maxOutputTokens(string $provider): ?int
     {
-        $value = config('formaku.ai.'.$provider.'.max_output_tokens', 3000);
+        $value = config('formaku.ai_output_tokens.'.$provider, 3000);
         if (is_string($value) && preg_match('/\A[1-9][0-9]{1,3}\z/', $value)) {
             $value = (int) $value;
         }

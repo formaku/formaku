@@ -1049,8 +1049,11 @@ class FormakuTest extends TestCase
     public function test_ai_providers_use_their_own_output_token_limits(): void
     {
         config([
-            'formaku.ai.openai' => ['key' => 'test-key', 'model' => 'test', 'max_output_tokens' => '1200'],
-            'formaku.ai.gemini' => ['key' => 'test-key', 'model' => 'test', 'max_output_tokens' => 850],
+            'formaku.ai' => [
+                'openai' => ['key' => 'test-key', 'model' => 'test'],
+                'gemini' => ['key' => 'test-key', 'model' => 'test'],
+            ],
+            'formaku.ai_output_tokens' => ['openai' => '1200', 'gemini' => 850],
         ]);
         $proposal = ['title' => 'Proposal', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Hello']]]];
         $text = json_encode($proposal);
@@ -1075,7 +1078,7 @@ class FormakuTest extends TestCase
         config(['formaku.ai.openai' => ['key' => 'test-key', 'model' => 'test']]);
 
         foreach ([15, 3001, true, 850.5, '1e3', 'invalid', null] as $invalid) {
-            config(['formaku.ai.openai.max_output_tokens' => $invalid]);
+            config(['formaku.ai_output_tokens.openai' => $invalid]);
             $this->postJson('/formaku/api/v1/ai', ['provider' => 'openai', 'prompt' => 'Create'])
                 ->assertUnprocessable()
                 ->assertJsonPath('message', 'Configure the provider output token limit as an integer from 16 to 3000.');
@@ -1083,7 +1086,10 @@ class FormakuTest extends TestCase
         $this->assertDatabaseCount('formaku_ai_tasks', 0);
         Queue::assertNothingPushed();
 
-        config(['formaku.ai.gemini' => ['key' => 'test-key', 'model' => 'test', 'max_output_tokens' => 3001]]);
+        config([
+            'formaku.ai.gemini' => ['key' => 'test-key', 'model' => 'test'],
+            'formaku.ai_output_tokens.gemini' => 3001,
+        ]);
         try {
             app(AiGateway::class)->generate('gemini', 'Create');
             $this->fail('The worker accepted an invalid provider limit.');
