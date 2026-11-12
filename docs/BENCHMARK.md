@@ -2,7 +2,7 @@
 
 Run **Formaku reference benchmark** in GitHub Actions with a published Formaku image reference of the form `ghcr.io/formaku/formaku@sha256:…`. The Linux AMD64 runner measures three independent stacks and uploads the JSON reports. Use the digest from the tagged release.
 
-Pushes that change the benchmark workflow or scripts run the same procedure against the pinned alpha.65 image so changes can be compared using a fixed reference.
+Branch pushes that change the benchmark workflow or scripts run the same procedure against the pinned alpha.65 image so changes can be compared using a fixed reference.
 
 To run one sample locally on a native Linux AMD64 Docker engine, use Docker Compose with support for `!override`, Python 3 and OpenSSL.
 

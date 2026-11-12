@@ -1,6 +1,8 @@
 name: Formaku reference benchmark
 on:
   push:
+    branches:
+      - '**'
     paths:
       - .github/workflows/benchmark.yml
       - scripts/benchmark.sh
