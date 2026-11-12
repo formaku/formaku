@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.34 — 2026-11-12
+
+- Configure read and write permissions by role on individual fields. Record lists, history and previews respect field access. Saving or restoring drafts preserves protected values.
+- Apply field rules in related workflows including templates, media usage, portal submissions and assistant pairing.
+- No new database migrations since alpha.30.
+
 ## 0.1.0-alpha.33 — 2026-11-12
 
 - Respect private title, name and block fields in public page output, catalogs and cards. Public pages use a visible name or URL slug when the title is private.

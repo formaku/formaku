@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.33**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.34**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Per-field role restrictions for reading private fields and writing fields in the panel and API, with protected values retained across draft writes and restores.
 
 - The public page, catalog, cards and sitemap respect private fields and reject public content collections with private URL slugs.
 
@@ -45,7 +47,7 @@ This is **0.1.0-alpha.33**. The remaining v1 work is listed below.
 
 ## Remaining accepted v1 work
 
-- Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
+- Broader configurable role management and a broader portal form and attachment builder.
 - Further page composition controls and theme management.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
 - GitHub project snapshot PR creation, deployment status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
