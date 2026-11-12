@@ -47,6 +47,7 @@ test("filter data records by title or name and workflow state across pages", asy
 test("browser authoring and publication", async ({ page }, info) => {
   test.slow();
   const slug = "browser-" + info.project.name + "-" + Date.now();
+  const draftTitle = "Browser test " + slug;
   await page.goto("/login");
   await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
   await page
@@ -100,7 +101,7 @@ test("browser authoring and publication", async ({ page }, info) => {
   await page.getByRole("button", { name: "Dodaj rekord" }).click();
   await page
     .getByLabel("Tytuł", { exact: true })
-    .fill("Browser test " + info.project.name);
+    .fill(draftTitle);
   await page.getByLabel("Adres URL", { exact: true }).fill(slug);
   await page.getByRole("button", { name: "hero", exact: true }).click();
   await page.getByLabel("title", { exact: true }).fill("Saved draft");
@@ -127,7 +128,6 @@ test("browser authoring and publication", async ({ page }, info) => {
   const contentState = page.getByRole("combobox", { name: "Filtr stanu" });
   await contentState.selectOption("new");
   const contentSearch = page.getByRole("searchbox", { name: "Szukaj po tytule lub nazwie" });
-  const draftTitle = "Browser test " + info.project.name;
   await contentSearch.fill(draftTitle);
   const scheduledSearchResult = page.waitForResponse((response) => {
     const query = new URL(response.url()).searchParams;
@@ -136,7 +136,7 @@ test("browser authoring and publication", async ({ page }, info) => {
   });
   await contentSearch.press("Enter");
   await scheduledSearchResult;
-  const draftRow = page.getByRole("row").filter({ hasText: "Browser test " + info.project.name });
+  const draftRow = page.getByRole("row").filter({ hasText: draftTitle });
   await expect(draftRow.locator("time")).toBeVisible();
   await expect(draftRow.getByText("Szkic", { exact: true })).toBeVisible();
   await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
@@ -145,17 +145,25 @@ test("browser authoring and publication", async ({ page }, info) => {
   expect(new Date(scheduledTime ?? "").toISOString()).toBe(
     await page.evaluate((value) => new Date(value).toISOString(), futureDate),
   );
-  await page.getByRole("button", { name: "Anuluj zaplanowaną publikację", exact: true }).click();
+  const [cancelledSchedule] = await Promise.all([
+    page.waitForResponse((response) =>
+      response.request().method() === "DELETE" &&
+      /\/formaku\/api\/v1\/records\/\d+\/schedule$/.test(new URL(response.url()).pathname),
+    ),
+    page.getByRole("button", { name: "Anuluj zaplanowaną publikację", exact: true }).click(),
+  ]);
+  expect(cancelledSchedule.status()).toBe(200);
+  expect(await cancelledSchedule.json()).toMatchObject({ publish_at: null });
   await expect(page.getByRole("status")).toContainText("Anulowano zaplanowaną publikację.");
   await expect(schedule).toHaveCount(0);
   await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
   await expect(publicationFilter).toHaveValue("scheduled");
   await expect(contentState).toHaveValue("new");
-  await expect(contentSearch).toHaveValue("Browser test " + info.project.name);
+  await expect(contentSearch).toHaveValue(draftTitle);
   await expect(draftRow).toHaveCount(0);
   await publicationFilter.selectOption("unpublished");
   await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
-  await expect(page.getByLabel("Tytuł", { exact: true })).toHaveValue("Browser test " + info.project.name);
+  await expect(page.getByLabel("Tytuł", { exact: true })).toHaveValue(draftTitle);
   await page.getByRole("button", { name: "Pokaż podgląd" }).click();
   const preview = page.frameLocator('iframe[title="Podgląd zapisanego szkicu"]');
   await expect(preview.getByRole("heading", { name: "Saved draft" })).toBeVisible();
@@ -222,7 +230,7 @@ test("browser authoring and publication", async ({ page }, info) => {
   await page.getByRole("button", { name: "Media", exact: true }).click();
   await card.getByRole("button", { name: "Użycie pliku" }).click();
   const usage = page.getByRole("dialog", { name: "Użycie pliku" });
-  const usedBy = usage.getByRole("listitem").filter({ hasText: "Browser test " + info.project.name });
+  const usedBy = usage.getByRole("listitem").filter({ hasText: draftTitle });
   await expect(usedBy.getByText("Szkic", { exact: true })).toBeVisible();
   await expect(usedBy.getByText("Publikacja", { exact: true })).toBeVisible();
   await usage.getByRole("button", { name: "Zamknij" }).click();
