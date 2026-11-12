@@ -256,11 +256,10 @@ Configure HTTPS at the reverse proxy and route each approved hostname only to it
 
 To enable the optional [Commerce package](https://github.com/formaku/commerce), install it in the starter and set `FORMAKU_COMMERCE_ENABLED=true`. In the starter, Commerce catalog, inventory, order management and payment confirmation require the administrator role.
 
-The cross-repository test uses two disposable databases and roles named `formaku_00000000000040008000000000000001` and `formaku_00000000000040008000000000000002`, both with the test password `testing-only`. Point it at a local PostgreSQL instance containing those empty databases, a Commerce 0.2 checkout and a Platform checkout. Run it from `apps/starter`.
+Run the cross-repository test from the CMS checkout after installing the starter's Composer dependencies. Supply the Commerce 0.2 foundation checkout and the Platform 0.2 bootstrap checkout. The script starts a temporary PostgreSQL server on loopback, creates two databases with separate login roles, runs the Platform registry and CMS isolation tests, and shuts down the server.
 
 ```sh
-FORMAKU_MERCHANT_TEST_PG_PORT=5432 \
-FORMAKU_COMMERCE_TEST_PATH=/path/to/commerce \
-FORMAKU_PLATFORM_TEST_PATH=/path/to/platform \
-php artisan test --compact --filter=MerchantIsolationTest
+scripts/test-merchant-isolation.sh /path/to/commerce /path/to/platform
 ```
+
+Set `FORMAKU_TEST_PG_BIN` to the directory containing `initdb`, `pg_ctl` and `psql` if `pg_config --bindir` does not point to the server binaries. The PHP CLI needs the PostgreSQL PDO driver.
