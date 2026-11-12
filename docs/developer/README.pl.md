@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.31' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.32' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -30,12 +30,12 @@ Od alpha.31 `formaku:install` usuwa skompilowane kopie szablonów Blade pakietu.
 
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.31.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.31). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.32.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.32). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.31.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.32.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.31' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.32' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -72,6 +72,16 @@ Użyj zwróconego `id` i otwórz podgląd przez `GET /formaku/api/v1/records/{re
 
 Lista bloków w edytorze jest stała. Przekaż przykładowy blok przez API lub własny importer. Zachowaj rejestrację bloku, dopóki jego kod jest potrzebny do odczytu bieżących lub historycznych rewizji.
 
+## Pokaż zasoby i akcje Laravel w panelu
+
+Od alpha.32 metody `Registry::resource()` i `Registry::action()` przyjmują opcjonalną konfigurację panelu. [Przykładowy provider](examples/app/Providers/FormakuExamplesServiceProvider.php) rejestruje **My profile** i **Preview notice**. Dodaj provider, zaloguj się z dostępem do Formaku i otwórz **Rozszerzenia**. Możesz zobaczyć własny profil i wysłać tekst do podglądu. Panel korzysta z istniejących tras sesyjnych Formaku.
+
+Dla zasobu podaj etykietę, listę kolumn z `key` i `label` oraz funkcję `authorize`. Adapter otrzymuje zalogowanego użytkownika. W aplikacji gospodarza określ zakres i kolejność zapytania oraz wybierz atrybuty do wyświetlenia. Panel pokazuje wartości skalarne i puste komórki, po 25 wierszy na stronę.
+
+Dla akcji podaj etykietę, listę pól z `key`, `label`, `type` i opcjonalnym `required` oraz funkcję `authorize`. Dostępne typy to `text`, `integer` i `boolean`. Handler otrzymuje zalogowanego użytkownika i zwalidowane pola. Dodaj w handlerze walidację biznesową i uprawnienia do konkretnych rekordów. Zwracaj wyłącznie dane, które użytkownik może zobaczyć. Panel wyświetla wynik jako tekst.
+
+Formaku sprawdza funkcję autoryzacji przy pobieraniu listy i przy wywołaniu rozszerzenia. Panel udostępnia rozszerzenia z jawną konfiguracją. Istniejące wpisy w rejestrze i trasy aplikacji nadal działają.
+
 ## Wywołaj zasób i akcję z aplikacji
 
 Rejestr przechowuje [OwnProfileResource](examples/app/Formaku/OwnProfileResource.php) i [PreviewNoticeAction](examples/app/Formaku/PreviewNoticeAction.php). Aplikacja zapewnia interfejs i trasy dla obu rozszerzeń. Skopiuj [przykładowe trasy](examples/routes/formaku-extension-examples.php) do katalogu `routes/` aplikacji i dodaj poniższy wiersz na końcu `routes/web.php`.
@@ -97,4 +107,4 @@ Po skopiowaniu plików i dodaniu providera oraz tras skopiuj [FormakuExtensionsE
 APP_KEY="base64:$(openssl rand -base64 32)" php artisan test --compact --filter=FormakuExtensionsExampleTest
 ```
 
-Test obejmuje zapis szkicu, podgląd, publikację, kodowanie znaków HTML, uwierzytelnienie, zakres zasobu i walidację akcji.
+Test obejmuje zapis szkicu, podgląd, publikację, kodowanie znaków HTML oraz uwierzytelnienie, zakres zasobu i walidację akcji w API panelu i na trasach gospodarza.

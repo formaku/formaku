@@ -68,4 +68,29 @@ class FormakuExtensionsExampleTest extends TestCase
         $this->postJson('/extension-examples/preview-notice', ['message' => ['invalid']])
             ->assertUnprocessable()->assertJsonValidationErrors('message');
     }
+
+    public function test_panel_uses_the_registered_resource_and_action_for_the_signed_in_user(): void
+    {
+        $base = '/formaku/api/v1';
+        $resource = $base.'/extensions/resources/example_own_profile';
+        $action = $base.'/extensions/actions/example_preview_notice';
+        $this->getJson($resource)->assertUnauthorized();
+        $this->postJson($action, ['input' => ['message' => 'Draft']])->assertUnauthorized();
+
+        User::factory()->create(['name' => 'Other profile']);
+        $user = User::factory()->create(['name' => 'Own profile', 'role' => 'admin']);
+        $this->actingAs($user)->getJson($base.'/bootstrap')->assertOk()
+            ->assertJsonPath('extensions.resources.0.key', 'example_own_profile')
+            ->assertJsonPath('extensions.actions.0.key', 'example_preview_notice');
+        $this->getJson($resource)->assertOk()->assertExactJson([
+            'data' => [['id' => $user->id, 'name' => 'Own profile']],
+            'current_page' => 1,
+            'has_more' => false,
+        ]);
+
+        $this->postJson($action, ['input' => ['message' => '  Panel notice  ']])
+            ->assertOk()->assertExactJson(['result' => ['message' => 'Panel notice']]);
+        $this->postJson($action, ['input' => ['message' => str_repeat('x', 161)]])
+            ->assertUnprocessable()->assertJsonValidationErrors('message');
+    }
 }

@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.31**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.32**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Opt-in Laravel resources and actions in the admin panel, with per-extension authorization, paginated scalar columns, and validated action inputs.
 
 - The Composer installer refreshes compiled Formaku Blade templates during upgrades while preserving cached views owned by the host Laravel application.
 
@@ -44,7 +46,6 @@ This is **0.1.0-alpha.31**. The remaining v1 work is listed below.
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
 - Further page composition controls and theme management.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
-- ResourceAdapter and ActionHandler integration into the Formaku panel. The [developer examples](developer/README.md) cover registry use from host routes.
 - GitHub project snapshot PR creation, deployment status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.
 - Composer VCS split and Packagist registration, full PL/EN manuals, public synthetic demo and release/security review.
 - Reference 2-vCPU/4-GB p95 benchmark.

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.32 — 2026-11-12
+
+- Expose selected Laravel resources and actions in the Formaku panel. The host app opts in per extension, supplies an authorization callback, and declares the visible columns or input fields.
+- No new database migrations since alpha.30.
+
 ## 0.1.0-alpha.31 — 2026-11-12
 
 - On Composer upgrades, `php artisan formaku:install` removes stale compiled Formaku Blade templates. Host application views stay cached.

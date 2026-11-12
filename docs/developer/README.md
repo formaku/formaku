@@ -10,7 +10,7 @@ On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https
 
 ```sh
 composer repo add formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.31' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.32' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -19,7 +19,7 @@ Configure the host guard and the `authorize` callback in `config/formaku.php` us
 
 ### Upgrade an existing Composer installation
 
-After updating to alpha.31, run these commands from the host Laravel app before serving traffic.
+After updating to alpha.32, run these commands from the host Laravel app before serving traffic.
 
 ```sh
 php artisan formaku:install
@@ -30,12 +30,12 @@ Starting with alpha.31, `formaku:install` removes cached copies of the package B
 
 ### Install from a local ZIP
 
-On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.31.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.31). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
+On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.32.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.32). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.31.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.32.zip.sha256)
 composer repo add formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.31' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.32' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -72,6 +72,16 @@ Use the returned record `id` to open `GET /formaku/api/v1/records/{record}/previ
 
 The editor's built-in block picker has a fixed list. Use the API or an importer you control to supply the example block. Keep the registration available while any current or historical revision still needs to render it.
 
+## Show Laravel resources and actions in the panel
+
+Starting with alpha.32, use the optional panel configuration in `Registry::resource()` and `Registry::action()`. The [example provider](examples/app/Providers/FormakuExamplesServiceProvider.php) registers **My profile** and **Preview notice**. Install the example provider, sign in with permission to use Formaku, and open **Extensions**. You can view your own profile and submit a notice to get a preview. The panel uses Formaku's existing session routes.
+
+For a resource, provide a label, a list of columns with `key` and `label`, and an `authorize` callback. The adapter receives the signed-in user. Scope and order its query in the host application, and select the attributes the panel displays. The panel shows scalar values and empty cells, with 25 rows per page.
+
+For an action, provide a label, a list of fields with `key`, `label`, `type`, and optional `required`, and an `authorize` callback. Supported types are `text`, `integer`, and `boolean`. The handler receives the signed-in user and validated inputs. Add business validation and record-level authorization inside the handler. Return only data the caller may see. The panel renders the returned data as text.
+
+The callback runs for discovery and for requests to the extension. Only extensions with explicit panel configuration can be accessed from the panel. Existing registrations and host routes keep working.
+
 ## Call a resource and an action from the host
 
 The registry stores [OwnProfileResource](examples/app/Formaku/OwnProfileResource.php) and [PreviewNoticeAction](examples/app/Formaku/PreviewNoticeAction.php). The host application provides the interface and routes for both extensions. Copy [the example routes](examples/routes/formaku-extension-examples.php) into the host's `routes/` directory and add the following line to the end of `routes/web.php`.
@@ -97,4 +107,4 @@ After copying the files and registering the provider and routes, copy [FormakuEx
 APP_KEY="base64:$(openssl rand -base64 32)" php artisan test --compact --filter=FormakuExtensionsExampleTest
 ```
 
-The test covers draft creation, preview, publication, HTML escaping, authentication, resource scope, and action input validation.
+The test covers draft creation, preview, publication, HTML escaping, and extension authentication, resource scope, and action validation in both the panel API and host routes.
