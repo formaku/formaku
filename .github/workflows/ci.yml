@@ -1,9 +1,18 @@
 name: CI
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      published_digest:
+        description: 'Public Formaku image digest (sha256: followed by 64 lowercase hex digits)'
+        required: true
+        type: string
 permissions:
   contents: read
 jobs:
   php:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -49,6 +58,7 @@ jobs:
           DB_USERNAME: formaku
           DB_PASSWORD: testing
   frontend:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -61,6 +71,7 @@ jobs:
       - run: node --test tests/assistant-adapter.test.mjs
 
   browser:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     env:
       APP_ENV: testing
@@ -91,6 +102,7 @@ jobs:
       - run: npx playwright test --reporter=line,github
 
   deploy-controller:
+    if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -114,12 +126,35 @@ jobs:
           sed -e "s|^APP_KEY=$|APP_KEY=base64:$(openssl rand -base64 32)|" \
               -e "s|^DB_PASSWORD=$|DB_PASSWORD=$(openssl rand -hex 24)|" \
               .env.docker.example > .env.docker
-      - name: Build and start the stack
+      - name: Build the local image
+        if: github.event_name != 'workflow_dispatch'
+        run: docker compose --env-file .env.docker build web
+      - name: Pull the published image
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          PUBLISHED_DIGEST: ${{ inputs.published_digest }}
         run: |
-          docker compose --env-file .env.docker build web
-          docker compose --env-file .env.docker up -d --wait --wait-timeout 90 database
-          docker compose --env-file .env.docker run --rm web php artisan migrate --force
+          if [[ ! "$PUBLISHED_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+            echo 'Expected sha256: followed by 64 lowercase hex digits.' >&2
+            exit 1
+          fi
+          image="ghcr.io/formaku/formaku@${PUBLISHED_DIGEST}"
+          docker pull --platform linux/amd64 "$image"
+          printf 'FORMAKU_IMAGE=%s\n' "$image" >> "$GITHUB_ENV"
+      - name: Smoke test the published image
+        if: github.event_name == 'workflow_dispatch'
+        run: bash scripts/smoke-release-image.sh "$FORMAKU_IMAGE"
+      - name: Migrate and start the stack
+        run: |
+          docker compose --env-file .env.docker up -d --no-build --wait --wait-timeout 90 database
+          docker compose --env-file .env.docker -f compose.yaml -f - run --rm --pull never -T web php artisan migrate --force <<'YAML'
+          services:
+            web:
+              build: !reset null
+          YAML
           docker compose --env-file .env.docker up -d --no-build --wait --wait-timeout 90
+      - name: Check the Formaku installation
+        run: docker compose --env-file .env.docker exec -T web php artisan formaku:doctor
       - name: Verify the HTTP endpoints
         run: |
           curl --fail --silent --show-error http://127.0.0.1:8080/up
