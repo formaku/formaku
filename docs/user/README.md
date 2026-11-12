@@ -76,6 +76,10 @@ Od wersji `0.1.0-alpha.3` otwórz **Buduj**, wybierz **Edytuj model** przy publi
 
 Od wersji `0.1.0-alpha.3` starter udostępnia `/sitemap.xml` ze stroną główną i opublikowanymi stronami z publicznych kolekcji treści. Ustaw `APP_URL` na publiczny adres aplikacji, łącznie z podkatalogiem, jeśli go używasz. Przy większej liczbie stron mapa zwraca indeks części. Ustaw `FORMAKU_SITEMAP=false`, jeśli aplikacja ma własną mapę. W integracji samej paczki włącz `public_routes` i `sitemap` w konfiguracji Formaku.
 
+## Rozszerzenia aplikacji
+
+Od alpha.32 aplikacja Laravel może udostępnić w panelu własne zasoby i akcje. Otwórz **Rozszerzenia**, wybierz zasób, aby przejrzeć rekordy, lub wybierz akcję, uzupełnij pola i wybierz **Uruchom akcję**. Dostęp do każdej pozycji określa aplikacja gospodarza. Konfigurację opisuje [przewodnik integracji](../developer/README.pl.md#pokaż-zasoby-i-akcje-laravel-w-panelu).
+
 ## Portal
 
 Po włączeniu rejestracji użytkownik tworzy konto klienta i potwierdza e-mail. Klient składa zgłoszenie w `/portal` i widzi własne zgłoszenia. Personel obsługuje je w panelu i może przypisać zgłoszenie pracownikowi w trakcie zmiany statusu. Notatki prywatne nie trafiają do odpowiedzi klienta. Poczta wymaga skonfigurowanego transportu oraz działającej kolejki i schedulera.
@@ -173,6 +177,8 @@ Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on 
 The starter serves published public pages at `/sitemap.xml`. Set `APP_URL` to the public base URL, including any subdirectory. Set `FORMAKU_SITEMAP=false` to use a host-managed sitemap. Package integrations can enable the sitemap with the `public_routes` and `sitemap` config options.
 
 Starting with `0.1.0-alpha.4`, publishing a public page under a new URL creates a 301 redirect from its previous URL. Earlier URLs point straight to the current publication. An active publication takes precedence when an old URL is reused. Redirects are unavailable while the collection is private.
+
+Starting with alpha.32, the **Extensions** section lists resources and actions enabled for you by the host Laravel application. Choose a resource to browse its rows or choose an action, enter its fields, and select **Run action**. See the [integration guide](../developer/README.md#show-laravel-resources-and-actions-in-the-panel) for setup.
 
 ## Dostęp do kolekcji
 
