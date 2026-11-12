@@ -25,11 +25,14 @@ class SchemaValidator
             'definition.access.*.scope' => 'required|in:all,own,assigned,none',
             'definition.access.*.write' => 'required|boolean',
             'definition.public' => 'sometimes|boolean',
+            'definition.portal_fields' => 'sometimes|array|list|max:50',
+            'definition.portal_fields.*' => 'required|string|distinct:strict',
             'definition.seo' => 'sometimes|array:title,description',
             'definition.seo.title' => 'nullable|string|max:49',
             'definition.seo.description' => 'nullable|string|max:49',
         ])->validate();
         $this->validateFieldAccess($d['definition']['fields'], $input['definition']['fields'], $old['fields'] ?? []);
+        $this->validatePortalFields($d['key'], $d['kind'], $d['definition']);
 
         if ($d['kind'] === 'content' && ($d['definition']['public'] ?? false)) {
             foreach ($d['definition']['fields'] as $index => $field) {
@@ -69,6 +72,29 @@ class SchemaValidator
         }
 
         return $d;
+    }
+
+    private function validatePortalFields(string $key, string $kind, array $definition): void
+    {
+        $configured = $definition['portal_fields'] ?? [];
+        if ($configured === []) {
+            return;
+        }
+
+        if (! PortalFields::supportsCollection($key, $kind)) {
+            throw ValidationException::withMessages([
+                'definition.portal_fields' => 'Portal fields are only available on the requests data collection.',
+            ]);
+        }
+
+        $eligible = PortalFields::eligibleFields($definition['fields']);
+        foreach ($configured as $index => $field) {
+            if (! isset($eligible[$field])) {
+                throw ValidationException::withMessages([
+                    "definition.portal_fields.{$index}" => 'Select an existing non-private portal field of a supported type.',
+                ]);
+            }
+        }
     }
 
     private function validateFieldAccess(array &$fields, array $input, array $oldFields): void

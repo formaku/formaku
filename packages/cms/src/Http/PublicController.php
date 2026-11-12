@@ -8,12 +8,14 @@ use Formaku\Cms\Models\Record;
 use Formaku\Cms\Models\Revision;
 use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\MediaVariants;
+use Formaku\Cms\Services\PortalFields;
 use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\View\View;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -106,33 +108,61 @@ class PublicController
             ->get(['alternate.record_id', 'alternate.locale', 'records.published_slug']);
     }
 
-    public function portal(Request $r)
+    public function portal(Request $request, FieldAccess $access): View
     {
-        $c = Collection::where('key', 'requests')->firstOrFail();
-        $records = Record::where('collection_id', $c->id)->where('owner_id', $r->user()->id)->latest()->paginate(20);
+        $collection = Collection::where('key', 'requests')->firstOrFail();
+        $user = $request->user();
+        $records = Record::where('collection_id', $collection->id)->where('owner_id', $user->id)->latest()->paginate(20);
 
-        return view('formaku::portal', ['records' => $records]);
+        return view('formaku::portal', [
+            'records' => $records,
+            'portalFields' => $this->writablePortalFields($collection, $access, $user),
+        ]);
     }
 
-    public function submit(Request $r, RecordService $s)
+    public function submit(Request $request, RecordService $records, FieldAccess $access): RedirectResponse
     {
-        $d = $r->validate(['title' => 'required|string|max:200', 'description' => 'required|string|max:5000']);
-        $c = Collection::where('key', 'requests')->firstOrFail();
-        $s->save($c, null, $d, 0, $r->user()->id, actorUser: $r->user());
+        $base = $request->validate(['title' => 'required|string|max:200', 'description' => 'required|string|max:5000']);
+        $user = $request->user();
+        DB::transaction(function () use ($request, $records, $access, $base, $user) {
+            $collection = Collection::where('key', 'requests')->lockForUpdate()->firstOrFail();
+            $keys = array_column($this->writablePortalFields($collection, $access, $user), 'key');
+            $data = $base + $request->only($keys);
+            $records->save($collection, null, $data, 0, $user->id, actorUser: $user);
+        });
 
         return redirect('/portal')->with('status', 'Zgłoszenie zapisane.');
     }
 
-    public function request(Request $r, Record $record, FieldAccess $fields)
+    public function request(Request $request, Record $record, FieldAccess $access): array|View
     {
-        abort_unless($record->owner_id === $r->user()->id, 404);
-        $c = Collection::findOrFail($record->collection_id);
+        $user = $request->user();
+        abort_unless($record->owner_id === $user->id, 404);
+        $collection = Collection::findOrFail($record->collection_id);
         $draft = Revision::where('record_id', $record->id)->findOrFail($record->draft_id);
-        $data = $fields->readableData($c, $draft->data, $r->user());
-        $allowed = collect($c->definition['fields'])->reject(fn ($f) => $f['private'] ?? false)->pluck('key')->all();
+        $data = $access->readableData($collection, $draft->data, $user);
+        $allowed = collect($collection->definition['fields'])->reject(fn ($field) => $field['private'] ?? false)->pluck('key')->all();
         $result = ['id' => $record->id, 'state' => $record->state, 'data' => array_intersect_key($data, array_flip($allowed))];
 
-        return $r->expectsJson() ? $result : view('formaku::request', ['record' => $result]);
+        if ($request->expectsJson()) {
+            return $result;
+        }
+
+        $portalFields = array_values(array_filter(
+            PortalFields::configured($collection),
+            fn (array $field) => isset($result['data'][$field['key']]) && $access->canRead($collection, $field, $user),
+        ));
+
+        return view('formaku::request', ['record' => $result, 'portalFields' => $portalFields]);
+    }
+
+    /** @return list<array> */
+    private function writablePortalFields(Collection $collection, FieldAccess $access, object $user): array
+    {
+        return array_values(array_filter(
+            PortalFields::configured($collection),
+            fn (array $field) => $access->canWrite($collection, $field, $user),
+        ));
     }
 
     public function file(Request $r, Media $media)
