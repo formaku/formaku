@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.30**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.31**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- The Composer installer refreshes compiled Formaku Blade templates during upgrades while preserving cached views owned by the host Laravel application.
 
 - Linked language versions of pages in a public content collection, with independent drafts, a public language switcher and HTML `hreflang` links.
 

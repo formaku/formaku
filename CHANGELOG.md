@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.31 — 2026-11-12
+
+- On Composer upgrades, `php artisan formaku:install` removes stale compiled Formaku Blade templates. Host application views stay cached.
+- No new database migrations since alpha.30.
+
 ## 0.1.0-alpha.30 — 2026-11-12
 
 - Link independently edited language versions of public pages. Published groups show a language switcher and reciprocal `hreflang` links.
