@@ -133,6 +133,26 @@ class AdminFieldAccessTest extends TestCase
         $this->assertSame('hidden-title-current', $record->fresh()->published->data['title']);
     }
 
+    public function test_protected_drafts_accept_empty_input_when_all_fields_are_read_only(): void
+    {
+        [, $publisher, $collection, $record] = $this->publishedRecordWithNewRules();
+        $definition = $collection->definition;
+        $definition['fields'][2]['access'] = ['write' => []];
+        $definition['fields'][4]['access'] = ['write' => []];
+        $collection->update(['definition' => $definition]);
+        $previous = $record->draft->data;
+        $recordsUrl = self::API.'/collections/'.$collection->id.'/records';
+        $request = ['id' => $record->id, 'version' => $record->version];
+
+        $this->actingAs($publisher)->postJson($recordsUrl, $request)
+            ->assertUnprocessable()->assertJsonValidationErrors('data');
+        $this->postJson($recordsUrl, $request + ['data' => []])
+            ->assertOk()->assertJsonPath('version', $record->version + 1)
+            ->assertJsonPath('data.summary', 'Current summary')
+            ->assertJsonMissingPath('data.title');
+        $this->assertSame($previous, $record->fresh()->draft->data);
+    }
+
     public function test_project_import_persists_the_validated_collection_definition(): void
     {
         $admin = User::factory()->create(['role' => 'admin']);

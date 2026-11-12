@@ -10,6 +10,7 @@ use Formaku\Cms\Services\CollectionAccess;
 use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\MediaUsage;
 use Formaku\Cms\Services\MediaVariants;
+use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Registry;
 use Formaku\Cms\Services\Renderer;
@@ -126,7 +127,8 @@ class ApiController
 
     public function save(Request $r, Collection $collection, RecordService $s): array
     {
-        $d = $r->validate(['id' => 'nullable|integer', 'version' => 'required|integer|min:0', 'data' => 'required|array']);
+        $dataRule = $this->fieldAccess->hasRules($collection) ? 'present|array' : 'required|array';
+        $d = $r->validate(['id' => 'nullable|integer', 'version' => 'required|integer|min:0', 'data' => $dataRule]);
         $record = isset($d['id']) ? Record::where('collection_id', $collection->id)->findOrFail($d['id']) : null;
         $user = $r->user();
         $saved = $s->save($collection, $record, $d['data'], $d['version'], $user->id, actorUser: $user);
@@ -155,7 +157,7 @@ class ApiController
     public function transition(Request $r, Record $record, RecordService $s): array
     {
         $d = $r->validate(['version' => 'required|integer', 'state' => 'required|string', 'assignee_id' => 'nullable|integer']);
-        $updated = $s->transition($record, $d['version'], $r->user()->id, $d['state'], $d['assignee_id'] ?? null);
+        $updated = $s->transition($record, $d['version'], $d['state'], $r->user()->id, $d['assignee_id'] ?? null);
 
         return $this->mutationDocument($updated, $r->user());
     }
@@ -339,7 +341,7 @@ class ApiController
 
     private function titleIsHidden(array $hidden): bool
     {
-        return array_intersect(['title', 'name'], $hidden) !== [];
+        return array_intersect(['title', 'name', 'slug'], $hidden) !== [];
     }
 
     private function mutationDocument(Record $record, object $user): array
@@ -355,12 +357,18 @@ class ApiController
         if ($hidden !== []) {
             unset($document['search_text']);
         }
-        if ($this->titleIsHidden($hidden) && $record->published_id !== null) {
-            $record->loadMissing('published:id,record_id,data');
-            $data = $this->fieldAccess->readableData($collection, $this->revisionData($record, $record->published), $user);
-            $fallback = $record->published_slug ?? '#'.$record->id;
-            $title = $data['title'] ?? $data['name'] ?? $fallback;
-            $document['published_title'] = is_string($title) && trim($title) !== '' ? $title : $fallback;
+        $fallback = $record->published_slug ?? '#'.$record->id;
+        if (in_array('slug', $hidden, true)) {
+            unset($document['published_slug']);
+            $fallback = '#'.$record->id;
+        }
+        if ($this->titleIsHidden($hidden)) {
+            $document['published_title'] = null;
+            if ($record->published_id !== null) {
+                $record->loadMissing('published:id,record_id,data');
+                $data = $this->fieldAccess->readableData($collection, $this->revisionData($record, $record->published), $user);
+                $document['published_title'] = PublicPages::title($data, $fallback);
+            }
         }
 
         return $document;
