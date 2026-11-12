@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.63 — 2026-11-12
+
+- Review an AI page proposal and choose a collection where you can create pages. Applying the proposal opens an unsaved draft.
+- Preserve local edits when the user declines to leave the editor.
+- No new migrations since alpha.62.
+
 ## 0.1.0-alpha.62 — 2026-11-12
 
 - Compare a historical revision with the saved draft from the revision history. The comparison shows changed fields the signed-in user can read.

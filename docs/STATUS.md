@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.62**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.63**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -58,7 +58,7 @@ This is **0.1.0-alpha.62**. The remaining v1 work is listed below.
 - Revision conflicts (409), immutable content revisions, separate draft/public pointers, public slug isolation, atomic publication, history restoration and scheduled publication API/UI.
 - Canonical JSON renderer, Tiptap rich text, hero/text/CTA/image/cards/FAQ/container/columns blocks; reorder controls and drag/drop; delayed autosave for existing records.
 - Customer login, optional registration, verification and password reset; own-request list and details, private-field filtering; staff-only admin API.
-- Public/private uploads, owner/staff file authorization; server-side OpenAI/Gemini adapters, queued proposals, cancellation and applying a page proposal as a draft.
+- Public/private uploads, owner/staff file authorization; server-side OpenAI/Gemini adapters, queued proposals, cancellation and a review step before applying a page proposal to a new unsaved draft.
 - Staff can browse the media library by page, choose files for record fields and edit filenames and alternative text. Public media metadata requires publishing permission. Media usage lists accessible records with references in their current draft, published revision, or both.
 - Definition-only project import/export with format version and conflict checks.
 - Website assistant pairing for one eligible public collection, with draft access, optional publishing permission and revocation from the admin panel. The MCP adapter can validate a draft with built-in blocks, return its preview path, read templates and list public images referenced by current published revisions in that collection, and read the optional public Commerce catalog, including variants and published categories when the host exposes the corresponding v2 endpoints. The local adapter can be replaced while retaining an existing connection. Pairing can print a stdio configuration for clients other than Codex.
