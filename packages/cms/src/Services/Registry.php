@@ -2,10 +2,16 @@
 
 namespace Formaku\Cms\Services;
 
+use Formaku\Cms\Blocks;
 use Formaku\Cms\Contracts\ActionHandler;
 use Formaku\Cms\Contracts\BlockType;
 use Formaku\Cms\Contracts\FieldType;
+use Formaku\Cms\Contracts\PanelBlockType;
+use Formaku\Cms\Contracts\PanelFieldType;
 use Formaku\Cms\Contracts\ResourceAdapter;
+use Formaku\Cms\Fields\Field;
+use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 
 class Registry
 {
@@ -15,6 +21,9 @@ class Registry
 
     private array $blocks = [];
 
+    /** @var array<string, PanelBlockType> */
+    private array $builtInBlocks = [];
+
     private array $resources = [];
 
     private array $actions = [];
@@ -23,14 +32,86 @@ class Registry
 
     private array $panelActions = [];
 
+    public function __construct()
+    {
+        foreach ([
+            new Field('text', 'Text', 'text', ['string']),
+            new Field('richtext', 'Rich text', 'richtext', ['array']),
+            new Field('number', 'Number', 'number', ['numeric']),
+            new Field('date', 'Date', 'date', ['date']),
+            new Field('boolean', 'Yes / no', 'boolean', ['boolean']),
+            new Field('select', 'Select', 'select', fn (array $definition) => ['string', Rule::in($definition['options'] ?? [])]),
+            new Field('media', 'Media', 'media', ['integer']),
+            new Field('relation', 'Relation', 'relation', ['array']),
+        ] as $type) {
+            $this->fields[$type->key()] = $type;
+        }
+        foreach ([
+            new Blocks\Hero, new Blocks\Text, new Blocks\Cta, new Blocks\Image,
+            new Blocks\Cards, new Blocks\Faq, new Blocks\Container, new Blocks\Columns,
+        ] as $type) {
+            $this->builtInBlocks[$type->key()] = $type;
+        }
+    }
+
     public function field(FieldType $type): void
     {
-        $this->fields[$type->key()] = $type;
+        $key = $type->key();
+        if (in_array($key, SchemaValidator::TYPES, true)) {
+            throw new InvalidArgumentException("Cannot replace built-in field type [$key].");
+        }
+        if ($type instanceof PanelFieldType) {
+            if (! preg_match('/^[a-z][a-z0-9_]{0,48}$/', $key)) {
+                throw new InvalidArgumentException("Invalid field type key [$key].");
+            }
+            if (! in_array($type->input(), SchemaValidator::TYPES, true)) {
+                throw new InvalidArgumentException("Field type [$key] uses an unknown panel input [{$type->input()}].");
+            }
+        }
+        $this->fields[$key] = $type;
+    }
+
+    /** @return list<array{key: string, label: string, input: string}> */
+    public function fieldTypes(): array
+    {
+        $types = [];
+        foreach ($this->fields as $type) {
+            if ($type instanceof PanelFieldType) {
+                $types[] = ['key' => $type->key(), 'label' => $type->label(), 'input' => $type->input()];
+            }
+        }
+
+        return $types;
     }
 
     public function block(BlockType $type): void
     {
-        $this->blocks[$type->key()] = $type;
+        $key = $type->key();
+        if (isset($this->builtInBlocks[$key])) {
+            throw new InvalidArgumentException("Cannot replace built-in block type [$key].");
+        }
+        $this->blocks[$key] = $type;
+    }
+
+    /** @return array<string, PanelBlockType> */
+    public function builtInBlocks(): array
+    {
+        return $this->builtInBlocks;
+    }
+
+    public function blockTypes(): array
+    {
+        $types = [];
+        foreach ($this->builtInBlocks + $this->blocks as $type) {
+            if ($type instanceof PanelBlockType) {
+                $types[] = [
+                    'key' => $type->key(), 'label' => $type->label(),
+                    'schema' => $type->panelSchema(), 'children' => $type->acceptsChildren(),
+                ];
+            }
+        }
+
+        return $types;
     }
 
     /**

@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Register custom collection field validation rules and expose optional field and block metadata through the bootstrap API.
+- Render nested content in custom layout blocks while preserving public visibility rules and the existing extension interfaces.
+
 ## 0.1.0-alpha.57 — 2026-11-12
 
 - Browse saved revisions 25 at a time. Preview or restore a revision from any page.

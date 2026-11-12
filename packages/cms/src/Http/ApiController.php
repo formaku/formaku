@@ -35,7 +35,11 @@ class ApiController
 
     public function bootstrap(Request $r): array
     {
-        $bootstrap = ['staff' => is_callable(config('formaku.staff')) ? (config('formaku.staff'))() : [], 'abilities' => collect(['work', 'build', 'publish'])->mapWithKeys(fn ($ability) => [$ability => (config('formaku.authorize'))($r->user(), $ability)])->all(), 'user' => ['name' => $r->user()->name, 'id' => $r->user()->id], 'collections' => $this->collections($r), 'counts' => ['records' => $this->visibleCount($r->user()), 'published' => $this->visibleCount($r->user(), true), 'media' => Media::count()], 'providers' => collect(config('formaku.ai'))->map(fn ($p) => ['configured' => ! empty($p['key']) && ! empty($p['model']), 'model' => $p['model']]), 'blocks' => ['hero', 'text', 'cta', 'image', 'cards', 'faq', 'container', 'columns'], 'extensions' => app(Registry::class)->panelExtensions($r->user())];
+        $registry = app(Registry::class);
+        $bootstrap = ['staff' => is_callable(config('formaku.staff')) ? (config('formaku.staff'))() : [], 'abilities' => collect(['work', 'build', 'publish'])->mapWithKeys(fn ($ability) => [$ability => (config('formaku.authorize'))($r->user(), $ability)])->all(), 'user' => ['name' => $r->user()->name, 'id' => $r->user()->id], 'collections' => $this->collections($r), 'counts' => ['records' => $this->visibleCount($r->user()), 'published' => $this->visibleCount($r->user(), true), 'media' => Media::count()], 'providers' => collect(config('formaku.ai'))->map(fn ($p) => ['configured' => ! empty($p['key']) && ! empty($p['model']), 'model' => $p['model']]), 'blocks' => array_keys($registry->builtInBlocks()), 'extensions' => $registry->panelExtensions($r->user())];
+
+        $bootstrap['fieldTypes'] = $registry->fieldTypes();
+        $bootstrap['blockTypes'] = $registry->blockTypes();
 
         if ($bootstrap['abilities']['build']) {
             $bootstrap['roles'] = $this->roleCatalog();

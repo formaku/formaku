@@ -3,6 +3,7 @@
 namespace Formaku\Cms\Services;
 
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class SchemaValidator
@@ -15,7 +16,7 @@ class SchemaValidator
             'key' => ['required', 'regex:/^[a-z][a-z0-9_]{1,48}$/'], 'name' => 'required|string|max:100', 'kind' => 'required|in:content,data',
             'definition' => 'required|array', 'definition.fields' => 'required|array|min:1|max:50',
             'definition.fields.*.key' => ['required', 'distinct', 'regex:/^[a-z][a-z0-9_]{0,48}$/'],
-            'definition.fields.*.label' => 'required|string|max:100', 'definition.fields.*.type' => 'required|in:'.implode(',', self::TYPES),
+            'definition.fields.*.label' => 'required|string|max:100', 'definition.fields.*.type' => ['required', 'string', Rule::in(array_keys(app(Registry::class)->fields()))],
             'definition.fields.*.required' => 'sometimes|boolean', 'definition.fields.*.private' => 'sometimes|boolean',
             'definition.fields.*.options' => 'sometimes|array|max:100', 'definition.fields.*.target' => 'required_if:definition.fields.*.type,relation|integer',
             'definition.states' => 'sometimes|array', 'definition.states.*' => 'string|max:50',
@@ -173,15 +174,13 @@ class SchemaValidator
 
     public function record(array $schema, array $data): array
     {
+        $types = app(Registry::class)->fields();
         $rules = [];
         foreach ($schema['fields'] as $f) {
-            $type = match ($f['type']) {
-                'number' => 'numeric','boolean' => 'boolean','date' => 'date','richtext','relation' => 'array','media' => 'integer',default => 'string'
-            };
-            $rules[$f['key']] = [($f['required'] ?? false) ? 'required' : 'nullable', $type];
-            if ($f['type'] === 'select') {
-                $rules[$f['key']][] = 'in:'.implode(',', $f['options'] ?? []);
-            }
+            $type = $types[$f['type']] ?? throw ValidationException::withMessages([
+                $f['key'] => "Field type [{$f['type']}] is not installed.",
+            ]);
+            $rules[$f['key']] = [($f['required'] ?? false) ? 'required' : 'nullable', ...$type->rules($f)];
         }
 
         $validated = Validator::make($data, $rules)->validate();

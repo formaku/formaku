@@ -21,13 +21,13 @@ class AdminFieldAccessTest extends TestCase
         $recordUrl = self::API.'/records/'.$record->id;
         $recordsUrl = self::API.'/collections/'.$collection->id.'/records';
 
-        $this->actingAs($publisher)->getJson(self::API.'/bootstrap')
+        $bootstrap = $this->actingAs($publisher)->getJson(self::API.'/bootstrap')
             ->assertOk()
             ->assertJsonPath('collections.0.definition.fields.0.key', 'name')
             ->assertJsonPath('collections.0.definition.fields.0.writable', false)
-            ->assertJsonMissingPath('collections.0.definition.fields.0.access')
-            ->assertJsonMissing(['key' => 'title'])
-            ->assertJsonMissing(['key' => 'blocks']);
+            ->assertJsonMissingPath('collections.0.definition.fields.0.access');
+        $this->assertNotContains('title', array_column($bootstrap->json('collections.0.definition.fields'), 'key'));
+        $this->assertNotContains('blocks', array_column($bootstrap->json('collections.0.definition.fields'), 'key'));
         $this->getJson(self::API.'/collections')->assertOk()
             ->assertJsonPath('0.definition.fields.1.key', 'slug');
 

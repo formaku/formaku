@@ -1,7 +1,7 @@
 @import "tailwindcss" source(none);
 @source "./**/*.{vue,ts}";
 @source "../views/**/*.blade.php";
-@source "../../src/Services/Renderer.php";
+@source "../../src/Blocks/**/*.php";
 
 /* Include Laravel pagination utilities missing from the CMS templates.
    The catalog and portal use links(), and Composer views are outside the asset build. */

@@ -2,6 +2,7 @@
 
 namespace Formaku\Cms\Services;
 
+use Formaku\Cms\Contracts\PanelBlockType;
 use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Record;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -97,14 +98,17 @@ class MediaUsage
         if ($depth > 10 || ! is_array($blocks)) {
             return;
         }
+        $registry = app(Registry::class);
+        $types = $registry->builtInBlocks() + $registry->blocks();
         foreach (array_slice($blocks, 0, 100) as $block) {
             if (! is_array($block)) {
                 continue;
             }
-            $type = $block['type'] ?? null;
-            if ($type === 'image') {
+            $key = $block['type'] ?? null;
+            $type = is_string($key) ? ($types[$key] ?? null) : null;
+            if ($key === 'image') {
                 $this->addReference($ids, $block['props']['media_id'] ?? null);
-            } elseif (in_array($type, ['container', 'columns'], true)) {
+            } elseif ($type instanceof PanelBlockType && $type->acceptsChildren()) {
                 $this->collectBlockReferences($ids, $block['children'] ?? [], $depth + 1);
             }
         }

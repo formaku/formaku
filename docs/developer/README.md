@@ -141,7 +141,7 @@ Apply the request attachments migration introduced in alpha.37 if it is pending.
 
 1. Copy the PHP files under [examples/app](examples/app) into the corresponding paths under your host application's `app/` directory.
 2. Add `App\Providers\FormakuExamplesServiceProvider::class` to the array returned by the host application's `bootstrap/providers.php`.
-3. The [example provider](examples/app/Providers/FormakuExamplesServiceProvider.php) registers the extensions in `boot(Registry $registry)`. Formaku binds the shared registry during its provider's `register()`. Choose a project-specific prefix for every key. Registering a key again replaces the previous entry in that registry map.
+3. The [example provider](examples/app/Providers/FormakuExamplesServiceProvider.php) registers the extensions in `boot(Registry $registry)`. Formaku binds the shared registry during its provider's `register()`. Choose a project-specific prefix for every key. Registering an extension key again replaces the previous extension in that registry map. Built-in field and block keys are reserved.
 
 ## Publish a page with a custom block
 
@@ -191,7 +191,23 @@ require __DIR__.'/formaku-extension-examples.php';
 
 The host routes use Laravel's session authentication and CSRF middleware. They look up fixed registry keys and get the actor from the session. Apply the host's policies before exposing business resources or executing side effects. Keep ownership or tenancy constraints inside the query and explicitly select the fields you expose. Treat action results as plain data in client code.
 
-`FieldType` is also stored in the registry. The collection validator and editor currently use their own built-in type lists. `AiProvider` and `PipelineDriver` are interfaces without registry registration methods. The starter uses its concrete AI and GitHub integration services.
+## Register custom field types and block metadata
+
+Use `Registry::field()` to register a field type before creating a collection that refers to its key. Formaku calls `FieldType::rules()` with the collection field definition when validating records. The collection definition still controls whether the field is required. For a type that only needs validation rules and display metadata, use `Formaku\Cms\Fields\Field`.
+
+```php
+$registry->field(new \Formaku\Cms\Fields\Field(
+    'example_price_cents', 'Price in cents', 'number', ['integer', 'min:0'],
+));
+```
+
+Set the collection field's `type` to `example_price_cents` through the collections API. Install the extension wherever records using that type are saved or published. Media and relation fields keep their built-in behavior through the `media` and `relation` type keys.
+
+The bootstrap API provides `fieldTypes` for built-in fields and extensions implementing `PanelFieldType`. It provides `blockTypes` for built-in blocks and extensions implementing `PanelBlockType`, while `blocks` continues to list built-in keys. The built-in editor still uses its own controls. Use the API or a host editor to author custom fields and blocks.
+
+Implement `PanelBlockType::panelSchema()` to describe block settings for a host editor. `BlockType::schema()` remains available for extension-defined validation. If `acceptsChildren()` returns true, Formaku passes the rendered children as the second argument to `render()`. The existing `BlockType` and `FieldType` interfaces remain available for extensions that only provide rendering or validation.
+
+`AiProvider` and `PipelineDriver` are interfaces without registry registration methods. The starter uses its concrete AI and GitHub integration services.
 
 ## Verify in the starter
 
