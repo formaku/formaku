@@ -485,3 +485,86 @@ test("system theme follows visitor preferences while manual themes take preceden
     await visitor.close();
   }
 });
+
+test("site color accents apply to the public page in both system schemes", async ({
+  page,
+  browser,
+  baseURL,
+}, info) => {
+  test.skip(info.project.name !== "chromium", "Only one project writes shared site settings.");
+  test.setTimeout(60_000);
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  await page.getByRole("button", { name: "Ustawienia", exact: true }).click();
+
+  const accent = page.getByLabel("Akcent kolorystyczny");
+  const theme = page.getByLabel("Motyw witryny");
+  const save = async () => {
+    await page.getByRole("button", { name: "Zapisz menu i stopkę" }).click();
+    await expect(page.getByText("Zapisano menu i stopkę.", { exact: true })).toBeVisible();
+  };
+
+  const visitor = await browser.newContext({ baseURL, javaScriptEnabled: false });
+  try {
+    const publicPage = await visitor.newPage();
+    const tokens = () => publicPage.evaluate(() => {
+      const css = getComputedStyle(document.documentElement);
+      return {
+        primary: css.getPropertyValue("--color-primary").trim(),
+        foreground: css.getPropertyValue("--color-primary-content").trim(),
+        accent: css.getPropertyValue("--color-accent").trim(),
+        background: css.getPropertyValue("--color-base-100").trim(),
+      };
+    });
+
+    await publicPage.emulateMedia({ colorScheme: "light" });
+    await publicPage.goto("/p/start");
+    await expect(publicPage.locator("html")).not.toHaveAttribute("data-accent");
+    const initial = await tokens();
+
+    await expect(accent.getByRole("option", { name: "Niebieski" })).toHaveAttribute("value", "blue");
+    await accent.selectOption("blue");
+    await theme.selectOption("system");
+    await save();
+    await expect(page.locator("html")).not.toHaveAttribute("data-accent");
+    await publicPage.reload();
+    await expect(publicPage.locator("html")).toHaveAttribute("data-accent", "blue");
+    const blueLight = await tokens();
+    expect(blueLight.primary).not.toBe(initial.primary);
+    expect(blueLight.accent).toBe(blueLight.primary);
+    expect(blueLight.background).toBe(initial.background);
+    await publicPage.emulateMedia({ colorScheme: "dark" });
+    await expect.poll(async () => (await tokens()).primary).not.toBe(blueLight.primary);
+    const blueDark = await tokens();
+    expect(blueDark.accent).toBe(blueDark.primary);
+    expect(blueDark.background).not.toBe(blueLight.background);
+
+    await expect(accent.getByRole("option", { name: "Śliwkowy" })).toHaveAttribute("value", "plum");
+    await accent.selectOption("plum");
+    await save();
+    await publicPage.reload();
+    await expect(publicPage.locator("html")).toHaveAttribute("data-accent", "plum");
+    const plumDark = await tokens();
+    expect(plumDark.primary).not.toBe(blueDark.primary);
+    expect(plumDark.foreground).toBeTruthy();
+    expect(plumDark.accent).toBe(plumDark.primary);
+
+    await theme.selectOption("dark");
+    await save();
+    await publicPage.emulateMedia({ colorScheme: "light" });
+    await publicPage.reload();
+    await expect(publicPage.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect.poll(tokens).toEqual(plumDark);
+
+    await accent.selectOption("formaku");
+    await theme.selectOption("system");
+    await save();
+    await publicPage.reload();
+    await expect(publicPage.locator("html")).not.toHaveAttribute("data-accent");
+    await expect.poll(tokens).toEqual(initial);
+  } finally {
+    await visitor.close();
+  }
+});
