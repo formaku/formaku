@@ -4,7 +4,6 @@ namespace Formaku\Cms\Services;
 
 use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
-use Formaku\Cms\Models\Record;
 use Illuminate\Validation\ValidationException;
 
 class Renderer
@@ -15,9 +14,7 @@ class Renderer
         $publicTextKeys = SchemaValidator::publicTextKeys($definition);
         $seo = $definition['seo'] ?? [];
         $titleField = isset($data['title']) ? 'title' : 'name';
-        $privateTitle = collect($definition['fields'])->contains(
-            fn ($field) => $field['key'] === $titleField && ($field['private'] ?? false),
-        );
+        $privateTitle = PublicPages::isPrivate($definition, $titleField);
 
         return [
             'title' => $this->metadataText($seo['title'] ?? null, $publicTextKeys, $data)
@@ -134,12 +131,14 @@ class Renderer
     private function cards(array $p): string
     {
         $c = Collection::find($p['collection_id'] ?? 0);
-        if (! $c || $c->kind !== 'content' || ! ($c->definition['public'] ?? false)) {
+        if (! $c || ! PublicPages::allowsCollection($c)) {
             return '';
         }
         $html = '<section class="grid md:grid-cols-3 gap-4">';
-        foreach (Record::where('collection_id', $c->id)->whereNotNull('published_id')->limit(20)->get() as $record) {
-            $html .= '<a class="p-6 border border-base-300 rounded-xl" href="/p/'.e($record->published_slug).'">'.e($record->published_title).'</a>';
+        $records = PublicPages::publishedRecords()->where('collection_id', $c->id)->with('published:id,data')->limit(20)->get();
+        foreach ($records as $record) {
+            $title = PublicPages::recordTitle($record, $c->definition);
+            $html .= '<a class="p-6 border border-base-300 rounded-xl" href="/p/'.e($record->published_slug).'">'.e($title).'</a>';
         }
 
         return $html.'</section>';

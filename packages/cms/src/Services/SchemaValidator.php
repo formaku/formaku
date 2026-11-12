@@ -29,6 +29,15 @@ class SchemaValidator
             'definition.seo.title' => 'nullable|string|max:49',
             'definition.seo.description' => 'nullable|string|max:49',
         ])->validate();
+        if ($d['kind'] === 'content' && ($d['definition']['public'] ?? false)) {
+            foreach ($d['definition']['fields'] as $index => $field) {
+                if ($field['key'] === 'slug' && ($field['private'] ?? false)) {
+                    throw ValidationException::withMessages([
+                        "definition.fields.{$index}.private" => 'The slug of a public content collection cannot be private.',
+                    ]);
+                }
+            }
+        }
         $publicTextKeys = self::publicTextKeys($d['definition']);
         foreach (array_filter($d['definition']['seo'] ?? [], fn ($key) => $key !== null) as $attribute => $key) {
             if ($d['kind'] !== 'content' || ! ($d['definition']['public'] ?? false) || ! in_array($key, $publicTextKeys, true)) {

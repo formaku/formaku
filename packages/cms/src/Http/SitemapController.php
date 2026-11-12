@@ -2,8 +2,8 @@
 
 namespace Formaku\Cms\Http;
 
-use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Record;
+use Formaku\Cms\Services\PublicPages;
 use Illuminate\Database\Eloquent\Builder;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -24,17 +24,8 @@ class SitemapController
             'Configure APP_URL as the public base URL.',
         );
 
-        $publicCollections = Collection::query()->where('kind', 'content')
-            ->get(['id', 'definition'])
-            ->filter(fn (Collection $collection) => $collection->definition['public'] ?? false)
-            ->modelKeys();
-        $records = Record::query()
-            ->whereIntegerInRaw('collection_id', $publicCollections)
-            ->whereNotNull('published_id')
-            ->whereNotNull('published_slug')
-            ->whereExists(fn ($query) => $query->selectRaw('1')->from('formaku_revisions')
-                ->whereColumn('formaku_revisions.id', 'formaku_records.published_id')
-                ->whereColumn('formaku_revisions.record_id', 'formaku_records.id'));
+        $records = PublicPages::publishedRecords()
+            ->whereIntegerInRaw('collection_id', PublicPages::collections()->modelKeys());
 
         $pageCount = intdiv(max($records->count() - 1, 0), self::PAGE_SIZE) + 1;
         $pageNumber = $page === null ? 1 : (int) $page;

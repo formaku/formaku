@@ -7,6 +7,7 @@ use Formaku\Cms\Models\Media;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Models\Revision;
 use Formaku\Cms\Services\MediaVariants;
+use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
 use Illuminate\Http\Request;
@@ -19,7 +20,27 @@ class PublicController
 {
     public function home()
     {
-        return view('formaku::catalog', ['items' => Record::whereIn('collection_id', Collection::all()->filter(fn ($c) => $c->kind === 'content' && ($c->definition['public'] ?? false))->pluck('id'))->whereNotNull('published_id')->orderBy('published_title')->paginate(20)]);
+        $collections = PublicPages::collections()->keyBy('id');
+        $restrictedTitles = $collections->filter(fn (Collection $collection) => PublicPages::isPrivate($collection->definition, 'title') || PublicPages::isPrivate($collection->definition, 'name')
+        )->modelKeys();
+        $records = PublicPages::publishedRecords()
+            ->whereIntegerInRaw('collection_id', $collections->modelKeys())
+            ->with('published:id,data');
+        if ($restrictedTitles === []) {
+            $records->orderBy('published_title');
+        } else {
+            $ids = implode(',', array_map('intval', $restrictedTitles));
+            $records->orderByRaw("CASE WHEN collection_id IN ({$ids}) THEN published_slug ELSE published_title END");
+        }
+
+        $items = $records->orderBy('id')->paginate(20)->through(fn (Record $record) => (object) [
+            'id' => $record->id,
+            'collection_id' => $record->collection_id,
+            'published_slug' => $record->published_slug,
+            'published_title' => PublicPages::recordTitle($record, $collections->get($record->collection_id)->definition),
+        ]);
+
+        return view('formaku::catalog', ['items' => $items]);
     }
 
     public function page(Request $request, string $slug, Renderer $renderer)
@@ -29,37 +50,35 @@ class PublicController
         $r ??= Record::whereIn('id', DB::table('formaku_slug_redirects')->where('slug', $slug)->select('record_id'))
             ->whereNotNull('published_id')->whereNotNull('published_slug')->firstOrFail();
         $c = Collection::findOrFail($r->collection_id);
-        abort_unless($c->definition['public'] ?? false, 404);
+        abort_unless(PublicPages::allowsCollection($c), 404);
         $revision = Revision::where('record_id', $r->id)->findOrFail($r->published_id);
 
         if ($redirect && $r->published_slug !== $slug) {
-            abort_unless($c->kind === 'content', 404);
             $base = rtrim('/'.ltrim($request->getBaseUrl(), '/'), '/');
             $path = route('formaku.public.page', ['slug' => $r->published_slug], false);
 
             return new RedirectResponse($base.$path, 301, ['Cache-Control' => 'no-store']);
         }
 
-        $page = $renderer->page($c->definition, $revision->data, $r->published_title, $slug);
+        $data = PublicPages::data($c->definition, $revision->data);
+        $page = $renderer->page($c->definition, $data, PublicPages::title($data, $slug), $slug);
 
-        if ($c->kind === 'content') {
-            $translations = $this->publishedTranslations($r);
-            $page['pageLanguage'] = $translations->firstWhere('record_id', $r->id)?->locale;
+        $translations = $this->publishedTranslations($r);
+        $page['pageLanguage'] = $translations->firstWhere('record_id', $r->id)?->locale;
 
-            if ($page['pageLanguage'] !== null && $translations->count() > 1) {
-                $baseUrl = rtrim((string) config('app.url'), '/');
-                $basePath = rtrim($request->getBaseUrl(), '/');
-                $page['pageAlternates'] = $translations->map(function ($translation) use ($r, $baseUrl, $basePath) {
-                    $path = route('formaku.public.page', ['slug' => $translation->published_slug], false);
+        if ($page['pageLanguage'] !== null && $translations->count() > 1) {
+            $baseUrl = rtrim((string) config('app.url'), '/');
+            $basePath = rtrim($request->getBaseUrl(), '/');
+            $page['pageAlternates'] = $translations->map(function ($translation) use ($r, $baseUrl, $basePath) {
+                $path = route('formaku.public.page', ['slug' => $translation->published_slug], false);
 
-                    return [
-                        'locale' => $translation->locale,
-                        'url' => $baseUrl.$path,
-                        'path' => $basePath.$path,
-                        'current' => (int) $translation->record_id === $r->id,
-                    ];
-                });
-            }
+                return [
+                    'locale' => $translation->locale,
+                    'url' => $baseUrl.$path,
+                    'path' => $basePath.$path,
+                    'current' => (int) $translation->record_id === $r->id,
+                ];
+            });
         }
 
         return view('formaku::page', $page);
@@ -72,14 +91,16 @@ class PublicController
                 $join->on('alternate.collection_id', '=', 'current_translation.collection_id')
                     ->on('alternate.group_key', '=', 'current_translation.group_key');
             })
-            ->join('formaku_records as records', function ($join) {
-                $join->on('records.id', '=', 'alternate.record_id')
-                    ->on('records.collection_id', '=', 'alternate.collection_id');
-            })
+            ->joinSub(
+                PublicPages::publishedRecords()->where('collection_id', $record->collection_id)->select('id', 'collection_id', 'published_slug'),
+                'records',
+                function ($join) {
+                    $join->on('records.id', '=', 'alternate.record_id')
+                        ->on('records.collection_id', '=', 'alternate.collection_id');
+                },
+            )
             ->where('current_translation.record_id', $record->id)
             ->where('current_translation.collection_id', $record->collection_id)
-            ->whereNotNull('records.published_id')
-            ->whereNotNull('records.published_slug')
             ->orderBy('alternate.locale')
             ->get(['alternate.record_id', 'alternate.locale', 'records.published_slug']);
     }
