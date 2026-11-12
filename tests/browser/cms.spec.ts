@@ -424,3 +424,62 @@ async function verifyPageTemplates(page: Page, suffix: string) {
   await expect(chooser.getByRole("option", { name: templateName })).toHaveCount(0);
   await expect(await page.request.get("/p/" + copySlug)).toBeOK();
 }
+
+test("system theme follows visitor preferences while manual themes take precedence", async ({
+  page,
+  browser,
+  baseURL,
+}, info) => {
+  test.skip(info.project.name !== "chromium", "Only one project writes shared site settings.");
+  test.setTimeout(60_000);
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await page.getByRole("button", { name: "Ustawienia", exact: true }).click();
+
+  const theme = page.getByLabel("Motyw witryny");
+  const saveTheme = async (value: string) => {
+    await theme.selectOption(value);
+    await page.getByRole("button", { name: "Zapisz menu i stopkę" }).click();
+    await expect(page.getByText("Zapisano menu i stopkę.", { exact: true })).toBeVisible();
+  };
+  const visitor = await browser.newContext({ baseURL, javaScriptEnabled: false });
+  try {
+    const publicPage = await visitor.newPage();
+    const palette = () => publicPage.evaluate(() => {
+      const style = getComputedStyle(document.documentElement);
+      return ["--color-base-100", "--formaku-hero-background"].map(
+        (name) => style.getPropertyValue(name).trim(),
+      );
+    });
+
+    await saveTheme("light");
+    await publicPage.emulateMedia({ colorScheme: "dark" });
+    await publicPage.goto("/p/start");
+    await expect(publicPage.locator("html")).toHaveAttribute("data-theme", "light");
+    const light = await palette();
+    expect(light.every(Boolean)).toBe(true);
+
+    await saveTheme("dark");
+    await publicPage.emulateMedia({ colorScheme: "light" });
+    await publicPage.reload();
+    await expect(publicPage.locator("html")).toHaveAttribute("data-theme", "dark");
+    const dark = await palette();
+    expect(dark.every(Boolean)).toBe(true);
+    expect(dark).not.toEqual(light);
+
+    await expect(theme.getByRole("option", { name: "Zgodny z systemem" })).toHaveAttribute("value", "system");
+    await saveTheme("system");
+    await publicPage.reload();
+    await expect(publicPage.locator("html")).not.toHaveAttribute("data-theme");
+    await expect.poll(palette).toEqual(light);
+    await publicPage.emulateMedia({ colorScheme: "dark" });
+    await expect.poll(palette).toEqual(dark);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  } finally {
+    await visitor.close();
+  }
+});
