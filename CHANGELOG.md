@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.57 — 2026-11-12
+
+- Browse saved revisions 25 at a time. Preview or restore a revision from any page.
+- The editor loads the current draft without downloading the full revision history.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.56 — 2026-11-12
 
 - Open a saved record from a panel link or refresh the editor to reopen the same record. Existing collection and record access rules apply.

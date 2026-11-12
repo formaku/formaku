@@ -155,6 +155,8 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+type RevisionPage = { data: { id: number; created_at: string }[]; current_page: number; last_page: number };
+const historyPage = ref<RevisionPage | null>(null);
 const emptyRecordsFilter = { publication: "", state: "", label: "" };
 const recordsFilter = ref(emptyRecordsFilter);
 const recordsLabelInput = ref("");
@@ -415,7 +417,7 @@ async function loadPanel() {
     unavailable();
     return;
   }
-  const linked = await request(`/records/${id}`).catch((failure: unknown) => {
+  const linked = await request(`/records/${id}?history=0`).catch((failure: unknown) => {
     if (!(failure instanceof Error && "status" in failure && [403, 404].includes(Number(failure.status)))) throw failure;
     unavailable();
     return null;
@@ -428,7 +430,6 @@ async function loadPanel() {
   }
   selected.value = collection;
   section.value = "records";
-  delete linked.history;
   edit(linked);
 }
 async function loadRecords(page: number, filters = recordsFilter.value) {
@@ -485,18 +486,12 @@ function contentTemplate() {
     ];
   }
 }
-async function openHistory() {
+async function openHistory(page = 1) {
   await run(async () => {
     const draft = record.value;
-    const result = await request("/records/" + draft.id);
-    if (record.value !== draft) return;
-    if (hasUnsavedChanges.value || draftSaveConflict.value) {
-      draft.history = result.history;
-    } else if (JSON.stringify(draft.data) !== JSON.stringify(result.data)) {
-      setDraft(result);
-    } else {
-      record.value = result;
-    }
+    const path = `/records/${draft.id}/revisions`;
+    const result: RevisionPage = await request(page > 1 ? `${path}?page=${page}` : path);
+    if (record.value === draft) historyPage.value = result;
   });
 }
 async function restoreDraftRevision(revisionId: number) {
@@ -538,6 +533,7 @@ async function applyProposal(task: any) {
 }
 function setDraft(draft: any) {
   record.value = draft;
+  historyPage.value = null;
   if (!draft?.id) syncRecordAddress();
   draftSaveConflict.value = false;
   removedBlock.value = null;
@@ -657,7 +653,7 @@ async function loadCurrentDraft() {
   const confirmedData = JSON.stringify(draft.data);
 
   await run(async () => {
-    const current = await request(`/records/${draft.id}`);
+    const current = await request(`/records/${draft.id}?history=0`);
     if (record.value !== draft || JSON.stringify(draft.data) !== confirmedData) return;
     setDraft(current);
     dirty.value = false;
@@ -697,7 +693,7 @@ async function publish() {
     });
     if (record.value !== draft) return;
     removedBlock.value = null;
-    const result = await request("/records/" + draft.id);
+    const result = await request(`/records/${draft.id}?history=0`);
     if (record.value !== draft) return;
     setDraft(result);
     message.value = t("Treść opublikowana.");
@@ -2194,12 +2190,12 @@ const title = computed(
                 </ul>
               </section>
               <div v-if="record.id" class="mt-5">
-                <button class="btn btn-sm" :disabled="busy" @click="openHistory">
+                <button class="btn btn-sm" :disabled="busy" @click="openHistory()">
                   {{ t("Historia wersji") }}
                 </button>
-                <div v-if="record.history" class="mt-4 space-y-2">
+                <div v-if="historyPage" class="mt-4 space-y-2">
                   <div
-                    v-for="h in record.history"
+                    v-for="h in historyPage.data"
                     :key="h.id"
                     class="flex flex-wrap items-center justify-between gap-2 bg-base-100 border border-base-300 rounded-lg p-3 text-sm"
                   >
@@ -2223,6 +2219,21 @@ const title = computed(
                         {{ t("Przywróć do szkicu") }}
                       </button>
                     </div>
+                  </div>
+                  <div v-if="historyPage.last_page > 1" class="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      class="btn btn-sm"
+                      :disabled="busy || historyPage.current_page === 1"
+                      @click="openHistory(historyPage!.current_page - 1)"
+                    >{{ t("Poprzednia strona") }}</button>
+                    <span class="text-sm" aria-live="polite">{{ historyPage.current_page }} / {{ historyPage.last_page }}</span>
+                    <button
+                      type="button"
+                      class="btn btn-sm"
+                      :disabled="busy || historyPage.current_page >= historyPage.last_page"
+                      @click="openHistory(historyPage!.current_page + 1)"
+                    >{{ t("Następna strona") }}</button>
                   </div>
                 </div>
               </div>

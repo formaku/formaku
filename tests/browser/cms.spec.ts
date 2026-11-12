@@ -363,9 +363,12 @@ test("preview a saved revision without restoring it", async ({ page }, info) => 
   const pages = collections.find((collection: { key: string }) => collection.key === "pages");
   const recordsPath = `/collections/${pages.id}/records`;
   const earlier = await post(recordsPath, { version: 0, data: { title: historicalTitle, slug, blocks: [] } });
-  const updated = await post(recordsPath, {
-    id: earlier.id, version: earlier.version, data: { title: publishedTitle, slug, blocks: [] },
-  });
+  let updated = earlier;
+  for (let i = 0; i < 24; i++) {
+    updated = await post(recordsPath, {
+      id: earlier.id, version: updated.version, data: { title: publishedTitle, slug, blocks: [] },
+    });
+  }
   const recordPath = `/records/${earlier.id}`;
   const published = await post(recordPath + "/publish", { version: updated.version });
   const draft = await post(recordsPath, {
@@ -377,9 +380,14 @@ test("preview a saved revision without restoring it", async ({ page }, info) => 
   await row.getByRole("button", { name: "Edytuj", exact: true }).click();
   const history = page.getByRole("button", { name: "Historia wersji", exact: true });
   await history.click();
+  const revisionLinks = page.getByRole("link", { name: "Podgląd rewizji", exact: true });
+  await expect(revisionLinks).toHaveCount(25);
   const previewPath = api + recordPath + `/revisions/${earlier.draft_id}/preview`;
-  const previewLink = page.getByRole("link", { name: "Podgląd rewizji", exact: true })
-    .and(page.locator(`a[href="${previewPath}"]`));
+  const previewLink = revisionLinks.and(page.locator(`a[href="${previewPath}"]`));
+  await expect(previewLink).toHaveCount(0);
+  await page.getByRole("button", { name: "Następna strona", exact: true }).click();
+  await expect(previewLink).toBeVisible();
+  await expect(revisionLinks).toHaveCount(1);
   const popupPromise = page.waitForEvent("popup");
   await previewLink.click();
   const popup = await popupPromise;
@@ -393,7 +401,7 @@ test("preview a saved revision without restoring it", async ({ page }, info) => 
 
   const historyRequested = Promise.withResolvers<void>();
   const returnHistory = Promise.withResolvers<void>();
-  await page.route(`**${api}${recordPath}`, async (route) => {
+  await page.route(`**${api}${recordPath}/revisions`, async (route) => {
     historyRequested.resolve();
     await returnHistory.promise;
     await route.continue();

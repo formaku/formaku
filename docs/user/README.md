@@ -36,6 +36,8 @@ Jeśli w trakcie edycji serwer zapisze nowszą wersję, panel wstrzyma zapis i z
 
 Po otwarciu zapisanego rekordu adres panelu zawiera jego identyfikator. Użyj **Otwórz rekord w nowej karcie** albo skopiuj adres z przeglądarki. Adres otwiera ostatnio zapisany szkic i wymaga dostępu do rekordu.
 
+Historia wersji pokazuje do 25 rewizji od najnowszej. Użyj **Następna strona**, by przejść do starszych wersji. Podgląd i przywracanie są dostępne na każdej stronie historii.
+
 Na liście rekordów wpisz fragment aktualnego tytułu lub nazwy i kliknij **Szukaj**. Wyszukiwanie obejmuje wszystkie strony listy i uwzględnia uprawnienia odczytu pól. Aby je wyczyścić, usuń frazę i ponownie kliknij **Szukaj**.
 
 Na liście rekordów wybierz stan w polu **Filtr stanu**. Wybór pozostaje aktywny podczas zmiany stron i po powrocie z edytora. W kolekcjach treści możesz połączyć go z filtrem **Zaplanowane**. Wybierz **Wszystkie stany**, aby wyczyścić filtr stanu.
@@ -169,6 +171,8 @@ In the content editor, open **Revision history** and select **Preview revision**
 If a newer draft was saved while you were editing, the panel pauses saves and keeps your local edits. Select **Download my edits** to download the local values of editable fields as JSON. Choose **Load current draft**, confirm discarding the local form edits, then apply the changes you want to keep to the current version.
 
 Opening a saved record adds its identifier to the panel address. Select **Open record in a new tab** or copy the address from your browser. The link opens the latest saved draft and requires record access.
+
+Revision history shows up to 25 revisions per page, newest first. Use **Next page** to find older versions. Preview and restore actions are available on every history page.
 
 In a collection's record list, enter part of the current title or name and select **Search**. Search covers all result pages and respects field read permissions. Clear the field and select **Search** again to reset.
 

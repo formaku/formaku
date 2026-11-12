@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.56**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.57**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Browse revision history in pages of 25. Opening a record loads its current draft independently of the history.
 
 - Open saved records from a panel link and reopen the same record after refreshing.
 

@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.56' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.57' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -38,7 +38,7 @@ Jeśli brakuje plików panelu w kopii źródeł, zbuduj je w głównym katalogu 
 
 ### Aktualizacja istniejącej instalacji Composer
 
-Po aktualizacji do alpha.56 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
+Po aktualizacji do alpha.57 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
 
 ```sh
 php artisan formaku:install
@@ -63,12 +63,12 @@ Uruchom ręcznie `php artisan formaku:publish-scheduled`, aby zobaczyć podsumow
 
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.56.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.56). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.57.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.57). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.56.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.57.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.56' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.57' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -106,6 +106,10 @@ Uruchom `npm run build` w głównym katalogu repozytorium Formaku. Arkusz skanuj
 W uwierzytelnionej sesji panelu wyślij `GET /formaku/api/v1/collections/{collection}/records?label=Przyklad`, aby wyszukać ostatnio zapisany tytuł lub nazwę w kolekcji. Endpoint uwzględnia zakres dostępu do kolekcji i uprawnienia odczytu pól. Fraza może mieć do 200 znaków. Zakoduj ją jako wartość w adresie URL. Znaki takie jak `%` i `_` są traktowane dosłownie. Rozróżnianie wielkości liter i znaków diakrytycznych zależy od bazy danych.
 
 Filtr `label` można łączyć z `state`, a w kolekcjach treści także z `scheduled=1`. Odnośniki do kolejnych stron w odpowiedzi zachowują filtry. Dotychczasowy parametr `search` nadal przeszukuje opublikowane tytuły. W kolekcjach treści dodaj `publication=unpublished`, `publication=published` lub `publication=changed`, aby filtrować stan publikacji. `published` obejmuje też rekordy z nowszym szkicem. `changed` zwraca opublikowane rekordy z innym zapisanym szkicem.
+
+## Odczytaj historię wersji stronami
+
+W uwierzytelnionej sesji panelu wyślij `GET /formaku/api/v1/records/{record}/revisions?page=2`. Otrzymasz do 25 identyfikatorów i dat rewizji, od najnowszej. Obowiązują uprawnienia odczytu rekordu. Użyj `GET /formaku/api/v1/records/{record}?history=0`, aby pobrać bieżący rekord bez pełnej historii. Żądania bez tego parametru zachowują dotychczasową odpowiedź.
 
 ## Obejrzyj zapisaną rewizję
 

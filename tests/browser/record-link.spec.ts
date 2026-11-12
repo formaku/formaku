@@ -63,7 +63,13 @@ test("saved content has a shareable record URL that survives refresh", async ({ 
     await expect(linked).toHaveURL(matchesRecord);
     const title = linked.getByLabel("Linked title", { exact: true });
     await expect(title).toHaveValue(originalTitle);
+    const currentDraftResponse = linked.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return url.pathname === `${api}/records/${record.id}`
+        && url.searchParams.get("history") === "0" && response.ok();
+    });
     await linked.reload();
+    expect(await (await currentDraftResponse).json()).not.toHaveProperty("history");
     await expect(title).toHaveValue(originalTitle);
     await expect(linked).toHaveURL(matchesRecord);
 
