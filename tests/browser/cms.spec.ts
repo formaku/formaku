@@ -582,6 +582,65 @@ test("site color accents apply to the public page in both system schemes", async
   }
 });
 
+test("site branding uses the selected public logo and can restore the default", async ({ page, browser, baseURL }, info) => {
+  test.skip(info.project.name !== "chromium", "Only one project writes shared site settings.");
+  const imageName = `site-logo-${Date.now()}.png`;
+  const siteName = "Studio <Alpha> " + "M".repeat(62);
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  await page.getByRole("button", { name: "Media", exact: true }).click();
+  await page.getByLabel("Prześlij plik").setInputFiles({
+    name: imageName,
+    mimeType: "image/png",
+    buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGMQSfv/HwAEhAJ553qXcAAAAABJRU5ErkJggg==", "base64"),
+  });
+  await expect(page.getByRole("status")).toContainText("Plik zapisany");
+  const uploadedImage = page.getByRole("article").filter({ hasText: imageName }).locator("img");
+  await expect(uploadedImage).toHaveAttribute("src", /\/media\/\d+$/);
+  const logoUrl = (await uploadedImage.getAttribute("src"))!;
+
+  await page.getByRole("button", { name: "Ustawienia", exact: true }).click();
+  const branding = page.getByRole("group", { name: "Marka witryny" });
+  const nameInput = branding.getByLabel("Nazwa witryny");
+  const save = async () => {
+    await page.getByRole("button", { name: "Zapisz menu i stopkę" }).click();
+    await expect(page.getByText("Zapisano menu i stopkę.", { exact: true })).toBeVisible();
+  };
+  await nameInput.fill(siteName);
+  await branding.getByRole("button", { name: "Wybierz obraz", exact: true }).click();
+  const picker = page.getByRole("dialog", { name: "Wybierz obraz" });
+  await picker.getByRole("button", { name: imageName, exact: true }).click();
+  await save();
+
+  const visitor = await browser.newContext({ baseURL, javaScriptEnabled: false, viewport: { width: 390, height: 844 } });
+  try {
+    const publicPage = await visitor.newPage();
+    await publicPage.goto("/p/start");
+    const banner = publicPage.getByRole("banner");
+    const brandLink = banner.getByRole("link", { name: siteName, exact: true });
+    await expect(brandLink).toHaveAttribute("href", "/");
+    const logo = brandLink.locator("img");
+    await expect(logo).toHaveAttribute("src", logoUrl);
+    await expect(logo).toHaveAttribute("alt", "");
+    await expect.poll(() => logo.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBeGreaterThan(0);
+    expect(await publicPage.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+
+    await page.reload();
+    await page.getByRole("button", { name: "Ustawienia", exact: true }).click();
+    await expect(nameInput).toHaveValue(siteName);
+    await nameInput.fill("");
+    await branding.getByRole("button", { name: "Usuń przypisanie obrazu", exact: true }).click();
+    await save();
+    await publicPage.reload();
+    await expect(banner.getByRole("link", { name: "formaku.", exact: true })).toBeVisible();
+    await expect(banner.locator("img")).toHaveCount(0);
+  } finally {
+    await visitor.close();
+  }
+});
+
 test("authors link separate drafts and visitors switch published languages", async ({ page, browser }, info) => {
   const group = "languages-" + info.project.name + "-" + Date.now();
   const polishSlug = group + "-pl";
