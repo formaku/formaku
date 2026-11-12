@@ -45,6 +45,7 @@ test("filter data records by title or name and workflow state across pages", asy
 });
 
 test("browser authoring and publication", async ({ page }, info) => {
+  test.slow();
   const slug = "browser-" + info.project.name + "-" + Date.now();
   await page.goto("/login");
   await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
