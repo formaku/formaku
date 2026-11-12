@@ -16,6 +16,7 @@ use Formaku\Cms\Services\Registry;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -189,7 +190,7 @@ class ApiController
         return $this->mutationDocument($restored, $user);
     }
 
-    public function preview(Request $request, Record $record, Renderer $renderer): \Illuminate\Http\Response
+    public function preview(Request $request, Record $record, Renderer $renderer): Response
     {
         $collection = Collection::findOrFail($record->collection_id);
         $draft = Revision::where('record_id', $record->id)->findOrFail($record->draft_id)->data;
@@ -263,7 +264,7 @@ class ApiController
 
     public function export(Request $r)
     {
-        return ['format' => 'formaku.project', 'version' => 1, 'collections' => $this->collections($r)->map(fn ($c) => $c->only('key', 'name', 'kind', 'definition'))->values()];
+        return ['format' => 'formaku.project', 'version' => 1, 'collections' => $this->visibleCollections($r->user())->map(fn ($c) => $c->only('key', 'name', 'kind', 'definition'))->values()];
     }
 
     public function import(Request $r, SchemaValidator $v)
