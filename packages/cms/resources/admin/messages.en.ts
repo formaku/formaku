@@ -87,6 +87,8 @@ export const messages: Record<string, string> = {
   "Podgląd pokazuje ostatni zapisany szkic. Zapisz zmiany, aby go odświeżyć.": "The preview shows the last saved draft. Save your changes to refresh it.",
   "Podgląd strony": "Page preview",
   "Podgląd w nowej karcie": "Preview in a new tab",
+  "Otwórz rekord w nowej karcie": "Open record in a new tab",
+  "Rekord jest niedostępny.": "The record is unavailable.",
   "Podgląd zapisanego szkicu": "Saved draft preview",
   "Pokaż podgląd": "Show preview",
   "Pola formularza": "Form fields",

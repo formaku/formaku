@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.56 — 2026-11-12
+
+- Open a saved record from a panel link or refresh the editor to reopen the same record. Existing collection and record access rules apply.
+- Open a saved content or data record in a new tab directly from the editor.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.55 — 2026-11-12
 
 - A draft save conflict preserves local edits and pauses automatic and manual saves.

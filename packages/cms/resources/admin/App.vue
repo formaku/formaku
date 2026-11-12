@@ -315,6 +315,17 @@ const base = (
   document.querySelector('meta[name="formaku-prefix"]') as HTMLMetaElement
 ).content;
 const api = base + "/api/v1";
+function recordAddress(id?: number): URL {
+  const url = new URL(window.location.href);
+  if (id) url.searchParams.set("record", String(id));
+  else url.searchParams.delete("record");
+  return url;
+}
+function syncRecordAddress(id?: number) {
+  const url = recordAddress(id);
+  if (url.href !== window.location.href) window.history.replaceState(window.history.state, "", url);
+}
+const recordLink = computed(() => record.value?.id ? recordAddress(record.value.id).href : null);
 const previewUrl = computed(() =>
   record.value?.id && selected.value?.kind === "content"
     ? `${api}/records/${record.value.id}/preview?version=${record.value.version}`
@@ -322,7 +333,8 @@ const previewUrl = computed(() =>
 );
 watch(
   () => record.value?.id,
-  () => {
+  (id) => {
+    syncRecordAddress(id);
     previewOpen.value = false;
     scheduledAt.value = "";
   },
@@ -386,6 +398,38 @@ async function load() {
       section.value = "dashboard";
     }
   }
+}
+async function loadPanel() {
+  await load();
+  const id = new URL(window.location.href).searchParams.get("record");
+  if (id === null || section.value !== "dashboard") return;
+  const stillOpening = () =>
+    section.value === "dashboard" && new URL(window.location.href).searchParams.get("record") === id;
+  const unavailable = () => {
+    if (!stillOpening()) return;
+    syncRecordAddress();
+    error.value = t("Rekord jest niedostępny.");
+  };
+
+  if (!/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id))) {
+    unavailable();
+    return;
+  }
+  const linked = await request(`/records/${id}`).catch((failure: unknown) => {
+    if (!(failure instanceof Error && "status" in failure && [403, 404].includes(Number(failure.status)))) throw failure;
+    unavailable();
+    return null;
+  });
+  if (!linked || !stillOpening()) return;
+  const collection = collections.value.find((item) => item.id === linked.collection_id);
+  if (!collection) {
+    unavailable();
+    return;
+  }
+  selected.value = collection;
+  section.value = "records";
+  delete linked.history;
+  edit(linked);
 }
 async function loadRecords(page: number, filters = recordsFilter.value) {
   const collectionId = selected.value!.id;
@@ -494,6 +538,7 @@ async function applyProposal(task: any) {
 }
 function setDraft(draft: any) {
   record.value = draft;
+  if (!draft?.id) syncRecordAddress();
   draftSaveConflict.value = false;
   removedBlock.value = null;
 }
@@ -923,7 +968,7 @@ function warn(e: BeforeUnloadEvent) {
   if (hasUnsavedChanges.value) e.preventDefault();
 }
 onMounted(() => {
-  run(load);
+  run(loadPanel);
   window.addEventListener("beforeunload", warn);
 });
 onBeforeUnmount(() => {
@@ -1773,6 +1818,13 @@ const title = computed(
                     target="_blank"
                     rel="noopener"
                     >{{ t("Podgląd w nowej karcie") }}<ArrowUpRight :size="16" /></a
+                  ><a
+                    v-if="recordLink"
+                    class="btn"
+                    :href="recordLink"
+                    target="_blank"
+                    rel="noopener"
+                  >{{ t("Otwórz rekord w nowej karcie") }}<ArrowUpRight :size="16" /></a
                   ><button class="btn" @click="save" :disabled="busy || draftSaveConflict">
                     <Save :size="16" />{{ t("Zapisz szkic") }}</button
                   ><button

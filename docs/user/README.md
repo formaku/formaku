@@ -34,6 +34,8 @@ W edytorze treści otwórz **Historię wersji** i wybierz **Podgląd rewizji** p
 
 Jeśli w trakcie edycji serwer zapisze nowszą wersję, panel wstrzyma zapis i zachowa lokalne zmiany. Kliknij **Pobierz moje zmiany**, aby pobrać lokalne wartości pól edytowalnych w JSON. Następnie wybierz **Wczytaj aktualny szkic**, potwierdź odrzucenie lokalnej edycji i wprowadź potrzebne zmiany w aktualnej wersji.
 
+Po otwarciu zapisanego rekordu adres panelu zawiera jego identyfikator. Użyj **Otwórz rekord w nowej karcie** albo skopiuj adres z przeglądarki. Adres otwiera ostatnio zapisany szkic i wymaga dostępu do rekordu.
+
 Na liście rekordów wpisz fragment aktualnego tytułu lub nazwy i kliknij **Szukaj**. Wyszukiwanie obejmuje wszystkie strony listy i uwzględnia uprawnienia odczytu pól. Aby je wyczyścić, usuń frazę i ponownie kliknij **Szukaj**.
 
 Na liście rekordów wybierz stan w polu **Filtr stanu**. Wybór pozostaje aktywny podczas zmiany stron i po powrocie z edytora. W kolekcjach treści możesz połączyć go z filtrem **Zaplanowane**. Wybierz **Wszystkie stany**, aby wyczyścić filtr stanu.
@@ -165,6 +167,8 @@ In an open published record, select **Unpublish** and confirm. You need permissi
 In the content editor, open **Revision history** and select **Preview revision** next to a saved version. The new tab requires record access and respects current field permissions. To load the version as the current draft, use **Restore to draft** after saving your current edits.
 
 If a newer draft was saved while you were editing, the panel pauses saves and keeps your local edits. Select **Download my edits** to download the local values of editable fields as JSON. Choose **Load current draft**, confirm discarding the local form edits, then apply the changes you want to keep to the current version.
+
+Opening a saved record adds its identifier to the panel address. Select **Open record in a new tab** or copy the address from your browser. The link opens the latest saved draft and requires record access.
 
 In a collection's record list, enter part of the current title or name and select **Search**. Search covers all result pages and respects field read permissions. Clear the field and select **Search** again to reset.
 

@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.55**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.56**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Open saved records from a panel link and reopen the same record after refreshing.
 
 - Recover from a draft version conflict with local edits preserved in the editor and available as a JSON download.
 
