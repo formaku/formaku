@@ -45,7 +45,23 @@ test("reviews an AI proposal before applying only page content to a new draft", 
             ...pages, id: 1000002, name: "Model bez adresu", can_create: true,
             definition: {
               ...pages.definition,
-              fields: pages.definition.fields.filter(({ key }: { key: string }) => key !== "slug"),
+              fields: [
+                ...pages.definition.fields.filter(({ key }: { key: string }) => key !== "slug"),
+                { key: "reference", label: "Wymagany numer referencyjny", type: "text", required: true },
+                { key: "summary", label: "Opcjonalne streszczenie", type: "text", required: false },
+                { key: "status_note", label: "Wymagana notatka tylko do odczytu", type: "text", required: true, writable: false },
+                { key: "edition", label: "Wymagane wydanie", type: "number", required: "1" },
+                { key: "caption", label: "Opcjonalny podpis", type: "text", required: "0" },
+              ],
+            },
+          },
+          {
+            ...pages, id: 1000003, name: "Model z liczbowym adresem", can_create: true,
+            definition: {
+              ...pages.definition,
+              fields: pages.definition.fields.map((field: { key: string }) => field.key === "slug"
+                ? { ...field, label: "Liczbowy adres strony", type: "number", required: true }
+                : field),
             },
           },
         ],
@@ -82,22 +98,29 @@ test("reviews an AI proposal before applying only page content to a new draft", 
   const destination = review.getByRole("combobox", { name: "Kolekcja docelowa" });
   await expect(destination.getByRole("option", { name: "Bez prawa tworzenia" })).toHaveCount(0);
   const apply = review.getByRole("button", { name: "Zastosuj jako nowy szkic" });
+  const emptyRequiredFields = review.getByRole("status");
   await expect(apply).toBeDisabled();
+  await expect(emptyRequiredFields).toHaveCount(0);
   await destination.selectOption({ label: "Model bez adresu" });
   await expect(review).toContainText("Model kolekcji nie ma zapisywalnego pola adresu URL.");
+  await expect(emptyRequiredFields.getByRole("listitem")).toHaveText(["Wymagany numer referencyjny", "Wymagane wydanie"]);
+  await destination.selectOption({ label: "Model z liczbowym adresem" });
+  await expect(emptyRequiredFields.getByRole("listitem")).toHaveText(["Liczbowy adres strony"]);
+  await page.getByRole("combobox", { name: "Język panelu" }).selectOption("en");
+  const englishReview = page.getByRole("region", { name: "New draft preview" });
+  await expect(englishReview.getByRole("combobox", { name: "Target collection" })).toBeVisible();
+  await expect(englishReview.getByRole("button", { name: "Apply as new draft" })).toBeEnabled();
+  await expect(englishReview.getByRole("status")).toContainText("These required fields will be empty after applying the proposal.");
+  await page.getByRole("combobox", { name: "Panel language" }).selectOption("pl");
+
   await destination.selectOption({ label: "Strony i oferta" });
+  await expect(emptyRequiredFields).toHaveCount(0);
   await expect(review).toContainText(title);
   await expect(review).toContainText("proposal-" + taskId);
   await expect(review.getByRole("listitem").nth(0)).toContainText("Przejdź");
   await expect(review.getByRole("listitem").nth(0)).toContainText("/portal");
   await expect(review.getByRole("listitem").nth(1)).toContainText("Treść główna");
   await expect(review).not.toContainText("do-not-copy");
-
-  await page.getByRole("combobox", { name: "Język panelu" }).selectOption("en");
-  const englishReview = page.getByRole("region", { name: "New draft preview" });
-  await expect(englishReview.getByRole("combobox", { name: "Target collection" })).toBeVisible();
-  await expect(englishReview.getByRole("button", { name: "Apply as new draft" })).toBeEnabled();
-  await page.getByRole("combobox", { name: "Panel language" }).selectOption("pl");
 
   const recordsUrl = /\/formaku\/api\/v1\/collections\/\d+\/records(?:\?.*)?$/;
   const loadingStarted = Promise.withResolvers<void>();

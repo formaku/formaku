@@ -230,6 +230,17 @@ const proposedSlug = computed(() =>
     ? reviewedProposal.value?.slug
     : undefined,
 );
+const emptyRequiredProposalFields = computed(() => {
+  const collection = proposalCollection.value;
+  if (!collection || !reviewedProposal.value) return [];
+
+  const filled = new Set(["title", "blocks"]);
+  if (proposedSlug.value !== undefined) filled.add("slug");
+
+  return collection.definition.fields.filter((field) =>
+    [true, 1, "1"].includes(field.required ?? false) && field.writable !== false && !filled.has(field.key),
+  );
+});
 
 const fieldTypes = computed(() => {
   const types = new Map<string, FieldTypeMetadata>(
@@ -2767,6 +2778,14 @@ const title = computed(
                       </dl>
                     </li>
                   </ol>
+                  <div v-if="emptyRequiredProposalFields.length" class="alert alert-warning" role="status">
+                    <div>
+                      <h3 class="font-semibold">{{ t("Te wymagane pola pozostaną puste po zastosowaniu propozycji.") }}</h3>
+                      <ul class="mt-1 list-disc list-inside">
+                        <li v-for="field in emptyRequiredProposalFields" :key="field.key" class="wrap-anywhere">{{ field.label }}</li>
+                      </ul>
+                    </div>
+                  </div>
                   <p class="text-sm">{{ t("Nowy szkic pojawi się w edytorze. Zapisz go, aby dodać rekord do kolekcji.") }}</p>
                   <button
                     type="button"

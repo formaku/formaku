@@ -247,6 +247,7 @@ export const messages: Record<string, string> = {
   "Brak kolekcji stron, w której możesz zapisać tytuł i sekcje.": "No page collection lets you save both a title and page sections.",
   "Proponowany adres URL": "Proposed URL slug",
   "Model kolekcji nie ma zapisywalnego pola adresu URL.": "The collection model has no writable URL field.",
+  "Te wymagane pola pozostaną puste po zastosowaniu propozycji.": "These required fields will be empty after applying the proposal.",
   "Etykieta przycisku": "Button label",
   "Adres odnośnika": "Link address",
   "Nowy szkic pojawi się w edytorze. Zapisz go, aby dodać rekord do kolekcji.": "The new draft will open in the editor. Save it to add a record to the collection.",
