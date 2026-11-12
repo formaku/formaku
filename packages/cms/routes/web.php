@@ -1,5 +1,5 @@
 <?php
-use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,PageTemplateController,SiteNavigationController,SitemapController};
+use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,PageTemplateController,RecordTranslationController,SiteNavigationController,SitemapController};
 Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::get('/',fn()=>view('formaku::admin'))->middleware([ 'auth:'.config('formaku.guard'),Access::class.':work']);
  Route::get('/media/{media}',[PublicController::class,'file']);
@@ -18,6 +18,8 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::get('/records/{record}',[ApiController::class,'show']);Route::get('/records/{record}/preview',[ApiController::class,'preview']);
   Route::post('/records/{record}/publish',[ApiController::class,'publish'])->middleware(Access::class.':publish');
   Route::post('/records/{record}/schedule',[ApiController::class,'schedule'])->middleware(Access::class.':publish');
+  Route::get('/records/{record}/translations', [RecordTranslationController::class, 'show'])->middleware(Access::class.':publish');
+  Route::put('/records/{record}/translations', [RecordTranslationController::class, 'update'])->middleware(Access::class.':publish');
   Route::post('/records/{record}/transition',[ApiController::class,'transition']);Route::post('/records/{record}/restore/{revision}',[ApiController::class,'restore']);
   Route::get('/media',[ApiController::class,'media']);Route::post('/media',[ApiController::class,'upload']);
   Route::get('/media/{mediaId}/usage',[ApiController::class,'mediaUsage'])->whereNumber('mediaId');
