@@ -364,12 +364,14 @@ class ApiController
         return $this->renderPreview($record, $collection, $data, $renderer);
     }
 
-    public function revisionPreview(Request $request, Record $record, Revision $revision, Renderer $renderer): Response
+    public function revisionPreview(Request $request, Record $record, string $revision, Renderer $renderer): Response
     {
         $collection = Collection::findOrFail($record->collection_id);
-        abort_unless($collection->kind === 'content' && (int) $revision->record_id === (int) $record->id, 404);
+        $revisionId = filter_var($revision, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        abort_unless($collection->kind === 'content' && $revisionId !== false, 404);
+        $historical = Revision::where('record_id', $record->id)->findOrFail($revisionId)->data;
         $keys = array_flip(array_column($collection->definition['fields'] ?? [], 'key'));
-        $data = $this->fieldAccess->readableData($collection, array_intersect_key($revision->data, $keys), $request->user());
+        $data = $this->fieldAccess->readableData($collection, array_intersect_key($historical, $keys), $request->user());
 
         return $this->renderPreview($record, $collection, $data, $renderer);
     }

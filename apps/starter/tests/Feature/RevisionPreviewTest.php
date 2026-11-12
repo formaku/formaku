@@ -64,11 +64,13 @@ class RevisionPreviewTest extends TestCase
         $preview = $this->revisionUrl($mine, $mine->draft_id);
 
         $this->getJson($preview)->assertUnauthorized();
+        $this->getJson($this->revisionUrl($mine, $data->draft_id + 1000))->assertUnauthorized();
         $this->actingAs($owner)->get($preview)->assertOk()->assertSeeHtml('<h1>My page</h1>');
         $this->get($this->revisionUrl($theirs, $theirs->draft_id))->assertNotFound();
         $this->get($this->revisionUrl($mine, $theirs->draft_id))->assertNotFound();
         $this->get($this->revisionUrl($mine, $data->draft_id))->assertNotFound();
         $this->get($this->revisionUrl($mine, $data->draft_id + 1000))->assertNotFound();
+        $this->get("/formaku/api/v1/records/{$mine->id}/revisions/".str_repeat('9', 20).'/preview')->assertNotFound();
         $this->actingAs($admin)->get($this->revisionUrl($data, $data->draft_id))->assertNotFound();
     }
 
