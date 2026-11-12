@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.73 — 2026-11-12
+
+- Operators can use the host controller's read-only runtime command to verify the image and health of the web, queue worker, and scheduler after deployment or rollback.
+- No new migrations since alpha.72.
+
 ## 0.1.0-alpha.72 — 2026-11-12
 
 - Record creation controls and the AI proposal collection picker reflect whether the user can edit all required collection fields.
