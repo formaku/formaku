@@ -158,14 +158,14 @@ Configure production environment secrets DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS; var
 
 ### Read deployment and rollback status
 
-On an existing deployment host, install the controller from the alpha.40 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read it. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
+On an existing deployment host, install the controller from the alpha.40 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
 
 | Value | Meaning |
 | --- | --- |
 | `not_attempted` | The failure happened before the controller attempted to stop application services. |
 | `restored` | Compose brought the previous image back and its health checks passed. |
 | `failed` | Compose could not confirm that the previous image was healthy. |
-| `unavailable` | There was no previous image recorded for rollback. |
+| `unavailable` | There was no previous image recorded. If the candidate was started, the controller attempts to stop its web, worker and scheduler services. |
 
 When `backup` is present, the encrypted archive for that UUID is complete in `/opt/formaku/backups`. Use a fresh UUID for another deployment attempt. The controller preserves an existing archive.
 
