@@ -310,13 +310,13 @@ class FormakuTest extends TestCase
         $polishAlternate = '<link rel="alternate" hreflang="pl" href="https://site.example/cms/p/published">';
         $englishAlternate = '<link rel="alternate" hreflang="en-GB" href="https://site.example/cms/p/english">';
         $this->get('/p/published')->assertOk()
-            ->assertSeeHtml('<html lang="pl">')
+            ->assertSeeHtml('<html lang="pl"')
             ->assertSeeHtml($polishAlternate)
             ->assertSeeHtml($englishAlternate)
             ->assertSeeHtml('href="/p/english" hreflang="en-GB"')
             ->assertDontSee('german');
         $this->get('/p/english')->assertOk()
-            ->assertSeeHtml('<html lang="en-GB">')
+            ->assertSeeHtml('<html lang="en-GB"')
             ->assertSeeHtml($polishAlternate)
             ->assertSeeHtml($englishAlternate)
             ->assertSeeHtml('href="/p/published" hreflang="pl"');
@@ -334,7 +334,7 @@ class FormakuTest extends TestCase
             'version' => 1,
         ])->assertOk();
         $this->get('/p/published')->assertOk()->assertDontSeeHtml('rel="alternate"')->assertDontSee('Wersje językowe');
-        $this->get('/p/about-us')->assertOk()->assertSeeHtml('<html lang="pl">');
+        $this->get('/p/about-us')->assertOk()->assertSeeHtml('<html lang="pl"');
     }
 
     public function test_sitemap_lists_current_publications_on_the_configured_base_url(): void

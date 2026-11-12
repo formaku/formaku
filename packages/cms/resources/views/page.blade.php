@@ -2,7 +2,7 @@
 
 @section('content')
     @isset($pageAlternates)
-        <nav class="mb-6" aria-label="{{ str_starts_with($pageLanguage, 'pl') ? 'Wersje językowe' : 'Language versions' }}">
+        <nav class="mb-6" aria-label="{{ $pageLanguage === 'pl' || str_starts_with($pageLanguage, 'pl-') ? 'Wersje językowe' : 'Language versions' }}">
             <ul class="flex flex-wrap gap-x-4 gap-y-2 text-sm">
                 @foreach ($pageAlternates as $alternate)
                     <li>

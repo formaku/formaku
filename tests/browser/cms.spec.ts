@@ -568,3 +568,66 @@ test("site color accents apply to the public page in both system schemes", async
     await visitor.close();
   }
 });
+
+test("authors link separate drafts and visitors switch published languages", async ({ page, browser }, info) => {
+  const group = "languages-" + info.project.name + "-" + Date.now();
+  const polishSlug = group + "-pl";
+  const englishSlug = group + "-en";
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  await page.getByRole("button", { name: "Strony i oferta", exact: true }).click();
+
+  const link = page.getByRole("region", { name: "Wersje językowe" });
+  const publish = page.getByRole("button", { name: "Opublikuj treść", exact: true });
+  async function createVersion(slug: string, language: string) {
+    await page.getByRole("button", { name: "Dodaj rekord" }).click();
+    await page.getByLabel("Tytuł", { exact: true }).fill(slug);
+    await page.getByLabel("Adres URL", { exact: true }).fill(slug);
+    await page.getByRole("button", { name: "Zapisz szkic" }).click();
+    await link.getByLabel("Język strony").fill(language);
+    await link.getByLabel("Klucz grupy tłumaczeń").fill(group);
+    await link.getByRole("button", { name: "Zapisz powiązanie" }).click();
+    await expect(link.getByRole("status")).toHaveText("Zapisano powiązanie językowe.");
+  }
+
+  await createVersion(polishSlug, "pl");
+  await publish.click();
+  await expect(page.getByText("Treść opublikowana.", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Wróć do listy" }).click();
+  await createVersion(englishSlug, "en-GB");
+
+  const visitor = await browser.newContext({
+    baseURL: info.project.use.baseURL,
+    javaScriptEnabled: false,
+    viewport: { width: 390, height: 844 },
+  });
+  try {
+    const publicPage = await visitor.newPage();
+    await publicPage.goto("/p/" + polishSlug);
+    await expect(publicPage.getByRole("navigation", { name: "Wersje językowe" })).toHaveCount(0);
+    expect((await publicPage.request.get("/p/" + englishSlug)).status()).toBe(404);
+
+    await publish.click();
+    await expect(page.getByText("Treść opublikowana.", { exact: true })).toBeVisible();
+    await publicPage.reload();
+    await expect(publicPage.locator('head link[rel="alternate"]')).toHaveCount(2);
+    await publicPage.getByRole("navigation", { name: "Wersje językowe" })
+      .getByRole("link", { name: "en-GB" }).click();
+    await expect(publicPage).toHaveURL(new RegExp("/p/" + englishSlug + "$"));
+    await expect(publicPage.locator("html")).toHaveAttribute("lang", "en-GB");
+    await publicPage.getByRole("navigation", { name: "Language versions" })
+      .getByRole("link", { name: "pl" }).click();
+    await expect(publicPage).toHaveURL(new RegExp("/p/" + polishSlug + "$"));
+
+    await link.getByLabel("Język strony").clear();
+    await link.getByLabel("Klucz grupy tłumaczeń").clear();
+    await link.getByRole("button", { name: "Zapisz powiązanie" }).click();
+    await expect(link.getByRole("status")).toHaveText("Zapisano powiązanie językowe.");
+    await publicPage.reload();
+    await expect(publicPage.getByRole("navigation", { name: "Wersje językowe" })).toHaveCount(0);
+  } finally {
+    await visitor.close();
+  }
+});
