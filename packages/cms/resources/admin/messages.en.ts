@@ -259,6 +259,7 @@ export const messages: Record<string, string> = {
   "Etykieta": "Label",
   "Etykieta linku": "Link label",
   "Historia wersji": "Revision history",
+  "Podgląd rewizji": "Preview revision",
   "Identyfikator": "Identifier",
   "Importuj definicje": "Import definitions",
   "Karty": "Cards",

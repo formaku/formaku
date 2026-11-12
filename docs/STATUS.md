@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.53**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.54**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Preview a saved content revision from the version history in a separate tab, with current field permissions.
 
 - Withdraw published content and its scheduled publication while retaining the saved draft and revision history.
 

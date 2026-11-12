@@ -30,6 +30,8 @@ W kolekcji treści użyj pola **Filtr publikacji**, aby znaleźć rekordy **Nieo
 
 W otwartym opublikowanym rekordzie wybierz **Wycofaj publikację** i potwierdź. Potrzebujesz uprawnienia publikowania i zapisu rekordu. Strona znika z katalogu i mapy witryny, a zapisany szkic i historia zostają w panelu. Wycofanie anuluje zapisany termin publikacji. Aby przywrócić stronę, otwórz zapisany szkic i ponownie wybierz **Opublikuj treść**.
 
+W edytorze treści otwórz **Historię wersji** i wybierz **Podgląd rewizji** przy zapisanej wersji. Otworzy się nowa karta, która wymaga dostępu do rekordu i uwzględnia aktualne uprawnienia do pól. Jeśli chcesz wczytać tę wersję jako szkic, użyj osobnej akcji **Przywróć do szkicu** po zapisaniu bieżących zmian.
+
 Na liście rekordów wpisz fragment aktualnego tytułu lub nazwy i kliknij **Szukaj**. Wyszukiwanie obejmuje wszystkie strony listy i uwzględnia uprawnienia odczytu pól. Aby je wyczyścić, usuń frazę i ponownie kliknij **Szukaj**.
 
 Na liście rekordów wybierz stan w polu **Filtr stanu**. Wybór pozostaje aktywny podczas zmiany stron i po powrocie z edytora. W kolekcjach treści możesz połączyć go z filtrem **Zaplanowane**. Wybierz **Wszystkie stany**, aby wyczyścić filtr stanu.
@@ -157,6 +159,8 @@ To schedule a saved draft, choose **Publication date** and select **Schedule pub
 In the content list, use **Publication filter** to find **Unpublished**, **Published**, or **With newer draft**. The last option shows published records that have a later saved draft. The row displays both **Published** and **Newer draft**.
 
 In an open published record, select **Unpublish** and confirm. You need permission to publish and edit the record. The page is removed from the catalog and sitemap, the scheduled publication is cancelled, and the saved draft and history remain in the panel. Open the saved draft and select **Publish content** to publish it again.
+
+In the content editor, open **Revision history** and select **Preview revision** next to a saved version. The new tab requires record access and respects current field permissions. To load the version as the current draft, use **Restore to draft** after saving your current edits.
 
 In a collection's record list, enter part of the current title or name and select **Search**. Search covers all result pages and respects field read permissions. Clear the field and select **Search** again to reset.
 

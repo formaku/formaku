@@ -338,6 +338,79 @@ test("withdraw and republish content while keeping the latest draft", async ({ p
   await expect(page).toHaveTitle(revisedTitle);
 });
 
+test("preview a saved revision without restoring it", async ({ page }, info) => {
+  test.slow();
+  const slug = "history-" + info.project.name + "-" + Date.now();
+  const historicalTitle = "Earlier " + slug;
+  const publishedTitle = "Published " + slug;
+  const draftTitle = "Current " + slug;
+
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  const csrf = await page.locator('meta[name="csrf-token"]').getAttribute("content");
+  const api = "/formaku/api/v1";
+  const post = async (path: string, data: object) => {
+    const response = await page.request.post(api + path, {
+      data, headers: { "X-CSRF-TOKEN": csrf ?? "" },
+    });
+    await expect(response).toBeOK();
+    return response.json();
+  };
+
+  const collections = await (await page.request.get(api + "/collections")).json();
+  const pages = collections.find((collection: { key: string }) => collection.key === "pages");
+  const recordsPath = `/collections/${pages.id}/records`;
+  const earlier = await post(recordsPath, { version: 0, data: { title: historicalTitle, slug, blocks: [] } });
+  const updated = await post(recordsPath, {
+    id: earlier.id, version: earlier.version, data: { title: publishedTitle, slug, blocks: [] },
+  });
+  const recordPath = `/records/${earlier.id}`;
+  const published = await post(recordPath + "/publish", { version: updated.version });
+  const draft = await post(recordsPath, {
+    id: earlier.id, version: published.version, data: { title: draftTitle, slug, blocks: [] },
+  });
+
+  await page.getByRole("button", { name: "Strony i oferta", exact: true }).click();
+  const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: draftTitle, exact: true }) });
+  await row.getByRole("button", { name: "Edytuj", exact: true }).click();
+  const history = page.getByRole("button", { name: "Historia wersji", exact: true });
+  await history.click();
+  const previewPath = api + recordPath + `/revisions/${earlier.draft_id}/preview`;
+  const previewLink = page.getByRole("link", { name: "Podgląd rewizji", exact: true })
+    .and(page.locator(`a[href="${previewPath}"]`));
+  const popupPromise = page.waitForEvent("popup");
+  await previewLink.click();
+  const popup = await popupPromise;
+  await expect(popup).toHaveTitle(historicalTitle);
+  await popup.close();
+  expect(await (await page.request.get("/p/" + slug)).text()).toContain(`<title>${publishedTitle}</title>`);
+  const afterPreview = await (await page.request.get(api + recordPath)).json();
+  expect(afterPreview.version).toBe(draft.version);
+  expect(afterPreview.draft_id).toBe(draft.draft_id);
+  expect(afterPreview.published_id).toBe(published.published_id);
+
+  const historyRequested = Promise.withResolvers<void>();
+  const returnHistory = Promise.withResolvers<void>();
+  await page.route(`**${api}${recordPath}`, async (route) => {
+    historyRequested.resolve();
+    await returnHistory.promise;
+    await route.continue();
+  }, { times: 1 });
+  await history.click();
+  const title = page.getByLabel("Tytuł", { exact: true });
+  try {
+    await historyRequested.promise;
+    await title.fill("Unsaved local edit");
+  } finally {
+    returnHistory.resolve();
+  }
+  await expect(history).toBeEnabled();
+  await expect(title).toHaveValue("Unsaved local edit");
+  await expect(page.getByRole("button", { name: "Przywróć do szkicu", exact: true }).first()).toBeDisabled();
+});
+
 test("mobile login stays within viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/login");

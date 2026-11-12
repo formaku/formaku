@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.54 — 2026-11-12
+
+- Preview a saved content revision in a new tab from revision history. The preview respects current access and field permissions.
+- Opening revision history preserves unsaved editor changes.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.53 — 2026-11-12
 
 - Withdraw a published page from the editor while keeping its saved draft and revision history.

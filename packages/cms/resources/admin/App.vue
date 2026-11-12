@@ -445,8 +445,13 @@ async function openHistory() {
     const draft = record.value;
     const result = await request("/records/" + draft.id);
     if (record.value !== draft) return;
-    if (JSON.stringify(draft.data) !== JSON.stringify(result.data)) setDraft(result);
-    else record.value = result;
+    if (hasUnsavedChanges.value) {
+      draft.history = result.history;
+    } else if (JSON.stringify(draft.data) !== JSON.stringify(result.data)) {
+      setDraft(result);
+    } else {
+      record.value = result;
+    }
   });
 }
 async function restoreDraftRevision(revisionId: number) {
@@ -2093,22 +2098,35 @@ const title = computed(
                 </ul>
               </section>
               <div v-if="record.id" class="mt-5">
-                <button class="btn btn-sm" @click="openHistory">
+                <button class="btn btn-sm" :disabled="busy" @click="openHistory">
                   {{ t("Historia wersji") }}
                 </button>
                 <div v-if="record.history" class="mt-4 space-y-2">
                   <div
                     v-for="h in record.history"
                     :key="h.id"
-                    class="flex justify-between bg-base-100 border border-base-300 rounded-lg p-3 text-sm"
+                    class="flex flex-wrap items-center justify-between gap-2 bg-base-100 border border-base-300 rounded-lg p-3 text-sm"
                   >
-                    <span>{{ t("Rewizja #") }}{{ h.id }} · {{ h.created_at }}</span
-                    ><button
-                      class="btn btn-xs"
-                      @click="restoreDraftRevision(h.id)"
-                    >
-                      {{ t("Przywróć do szkicu") }}
-                    </button>
+                    <span>{{ t("Rewizja #") }}{{ h.id }} · {{ h.created_at }}</span>
+                    <div class="flex flex-wrap gap-2">
+                      <a
+                        v-if="selected.kind === 'content'"
+                        class="btn btn-xs"
+                        :href="`${api}/records/${record.id}/revisions/${h.id}/preview`"
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        {{ t("Podgląd rewizji") }}<ArrowUpRight :size="12" />
+                      </a>
+                      <button
+                        type="button"
+                        class="btn btn-xs"
+                        :disabled="busy || hasUnsavedChanges"
+                        @click="restoreDraftRevision(h.id)"
+                      >
+                        {{ t("Przywróć do szkicu") }}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
