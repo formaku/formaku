@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.67**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.68**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -30,7 +30,7 @@ This is **0.1.0-alpha.67**. The remaining v1 work is listed below.
 
 - The editor displays the scheduled publication time and lets publishers cancel it without changing the draft.
 
-- Filter customer request history by states present in the signed-in customer’s own requests. The selected state stays active when changing pages.
+- Filter customer request history by exact request number and state. The list shows readable request subjects and stays scoped to the signed-in customer’s own requests.
 
 - Site name and optional public media logo in the shared site header.
 

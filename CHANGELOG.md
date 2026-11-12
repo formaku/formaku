@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.68 — 2026-11-12
+
+- Find your own requests by exact number and combine the lookup with the state filter. The request history shows subjects you can read.
+- No new migrations since alpha.67.
+
 ## 0.1.0-alpha.67 — 2026-11-12
 
 - Set the order of selected customer portal fields from the collection builder. Subject and Description remain first.
