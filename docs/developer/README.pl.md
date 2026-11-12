@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.45' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.46' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -26,7 +26,7 @@ W metodzie sprawdzaj uprawnienia aplikacji. Nadaj `work` osobom z dostępem do p
 
 ### Aktualizacja istniejącej instalacji Composer
 
-Po aktualizacji do alpha.45 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
+Po aktualizacji do alpha.46 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
 
 ```sh
 php artisan formaku:install
@@ -35,14 +35,26 @@ php artisan migrate --force
 
 Od alpha.31 `formaku:install` usuwa skompilowane kopie szablonów Blade pakietu. Widoki aplikacji gospodarza pozostają w cache. Jeśli wdrożenie kompiluje widoki z wyprzedzeniem, uruchom następnie `php artisan view:cache`. Przy instalacji alpha.30 po aktualizacji wykonaj `php artisan view:clear`.
 
+### Włącz zaplanowaną publikację w aplikacji Laravel
+
+Po instalacji Formaku dodaj poniższy wpis w pliku `routes/console.php` aplikacji.
+
+```php
+use Illuminate\Support\Facades\Schedule;
+
+Schedule::command('formaku:publish-scheduled')->everyMinute()->withoutOverlapping();
+```
+
+Sprawdź wpis poleceniem `php artisan schedule:list` i uruchom scheduler Laravel w swoim środowisku. Komenda publikuje zapisane treści, których termin już nadszedł. Jeśli aplikacja ma własny wpis publikujący treści Formaku, zastąp go tą komendą. Starter Formaku ma gotowy wpis.
+
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.45.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.45). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.46.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.46). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.45.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.46.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.45' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.46' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```

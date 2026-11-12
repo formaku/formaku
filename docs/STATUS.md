@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.45**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.46**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- The starter runs the package’s scheduled publication command every minute. Composer hosts can register the same command in their Laravel scheduler.
 
 - The editor displays the scheduled publication time and lets publishers cancel it without changing the draft.
 

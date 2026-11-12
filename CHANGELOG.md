@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.46 — 2026-11-12
+
+- Laravel hosts can schedule the `formaku:publish-scheduled` Artisan command when they install Formaku through Composer. The starter already runs it every minute.
+- The command processes due drafts in batches and keeps version checks for drafts edited or cancelled during a run.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.45 — 2026-11-12
 
 - The editor shows the scheduled publication time in the browser’s local time and lets publishers cancel it without changing the draft.
