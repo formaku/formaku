@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-Draft edits made while the editor finishes a request are queued for autosave when it is ready.
+## 0.1.0-alpha.27 — 2026-11-12
+
+Draft edits made while the editor finishes a request are queued for autosave when it is ready. This includes removing a block during the refresh after publication. This release adds no database migrations.
 
 ## 0.1.0-alpha.26 — 2026-11-12
 

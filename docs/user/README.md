@@ -22,6 +22,8 @@ Kliknij **Przenieś blok** i wybierz **Poziom strony**, kontener albo kolumny. B
 
 Aby przywrócić ostatni usunięty blok, kliknij **Cofnij usunięcie bloku** obok nagłówka **Sekcje strony**. Blok wróci z zawartością i odwołaniami do mediów. Polecenie działa także po zapisie automatycznym, dopóki edytujesz ten szkic. Zapisz i opublikuj szkic, aby przywrócony blok był widoczny publicznie.
 
+Od wersji `0.1.0-alpha.27` jeśli zmienisz zapisany szkic w trakcie odświeżania panelu po publikacji, zapis automatyczny poczeka na zakończenie odświeżania. Nowa zmiana pozostanie w szkicu do kolejnej publikacji.
+
 Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera.
 
 Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
@@ -125,6 +127,8 @@ Choose **Duplicate block** to insert a copy after the selected block at the same
 Choose **Move block** and select **Page level**, a container, or columns. The editor appends the block and its contents to the destination. The list shows only destinations that can accept the block. Reorder it in the destination as needed, then save and preview the draft.
 
 Select **Undo block removal** next to **Page sections** to restore the last block you removed. It retains its contents and media references. You can undo after autosave while editing the same draft. Save and publish the draft to show the restored block publicly.
+
+Starting with `0.1.0-alpha.27`, if you edit a saved draft while the panel refreshes after publication, autosave resumes when the refresh finishes. The edit stays in the draft until the next publication.
 
 Starting with `0.1.0-alpha.8`, add an image block, including inside a container or columns, and choose **Wybierz obraz** (Choose image). Pick a public image by filename and thumbnail. Browse up to 30 images per page. Cancel or press Escape to keep the current selection. Enter a caption, save the draft and preview the page.
 
