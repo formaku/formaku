@@ -156,6 +156,11 @@ const boot = ref<any>(null),
   commit = ref(""),
   search = ref("");
 const scheduledOnly = ref(false);
+const recordsState = ref("");
+const recordsStates = computed(() => {
+  const states = (selected.value?.definition.states ?? []).filter(Boolean);
+  return states.length ? [...new Set(states)] : ["new"];
+});
 let recordsRequest = 0;
 const portalAttachments = ref<PortalAttachment[]>([]);
 const portalAttachmentsFailed = ref(false);
@@ -380,12 +385,13 @@ async function load() {
     }
   }
 }
-async function loadRecords(page: number, onlyScheduled: boolean) {
+async function loadRecords(page: number, onlyScheduled: boolean, state = recordsState.value) {
   const collectionId = selected.value!.id;
   const requestId = ++recordsRequest;
   const query = new URLSearchParams();
   if (page > 1) query.set("page", String(page));
   if (onlyScheduled) query.set("scheduled", "1");
+  if (state) query.set("state", state);
   const path = `/collections/${collectionId}/records`;
   let result = await request(query.size ? `${path}?${query}` : path);
   if (requestId !== recordsRequest || selected.value?.id !== collectionId) return;
@@ -396,18 +402,26 @@ async function loadRecords(page: number, onlyScheduled: boolean) {
   }
   recordsPage.value = result;
   scheduledOnly.value = onlyScheduled;
+  recordsState.value = state;
+}
+async function changeRecordsState(event: Event) {
+  const control = event.target as HTMLSelectElement;
+  await run(() => loadRecords(1, scheduledOnly.value, control.value));
+  control.value = recordsState.value;
 }
 async function choose(c: Collection, keepList = false) {
   if (hasUnsavedChanges.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
   const page = keepList ? (recordsPage.value?.current_page ?? 1) : 1;
   const onlyScheduled = keepList && scheduledOnly.value;
+  const state = keepList ? recordsState.value : "";
   selected.value = c;
   section.value = "records";
   setDraft(null);
   recordsPage.value = null;
   scheduledOnly.value = onlyScheduled;
+  recordsState.value = state;
   dirty.value = false;
-  await loadRecords(page, onlyScheduled);
+  await loadRecords(page, onlyScheduled, state);
 }
 function formatPublicationTime(value: string): string {
   return new Date(value).toLocaleString(locale.value, { dateStyle: "medium", timeStyle: "short" });
@@ -1587,6 +1601,16 @@ const title = computed(
                     @click="run(() => loadRecords(1, true))"
                   >{{ t("Zaplanowane") }}</button>
                 </div>
+                <select
+                  class="select w-full sm:w-auto"
+                  :aria-label='t("Filtr stanu")'
+                  :value="recordsState"
+                  :disabled="busy || !recordsPage"
+                  @change="changeRecordsState"
+                >
+                  <option value="">{{ t("Wszystkie stany") }}</option>
+                  <option v-for="state in recordsStates" :key="state" :value="state">{{ state }}</option>
+                </select>
                 <button class="btn btn-primary ml-auto" :disabled="busy" @click="fresh">
                   <Plus :size="16" />{{ t("Dodaj rekord") }}
                 </button>
@@ -1608,9 +1632,8 @@ const title = computed(
                     <tr v-for="r in recordsPage?.data" :key="r.id">
                       <td>{{ r.data.title ?? r.data.name ?? "#" + r.id }}</td>
                       <td>
-                        <span class="badge badge-outline">{{
-                          r.published_id ? t("Opublikowano") : r.state
-                        }}</span>
+                        <span class="badge badge-outline">{{ r.state }}</span>
+                        <span v-if="r.published_id" class="badge badge-outline ms-1">{{ t("Opublikowano") }}</span>
                       </td>
                       <td v-if="selected.kind === 'content'">
                         <time v-if="r.publish_at" :datetime="r.publish_at">{{ formatPublicationTime(r.publish_at) }}</time>
@@ -1627,7 +1650,9 @@ const title = computed(
                         :colspan="selected.kind === 'content' ? 5 : 4"
                         class="p-10 text-center text-base-content/50"
                       >
-                        {{ scheduledOnly ? t("Brak zaplanowanych publikacji.") : t("Tu pojawią się pierwsze rekordy.") }}
+                        <template v-if="recordsState">{{ t("Brak rekordów pasujących do filtrów.") }}</template>
+                        <template v-else-if="scheduledOnly">{{ t("Brak zaplanowanych publikacji.") }}</template>
+                        <template v-else>{{ t("Tu pojawią się pierwsze rekordy.") }}</template>
                       </td>
                     </tr>
                   </tbody>

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.50 — 2026-11-12
+
+- Filter collection records by workflow state. The panel keeps the filter when changing pages and returning from the editor.
+- Combine the state filter with scheduled publication and see the workflow state alongside the publication badge.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.49 — 2026-11-12
 
 - Find scheduled content drafts in the collection list. The panel shows their publication times and keeps the selected filter when returning from the editor.

@@ -26,6 +26,8 @@ Od wersji `0.1.0-alpha.27` jeśli zmienisz zapisany szkic w trakcie odświeżani
 
 Zapisz szkic, wybierz **Data publikacji** i kliknij **Zaplanuj publikację**. Panel pokazuje zapisany termin w strefie czasowej przeglądarki. Kliknij **Anuluj zaplanowaną publikację**, aby usunąć termin i zachować szkic. Zapis kolejnej rewizji usuwa poprzedni termin. Na liście treści wybierz **Zaplanowane**, aby zobaczyć terminy od najwcześniejszego, łącznie z zaległymi. Po powrocie ze szkicu lista zachowuje filtr i stronę. Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go poleceniem `php artisan schedule:work` w katalogu startera. Jeśli instalujesz Formaku przez Composer, [dodaj komendę do schedulera aplikacji](../developer/README.pl.md#włącz-zaplanowaną-publikację-w-aplikacji-laravel).
 
+Na liście rekordów wybierz stan w polu **Filtr stanu**. Wybór pozostaje aktywny podczas zmiany stron i po powrocie z edytora. W kolekcjach treści możesz połączyć go z filtrem **Zaplanowane**. Wybierz **Wszystkie stany**, aby wyczyścić filtr stanu.
+
 Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
 
 ### Wersje językowe stron
@@ -145,6 +147,8 @@ Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie”
 Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Under **Releases**, request a build, click **Refresh status** and open the matching GitHub Actions run for the image digest. Deployment is a separate workflow. Customer portal access is scoped to the signed-in owner.
 
 To schedule a saved draft, choose **Publication date** and select **Schedule publication**. The editor shows the saved time in your browser’s time zone. Use **Cancel scheduled publication** to remove the time and keep the draft. Saving another revision clears the earlier schedule. In the content list, select **Scheduled** to see saved publication times, including overdue ones, in chronological order. Returning from the editor keeps the current filter and page. For the starter, keep its scheduler running to publish at the chosen time. For a Composer host, [register the scheduled publication command](../developer/README.md#enable-scheduled-publication-in-a-composer-host).
+
+In a collection's record list, choose a state in **Status filter**. The filter stays active when changing pages and returning from the editor. In content collections, it can be combined with **Scheduled**. Choose **All statuses** to clear the status filter.
 
 In request history, choose a request state and select **Filtruj** (Filter). The selection stays active when you change pages. Select **Wszystkie stany** (All states) and apply the filter to return to the full list.
 

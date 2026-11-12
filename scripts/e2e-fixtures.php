@@ -45,3 +45,25 @@ DB::transaction(function () use ($user) {
         $records->save($target, null, ['name' => 'Target '.$index], 0, $user->id);
     }
 });
+
+DB::transaction(function () use ($user) {
+    $queue = Collection::firstOrCreate(['key' => 'workflow_queue'], [
+        'name' => 'Workflow queue',
+        'kind' => 'data',
+        'definition' => [
+            'fields' => [['key' => 'name', 'label' => 'Nazwa', 'type' => 'text']],
+            'states' => ['new', 'closed'],
+            'transitions' => [['from' => 'new', 'to' => 'closed']],
+        ],
+    ]);
+    if (Record::where('collection_id', $queue->id)->exists()) {
+        return;
+    }
+
+    $records = app(RecordService::class);
+    for ($index = 1; $index <= 26; $index++) {
+        $records->save($queue, null, ['name' => 'Queue '.$index], 0, $user->id);
+    }
+    $closed = $records->save($queue, null, ['name' => 'Queue closed'], 0, $user->id);
+    $records->transition($closed, $closed->version, 'closed', $user->id, null);
+});

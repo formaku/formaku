@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.49**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.50**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Filter content and data records by workflow state across pages. Content records can also be filtered by scheduled publication.
 
 - Filter scheduled content drafts in the panel and browse paginated collection records.
 

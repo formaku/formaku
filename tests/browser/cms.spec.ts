@@ -1,4 +1,34 @@
 import { test, expect, type Page } from "@playwright/test";
+test("filter data records by workflow state across pages", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
+  await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
+  await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  await page.getByRole("button", { name: "Workflow queue", exact: true }).click();
+
+  const state = page.getByRole("combobox", { name: "Filtr stanu" });
+  await expect(state).toHaveValue("");
+  await expect(page.getByRole("cell", { name: "Queue closed", exact: true })).toBeVisible();
+  await state.selectOption("new");
+  await expect(page.getByRole("cell", { name: "Queue closed", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("cell", { name: "Queue 26", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Następna strona" }).click();
+
+  const row = page.getByRole("row").filter({ has: page.getByRole("cell", { name: "Queue 1", exact: true }) });
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "Edytuj" }).click();
+  await page.getByRole("button", { name: "Wróć do listy" }).click();
+  await expect(state).toHaveValue("new");
+  await expect(row).toBeVisible();
+
+  await state.selectOption("closed");
+  await expect(row).toHaveCount(0);
+  await expect(page.getByRole("cell", { name: "Queue closed", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Następna strona" })).toHaveCount(0);
+  await state.selectOption("");
+  await expect(page.getByRole("cell", { name: "Queue 26", exact: true })).toBeVisible();
+});
+
 test("browser authoring and publication", async ({ page }, info) => {
   const slug = "browser-" + info.project.name + "-" + Date.now();
   await page.goto("/login");
@@ -78,6 +108,8 @@ test("browser authoring and publication", async ({ page }, info) => {
   const scheduledFilter = page.getByRole("button", { name: "Zaplanowane", exact: true });
   await scheduledFilter.click();
   await expect(scheduledFilter).toHaveAttribute("aria-pressed", "true");
+  const contentState = page.getByRole("combobox", { name: "Filtr stanu" });
+  await contentState.selectOption("new");
   const draftRow = page.getByRole("row").filter({ hasText: "Browser test " + info.project.name });
   await expect(draftRow.locator("time")).toBeVisible();
   await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
@@ -91,6 +123,7 @@ test("browser authoring and publication", async ({ page }, info) => {
   await expect(schedule).toHaveCount(0);
   await page.getByRole("button", { name: "Wróć do listy", exact: true }).click();
   await expect(scheduledFilter).toHaveAttribute("aria-pressed", "true");
+  await expect(contentState).toHaveValue("new");
   await expect(draftRow).toHaveCount(0);
   await page.getByRole("button", { name: "Wszystkie", exact: true }).click();
   await draftRow.getByRole("button", { name: "Edytuj", exact: true }).click();
