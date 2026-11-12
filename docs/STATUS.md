@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.29**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.30**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- Linked language versions of pages in a public content collection, with independent drafts, a public language switcher and HTML `hreflang` links.
 
 - Laravel 13 / PHP 8.4+ Composer package, isolated configuration, opt-in public routing and fail-closed administrative authorization; starter with role-based access.
 - Vue 3 / TypeScript panel with Formaku branding, Reka provider, Tailwind/daisyUI components and locally bundled fonts. The header offers a Polish/English interface switch remembered by the browser.
@@ -39,7 +41,6 @@ This is **0.1.0-alpha.29**. The remaining v1 work is listed below.
 
 - Per-field permissions and broader configurable role management (collection scopes and read/write rules are implemented); broader portal form/attachment builder.
 - Further page composition controls and theme management.
-- Linked content translation workflow.
 - AI schema/process/translation/SEO/data-generation tasks, structural diff review, configurable token/cost budgets and live-provider acceptance.
 - ResourceAdapter and ActionHandler integration into the Formaku panel. The [developer examples](developer/README.md) cover registry use from host routes.
 - GitHub project snapshot PR creation, deployment status reconciliation, UI deployment wizard, fully automated host bootstrap/HTTPS, migration compatibility gates and tested rollback/recovery.

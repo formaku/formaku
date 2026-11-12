@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="pl"@if ($siteNavigation['theme'] !== 'system') data-theme="{{ $siteNavigation['theme'] }}"@endif
+<html lang="{{ $pageLanguage ?? 'pl' }}"@if ($siteNavigation['theme'] !== 'system') data-theme="{{ $siteNavigation['theme'] }}"@endif
 @if ($siteNavigation['accent'] !== 'formaku') data-accent="{{ $siteNavigation['accent'] }}"@endif>
 <head>
     <meta charset="utf-8">
@@ -8,6 +8,9 @@
     @isset($description)
         <meta name="description" content="{{ $description }}">
     @endisset
+    @foreach ($pageAlternates ?? [] as $alternate)
+        <link rel="alternate" hreflang="{{ $alternate['locale'] }}" href="{{ $alternate['url'] }}">
+    @endforeach
     <link rel="stylesheet" href="/vendor/formaku/main.css">
 </head>
 <body>

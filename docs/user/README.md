@@ -28,6 +28,12 @@ Zaplanowane publikacje wymagają działającego schedulera. Lokalnie uruchom go 
 
 Od wersji `0.1.0-alpha.4` publikacja publicznej strony pod nowym adresem zapisuje przekierowanie 301 ze starego adresu. Przy kolejnej zmianie wcześniejsze adresy prowadzą bezpośrednio do bieżącej publikacji. Jeśli inna strona opublikuje się pod dawnym adresem, będzie tam wyświetlana jej treść. Ukrycie kolekcji wyłącza także przekierowania do jej stron.
 
+### Wersje językowe stron
+
+Od alpha.30 zapisz każdą wersję językową jako osobną stronę w tej samej publicznej kolekcji treści. W sekcji **Wersje językowe** wpisz **Język strony** (np. `pl` lub `en-GB`) i ten sam **Klucz grupy tłumaczeń** na obu stronach (np. `o-nas`). Wybierz **Zapisz powiązanie**. Potrzebujesz uprawnień do zapisu rekordu i publikowania.
+
+Każda strona zachowuje osobny szkic i adres. Po opublikowaniu co najmniej dwóch stron z grupy pojawi się przełącznik języków, a kod HTML otrzyma odnośniki `hreflang`. Zmiana powiązania jest widoczna od razu na opublikowanych stronach. Aby odłączyć stronę, wyczyść oba pola i zapisz powiązanie.
+
 ### Powiązane rekordy
 
 Od wersji `0.1.0-alpha.9` w polu relacji wybierz **Wybierz rekordy**. Zaznacz rekordy na dowolnej stronie wyników i kliknij **Zastosuj wybór**, a potem zapisz szkic. **Anuluj** lub Esc przywraca poprzedni wybór. Selektor pokazuje tylko rekordy, do których masz dostęp. Zamiast prywatnego tytułu lub nazwy pokazuje dostępną etykietę albo identyfikator. Jeśli utracisz dostęp do powiązanego rekordu, przed zapisem usuń to powiązanie albo odzyskaj dostęp.
@@ -159,6 +165,8 @@ Starting with `0.1.0-alpha.13`, administrators can open **Ustawienia → Menu i 
 Starting with `0.1.0-alpha.14`, choose **Jasny** (Light) or **Ciemny** (Dark) under **Motyw witryny** (Site theme) in the same settings. Saving applies the theme to public pages and draft previews. Starting with alpha.28, **Follow system** uses each visitor’s preferred color scheme.
 
 Starting with alpha.29, choose **Formaku**, **Blue**, or **Plum** under **Color accent** to change the accent on public pages and in draft previews.
+
+Starting with alpha.30, save each language as a separate page in the same public content collection. Open **Language versions**, enter the **Page language** (for example `pl` or `en-GB`) and use the same **Translation group key** on each page (for example `about`). Select **Save translation link**. You need permission to edit the record and publish pages. Once at least two linked pages are public, visitors can switch between them. Changes to the link take effect immediately on published pages. Clear both fields and save to unlink a page.
 
 Starting with `0.1.0-alpha.3`, use **Build → Edit model → SEO metadata** on a public content collection to map optional title and description fields. Choose non-private text fields, fill them in the record and publish the revision to make the values public.
 

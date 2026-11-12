@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.30 — 2026-11-12
+
+- Link independently edited language versions of public pages. Published groups show a language switcher and reciprocal `hreflang` links.
+- Apply the translation links migration before starting the updated CMS.
+
 ## 0.1.0-alpha.29 — 2026-11-12
 
 Choose the Formaku, Blue, or Plum color accent in website settings. The accent applies to public pages and draft previews and adapts to light, dark, and system themes. This release adds no database migrations.

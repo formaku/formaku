@@ -285,6 +285,58 @@ class FormakuTest extends TestCase
         $this->get('/p/published')->assertStatus(301)->assertHeader('Location', '/p/private-third');
     }
 
+    public function test_public_pages_link_only_current_publications_from_their_translation_group(): void
+    {
+        config(['app.url' => 'https://site.example/cms']);
+        $admin = $this->admin();
+        $collection = $this->collection();
+        $service = app(RecordService::class);
+        $polish = $this->record($collection, $admin);
+        $english = $service->save($collection, null, ['title' => 'English', 'slug' => 'english'], 0, $admin->id);
+        $german = $service->save($collection, null, ['title' => 'German', 'slug' => 'german'], 0, $admin->id);
+        $polish = $service->publish($polish, $polish->version, $admin->id);
+        $english = $service->publish($english, $english->version, $admin->id);
+
+        $this->actingAs($admin);
+        foreach ([[$polish, 'pl'], [$english, 'en-GB'], [$german, 'de']] as [$record, $locale]) {
+            $this->putJson("/formaku/api/v1/records/{$record->id}/translations", [
+                'group' => 'about',
+                'locale' => $locale,
+                'version' => 0,
+            ])->assertOk();
+        }
+        $this->app['auth']->forgetGuards();
+
+        $polishAlternate = '<link rel="alternate" hreflang="pl" href="https://site.example/cms/p/published">';
+        $englishAlternate = '<link rel="alternate" hreflang="en-GB" href="https://site.example/cms/p/english">';
+        $this->get('/p/published')->assertOk()
+            ->assertSeeHtml('<html lang="pl">')
+            ->assertSeeHtml($polishAlternate)
+            ->assertSeeHtml($englishAlternate)
+            ->assertSeeHtml('href="/p/english" hreflang="en-GB"')
+            ->assertDontSee('german');
+        $this->get('/p/english')->assertOk()
+            ->assertSeeHtml('<html lang="en-GB">')
+            ->assertSeeHtml($polishAlternate)
+            ->assertSeeHtml($englishAlternate)
+            ->assertSeeHtml('href="/p/published" hreflang="pl"');
+        $this->get('/p/german')->assertNotFound();
+
+        $english = $service->save($collection, $english, ['title' => 'English', 'slug' => 'about-us'], $english->version, $admin->id);
+        $this->get('/p/published')->assertOk()->assertSeeHtml($englishAlternate)->assertDontSee('about-us');
+        $service->publish($english, $english->version, $admin->id);
+        $this->get('/p/published')->assertOk()->assertDontSeeHtml($englishAlternate)
+            ->assertSeeHtml('<link rel="alternate" hreflang="en-GB" href="https://site.example/cms/p/about-us">');
+
+        $this->actingAs($admin)->putJson("/formaku/api/v1/records/{$english->id}/translations", [
+            'group' => null,
+            'locale' => null,
+            'version' => 1,
+        ])->assertOk();
+        $this->get('/p/published')->assertOk()->assertDontSeeHtml('rel="alternate"')->assertDontSee('Wersje językowe');
+        $this->get('/p/about-us')->assertOk()->assertSeeHtml('<html lang="pl">');
+    }
+
     public function test_sitemap_lists_current_publications_on_the_configured_base_url(): void
     {
         config(['app.url' => 'https://example.test/site&docs/']);

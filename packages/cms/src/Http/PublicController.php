@@ -40,7 +40,48 @@ class PublicController
             return new RedirectResponse($base.$path, 301, ['Cache-Control' => 'no-store']);
         }
 
-        return view('formaku::page', $renderer->page($c->definition, $revision->data, $r->published_title, $slug));
+        $page = $renderer->page($c->definition, $revision->data, $r->published_title, $slug);
+
+        if ($c->kind === 'content') {
+            $translations = $this->publishedTranslations($r);
+            $page['pageLanguage'] = $translations->firstWhere('record_id', $r->id)?->locale;
+
+            if ($page['pageLanguage'] !== null && $translations->count() > 1) {
+                $baseUrl = rtrim((string) config('app.url'), '/');
+                $basePath = rtrim($request->getBaseUrl(), '/');
+                $page['pageAlternates'] = $translations->map(function ($translation) use ($r, $baseUrl, $basePath) {
+                    $path = route('formaku.public.page', ['slug' => $translation->published_slug], false);
+
+                    return [
+                        'locale' => $translation->locale,
+                        'url' => $baseUrl.$path,
+                        'path' => $basePath.$path,
+                        'current' => (int) $translation->record_id === $r->id,
+                    ];
+                });
+            }
+        }
+
+        return view('formaku::page', $page);
+    }
+
+    private function publishedTranslations(Record $record): \Illuminate\Support\Collection
+    {
+        return DB::table('formaku_record_translations as current_translation')
+            ->join('formaku_record_translations as alternate', function ($join) {
+                $join->on('alternate.collection_id', '=', 'current_translation.collection_id')
+                    ->on('alternate.group_key', '=', 'current_translation.group_key');
+            })
+            ->join('formaku_records as records', function ($join) {
+                $join->on('records.id', '=', 'alternate.record_id')
+                    ->on('records.collection_id', '=', 'alternate.collection_id');
+            })
+            ->where('current_translation.record_id', $record->id)
+            ->where('current_translation.collection_id', $record->collection_id)
+            ->whereNotNull('records.published_id')
+            ->whereNotNull('records.published_slug')
+            ->orderBy('alternate.locale')
+            ->get(['alternate.record_id', 'alternate.locale', 'records.published_slug']);
     }
 
     public function portal(Request $r)
