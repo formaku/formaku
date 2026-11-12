@@ -158,7 +158,7 @@ Configure production environment secrets DEPLOY_SSH_KEY, DEPLOY_KNOWN_HOSTS; var
 
 ### Read deployment and rollback status
 
-On the deployment host, run `sudo /usr/local/sbin/formaku-deployctl status`. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
+On an existing deployment host, install the controller from the alpha.40 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read it. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
 
 | Value | Meaning |
 | --- | --- |
