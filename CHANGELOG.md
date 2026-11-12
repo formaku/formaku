@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Choose registered field types in the collection builder and edit their values in the panel using supported controls.
+
 ## 0.1.0-alpha.58 — 2026-11-12
 
 - Register custom collection field validation rules and expose optional field and block metadata through the bootstrap API.

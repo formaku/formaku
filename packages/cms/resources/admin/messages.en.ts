@@ -317,6 +317,7 @@ export const messages: Record<string, string> = {
   "Role z odczytem": "Roles that can read",
   "Role z zapisem": "Roles that can write",
   "Tylko odczyt": "Read only",
+  "Typ pola {0} nie ma kontrolki w panelu.": "Field type {0} has no control in the panel.",
   "Sekcje strony są tylko do odczytu. Otwórz podgląd zapisanego szkicu.": "Page sections are read only. Open the saved draft preview to view them.",
 
   "Publiczna kolekcja treści": "Public content collection",

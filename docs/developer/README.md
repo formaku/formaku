@@ -201,9 +201,9 @@ $registry->field(new \Formaku\Cms\Fields\Field(
 ));
 ```
 
-Set the collection field's `type` to `example_price_cents` through the collections API. Install the extension wherever records using that type are saved or published. Media and relation fields keep their built-in behavior through the `media` and `relation` type keys.
+In **Build → Edit model**, select **Price in cents** as the field type. The collections API uses the key `example_price_cents`. Install the extension wherever records using that type are saved or published. Media and relation fields keep their built-in behavior through the `media` and `relation` type keys.
 
-The bootstrap API provides `fieldTypes` for built-in fields and extensions implementing `PanelFieldType`. It provides `blockTypes` for built-in blocks and extensions implementing `PanelBlockType`, while `blocks` continues to list built-in keys. The built-in editor still uses its own controls. Use the API or a host editor to author custom fields and blocks.
+The bootstrap API provides `fieldTypes` for built-in fields and extensions implementing `PanelFieldType`. It provides `blockTypes` for built-in blocks and extensions implementing `PanelBlockType`, while `blocks` continues to list built-in keys. The panel uses the extension label and reuses the `text`, `richtext`, `number`, `date`, `boolean` and `select` controls for custom fields. Configure options in the collection model for a `select` input. Fields without a supported control are read-only in the panel. Use the API or a host editor to author custom blocks.
 
 Implement `PanelBlockType::panelSchema()` to describe block settings for a host editor. `BlockType::schema()` remains available for extension-defined validation. If `acceptsChildren()` returns true, Formaku passes the rendered children as the second argument to `render()`. The existing `BlockType` and `FieldType` interfaces remain available for extensions that only provide rendering or validation.
 

@@ -201,9 +201,9 @@ $registry->field(new \Formaku\Cms\Fields\Field(
 ));
 ```
 
-Ustaw `type` pola na `example_price_cents` przez API kolekcji. Zainstaluj rozszerzenie w każdej aplikacji, która zapisuje lub publikuje takie rekordy. Wbudowaną obsługę plików i relacji zapewniają klucze `media` i `relation`.
+W sekcji **Buduj → Edytuj model** wybierz **Cena w groszach** jako typ pola. API kolekcji używa klucza `example_price_cents`. Zainstaluj rozszerzenie w każdej aplikacji, która zapisuje lub publikuje takie rekordy. Wbudowaną obsługę plików i relacji zapewniają klucze `media` i `relation`.
 
-API startowe zwraca `fieldTypes` dla pól wbudowanych i rozszerzeń implementujących `PanelFieldType` oraz `blockTypes` dla bloków wbudowanych i rozszerzeń implementujących `PanelBlockType`. Lista `blocks` nadal zawiera klucze bloków wbudowanych. Wbudowany edytor korzysta z własnych kontrolek. Własne typy pól i bloków obsłuż przez API lub edytor w aplikacji Laravel.
+API startowe zwraca `fieldTypes` dla pól wbudowanych i rozszerzeń implementujących `PanelFieldType` oraz `blockTypes` dla bloków wbudowanych i rozszerzeń implementujących `PanelBlockType`. Lista `blocks` nadal zawiera klucze bloków wbudowanych. Panel pokazuje etykietę rozszerzenia i używa wbudowanych kontrolek `text`, `richtext`, `number`, `date`, `boolean` i `select` dla własnych typów pól. Dla kontrolki `select` ustaw opcje w modelu kolekcji. Pola bez obsługiwanej kontrolki są w panelu tylko do odczytu. Własne bloki obsłuż przez API lub edytor w aplikacji Laravel.
 
 Metoda `PanelBlockType::panelSchema()` opisuje ustawienia bloku dla edytora aplikacji. `BlockType::schema()` pozostaje dostępna do walidacji w rozszerzeniu. Gdy `acceptsChildren()` zwraca `true`, Formaku przekazuje wyrenderowaną zawartość zagnieżdżoną jako drugi argument metody `render()`. Rozszerzenia służące do samego renderowania lub walidacji mogą nadal implementować `BlockType` lub `FieldType`.
 

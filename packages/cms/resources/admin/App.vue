@@ -65,6 +65,12 @@ type Field = {
   options?: string[];
   target?: number;
 };
+const builtInFieldTypes = [
+  "text", "richtext", "number", "date", "boolean", "select", "media", "relation",
+] as const;
+type FieldInput = (typeof builtInFieldTypes)[number];
+type FieldTypeMetadata = { key: string; label: string; input: FieldInput };
+const reusableFieldInputs = new Set<FieldInput>(["text", "richtext", "number", "date", "boolean", "select"]);
 const seoLabels = {
   title: "Tytuł SEO",
   description: "Opis SEO",
@@ -155,6 +161,17 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+const fieldTypes = computed(() => {
+  const types = new Map<string, FieldTypeMetadata>(
+    builtInFieldTypes.map((key) => [key, { key, label: key, input: key }]),
+  );
+  for (const type of (boot.value?.fieldTypes ?? []) as FieldTypeMetadata[]) {
+    if (!types.has(type.key) && reusableFieldInputs.has(type.input)) {
+      types.set(type.key, type);
+    }
+  }
+  return types;
+});
 type RevisionPage = { data: { id: number; created_at: string }[]; current_page: number; last_page: number };
 const historyPage = ref<RevisionPage | null>(null);
 const emptyRecordsFilter = { publication: "", state: "", label: "" };
@@ -1398,20 +1415,11 @@ const title = computed(
                 ><label
                   ><span class="field-label">{{ t("Typ") }}</span
                   ><select class="select w-full" v-model="f.type">
-                    <option
-                      v-for="t in [
-                        'text',
-                        'richtext',
-                        'number',
-                        'date',
-                        'boolean',
-                        'select',
-                        'media',
-                        'relation',
-                      ]"
-                      :key="t"
-                    >
-                      {{ t }}
+                    <option v-if="!fieldTypes.has(f.type)" :value="f.type" disabled>
+                      {{ f.type }}
+                    </option>
+                    <option v-for="type in fieldTypes.values()" :key="type.key" :value="type.key">
+                      {{ type.label }}
                     </option>
                   </select></label
                 >
@@ -1437,7 +1445,7 @@ const title = computed(
                 :key="'extra-' + f.key"
                 class="mb-4"
               >
-                <label v-if="f.type === 'select'"
+                <label v-if="fieldTypes.get(f.type)?.input === 'select'"
                   ><span class="field-label"
                     >{{ t("Opcje:") }} {{ f.label }} {{ t("(rozdzielone przecinkami)") }}</span
                   ><input
@@ -1994,8 +2002,9 @@ const title = computed(
                 @input="dirty = true"
               >
                 <template v-for="f in selected.definition.fields" :key="f.key"
-                  ><div v-if="f.writable === false && f.key !== 'blocks'">
+                  ><div v-if="f.key !== 'blocks' && (f.writable === false || !fieldTypes.has(f.type))">
                     <span class="field-label">{{ f.label }} · {{ t("Tylko odczyt") }}</span>
+                    <p v-if="f.writable !== false" class="text-sm">{{ t("Typ pola {0} nie ma kontrolki w panelu.", f.type) }}</p>
                     <p class="whitespace-pre-wrap wrap-anywhere">{{ readonlyFieldValue(record.data[f.key]) }}</p>
                   </div><RelationPicker
                     v-else-if="f.type === 'relation' && f.key !== 'blocks'"
@@ -2021,13 +2030,13 @@ const title = computed(
                         {{ t("· wewnętrzne") }}</span
                       ></span
                     ><RichText
-                      v-if="f.type === 'richtext'"
+                      v-if="fieldTypes.get(f.type)?.input === 'richtext'"
                       v-model="record.data[f.key]"
                       @update:modelValue="dirty = true" /><input
-                      v-else-if="f.type === 'boolean'"
+                      v-else-if="fieldTypes.get(f.type)?.input === 'boolean'"
                       type="checkbox"
                       v-model="record.data[f.key]" /><select
-                      v-else-if="f.type === 'select'"
+                      v-else-if="fieldTypes.get(f.type)?.input === 'select'"
                       class="select w-full"
                       v-model="record.data[f.key]"
                     >
@@ -2038,9 +2047,9 @@ const title = computed(
                       v-else
                       class="input w-full"
                       :type="
-                        f.type === 'number'
+                        fieldTypes.get(f.type)?.input === 'number'
                           ? 'number'
-                          : f.type === 'date'
+                          : fieldTypes.get(f.type)?.input === 'date'
                             ? 'date'
                             : 'text'
                       "
