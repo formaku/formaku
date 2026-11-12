@@ -94,21 +94,37 @@ class ApiController
         $user = $r->user();
         $hidden = $this->hiddenFields($collection, $user);
         $query = app(CollectionAccess::class)->query($collection, $user)->with('draft:id,record_id,data');
+        $filters = [];
+
+        $scheduled = $r->query('scheduled');
+        if ($r->query->has('scheduled') && ! in_array($scheduled, ['0', '1'], true)) {
+            throw ValidationException::withMessages(['scheduled' => 'The scheduled filter must be 0 or 1.']);
+        }
+        if ($scheduled === '1') {
+            if ($collection->kind !== 'content') {
+                throw ValidationException::withMessages(['scheduled' => 'The scheduled filter is available only for content collections.']);
+            }
+
+            $query->whereNotNull('publish_at')->orderBy('publish_at');
+            $filters['scheduled'] = $scheduled;
+        }
         if ($r->filled('state')) {
-            $query->where('state', $r->string('state'));
+            $filters['state'] = (string) $r->string('state');
+            $query->where('state', $filters['state']);
         }
         if ($r->filled('search')) {
+            $filters['search'] = (string) $r->string('search');
             if ($this->titleIsHidden($hidden)) {
                 $query->whereRaw('1 = 0');
             } else {
-                $query->where('published_title', 'like', '%'.$r->string('search').'%');
+                $query->where('published_title', 'like', '%'.$filters['search'].'%');
             }
         }
         if ($this->titleIsHidden($hidden)) {
             $query->with('published:id,record_id,data');
         }
 
-        return $query->orderByDesc('id')->paginate(25)->through(
+        return $query->orderByDesc('id')->paginate(25)->appends($filters)->through(
             fn (Record $record) => $this->document($record, $collection, $user, $hidden),
         );
     }
