@@ -1,6 +1,12 @@
-@import "tailwindcss";
-@source "../views";
-@source not "../assistant";
+@import "tailwindcss" source(none);
+@source "./**/*.{vue,ts}";
+@source "../views/**/*.blade.php";
+@source "../../src/Services/Renderer.php";
+
+/* Preserve the default Laravel Tailwind pagination styles shipped by Formaku.
+   The catalog and portal use links(), and Composer views are outside the asset build. */
+@source inline("-ml-px bg-gray-200 bg-white border-gray-300 cursor-default cursor-not-allowed duration-150 ease-in-out h-5 leading-5 px-2 px-4 ring-gray-300 rounded-l-md rounded-md rounded-r-md shadow-sm text-gray-500 text-gray-600 text-gray-700 text-gray-800 w-5");
+
 @plugin "daisyui" {
   themes: light --default, dark;
 }
