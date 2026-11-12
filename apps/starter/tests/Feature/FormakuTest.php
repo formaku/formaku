@@ -15,6 +15,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -1032,7 +1033,7 @@ class FormakuTest extends TestCase
         Http::fake(['api.openai.com/*' => Http::sequence()->push($output)->push([], 429)]);
         $result = app(AiGateway::class)->generate('openai', 'Create a page');
         $this->assertSame('Proposal', $result['title']);
-        Http::assertSent(fn ($r) => $r['store'] === false);
+        Http::assertSent(fn ($r) => $r['store'] === false && $r['max_output_tokens'] === 3000);
         $this->expectException(\RuntimeException::class);
         app(AiGateway::class)->generate('openai', 'Create');
     }
@@ -1043,6 +1044,53 @@ class FormakuTest extends TestCase
         Http::fake(['*' => Http::response(['candidates' => [['finishReason' => 'SAFETY']]])]);
         $this->expectException(\RuntimeException::class);
         app(AiGateway::class)->generate('gemini', 'Create');
+    }
+
+    public function test_ai_providers_use_their_own_output_token_limits(): void
+    {
+        config([
+            'formaku.ai.openai' => ['key' => 'test-key', 'model' => 'test', 'max_output_tokens' => '1200'],
+            'formaku.ai.gemini' => ['key' => 'test-key', 'model' => 'test', 'max_output_tokens' => 850],
+        ]);
+        $proposal = ['title' => 'Proposal', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Hello']]]];
+        $text = json_encode($proposal);
+        Http::preventStrayRequests();
+        Http::fake([
+            'api.openai.com/*' => Http::response(['status' => 'completed', 'output' => [['content' => [['type' => 'output_text', 'text' => $text]]]]]),
+            'generativelanguage.googleapis.com/*' => Http::response(['candidates' => [['finishReason' => 'STOP', 'content' => ['parts' => [['text' => $text]]]]]]),
+        ]);
+
+        $this->assertSame($proposal, app(AiGateway::class)->generate('openai', 'Create'));
+        $this->assertSame($proposal, app(AiGateway::class)->generate('gemini', 'Create'));
+        Http::assertSent(fn ($r) => str_contains($r->url(), '/responses') && $r['max_output_tokens'] === 1200);
+        Http::assertSent(fn ($r) => str_ends_with($r->url(), ':generateContent') && $r['generationConfig']['maxOutputTokens'] === 850);
+    }
+
+    public function test_invalid_ai_token_limit_prevents_queuing_and_provider_requests(): void
+    {
+        $this->actingAs($this->admin());
+        Queue::fake();
+        Http::preventStrayRequests();
+        Http::fake([]);
+        config(['formaku.ai.openai' => ['key' => 'test-key', 'model' => 'test']]);
+
+        foreach ([15, 3001, true, 850.5, '1e3', 'invalid', null] as $invalid) {
+            config(['formaku.ai.openai.max_output_tokens' => $invalid]);
+            $this->postJson('/formaku/api/v1/ai', ['provider' => 'openai', 'prompt' => 'Create'])
+                ->assertUnprocessable()
+                ->assertJsonPath('message', 'Configure the provider output token limit as an integer from 16 to 3000.');
+        }
+        $this->assertDatabaseCount('formaku_ai_tasks', 0);
+        Queue::assertNothingPushed();
+
+        config(['formaku.ai.gemini' => ['key' => 'test-key', 'model' => 'test', 'max_output_tokens' => 3001]]);
+        try {
+            app(AiGateway::class)->generate('gemini', 'Create');
+            $this->fail('The worker accepted an invalid provider limit.');
+        } catch (\RuntimeException $e) {
+            $this->assertSame('Configure the provider output token limit as an integer from 16 to 3000.', $e->getMessage());
+        }
+        Http::assertNothingSent();
     }
 
     public function test_ai_cancel_is_owner_scoped(): void

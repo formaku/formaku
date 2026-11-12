@@ -72,6 +72,8 @@ CI exercises PHP 8.4/8.5 against PostgreSQL 17 and MySQL 8.4. Browser tests requ
 
 Set `OPENAI_API_KEY` / `OPENAI_MODEL`, or `GEMINI_API_KEY` / `GEMINI_MODEL` on the server. Both providers return proposals, never automatic publication. Models are configurable. No API key or paid account is required to use the CMS.
 
+Set `OPENAI_MAX_OUTPUT_TOKENS` or `GEMINI_MAX_OUTPUT_TOKENS` on the server to limit the output of each proposal request. Each provider defaults to 3000 and accepts an integer from 16 to 3000. The limit applies to output tokens per request. Rebuild the configuration cache if used and restart long-running queue workers after changing these settings.
+
 ## License and provenance
 
 MIT. Laravel skeleton: Laravel contributors, MIT. The CMS is a new implementation based on patterns audited in DrPrep; no DrPrep code, medical assets or private data were copied. Third-party fonts retain their OFL notices. Existing Commerce documents are a separate planned extension, outside this alpha.

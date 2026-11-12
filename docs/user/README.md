@@ -132,6 +132,8 @@ Pobieranie jest dostępne w szczegółach zgłoszenia dla właściciela i person
 
 Administrator ustawia klucz i model na serwerze. W zakładce AI wybierz dostawcę i opisz stronę. Odśwież stan zadania po wykonaniu przez worker. Przy gotowym zadaniu wybierz **Sprawdź propozycję**. Wybierz kolekcję, w której możesz tworzyć strony, i sprawdź tytuł, adres URL (jeśli kolekcja go obsługuje) oraz kolejność i treść sekcji.
 
+Administrator może ustawić limit tokenów wyjściowych dla pojedynczego żądania przez `OPENAI_MAX_OUTPUT_TOKENS` lub `GEMINI_MAX_OUTPUT_TOKENS`. Domyślna wartość dla każdego dostawcy to 3000. Dozwolone są liczby całkowite od 16 do 3000. Po zmianie odśwież cache konfiguracji, jeśli go używasz, i zrestartuj procesy kolejki.
+
 **Zastosuj jako nowy szkic** otwiera edytor z proponowaną treścią. **Zapisz szkic** dodaje rekord do kolekcji. Publikację uruchamiasz osobno z edytora. Klucze dostawców są przechowywane na serwerze.
 
 ## Asystent witryny od wersji 0.1.0-alpha.2
@@ -169,6 +171,8 @@ Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie”
 ## English quick guide
 
 Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Under **Releases**, request a build, click **Refresh status** and open the matching GitHub Actions run for the image digest. Deployment is a separate workflow. Customer portal access is scoped to the signed-in owner.
+
+Administrators can set `OPENAI_MAX_OUTPUT_TOKENS` or `GEMINI_MAX_OUTPUT_TOKENS` to limit output tokens per proposal request. The default is 3000 for each provider. Use an integer from 16 to 3000. Rebuild the configuration cache if used and restart queue workers after changing the settings.
 
 To schedule a saved draft, choose **Publication date** and select **Schedule publication**. The editor shows the saved time in your browser’s time zone. Use **Cancel scheduled publication** to remove the time and keep the draft. Saving another revision clears the earlier schedule. In the content list, open **Publication filter** and select **Scheduled** to see saved publication times, including overdue ones, in chronological order. Returning from the editor keeps the current filter and page. For the starter, keep its scheduler running to publish at the chosen time. For a Composer host, [register the scheduled publication command](../developer/README.md#enable-scheduled-publication-in-a-composer-host).
 

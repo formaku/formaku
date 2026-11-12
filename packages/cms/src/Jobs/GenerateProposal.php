@@ -28,7 +28,11 @@ class GenerateProposal implements ShouldQueue
         if ($task->state !== 'queued') {
             return;
         }
-        $task->update(['state' => 'running']);
+        $claimed = AiTask::whereKey($task->id)->where('state', 'queued')->update(['state' => 'running']);
+        if ($claimed !== 1) {
+            return;
+        }
+
         try {
             $result = $ai->generate($task->provider, $task->prompt);
             AiTask::whereKey($task->id)->where('state', 'running')->update(['state' => 'ready', 'result' => $result]);

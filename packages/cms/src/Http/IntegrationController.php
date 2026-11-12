@@ -5,6 +5,7 @@ namespace Formaku\Cms\Http;
 use Formaku\Cms\Jobs\GenerateProposal;
 use Formaku\Cms\Models\AiTask;
 use Formaku\Cms\Models\Release;
+use Formaku\Cms\Services\AiGateway;
 use Formaku\Cms\Services\DeploymentReceipt;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
@@ -20,11 +21,12 @@ class IntegrationController
         return AiTask::where('user_id', $r->user()->id)->latest()->limit(30)->get();
     }
 
-    public function generate(Request $r)
+    public function generate(Request $r, AiGateway $ai): JsonResponse
     {
         $d = $r->validate(['provider' => 'required|in:openai,gemini', 'prompt' => 'required|string|max:6000']);
         $cfg = config('formaku.ai.'.$d['provider']);
         abort_unless(! empty($cfg['key']) && ! empty($cfg['model']), 422, 'Configure the provider key and model first.');
+        abort_if($ai->maxOutputTokens($d['provider']) === null, 422, 'Configure the provider output token limit as an integer from 16 to 3000.');
         abort_if(AiTask::where('user_id', $r->user()->id)->whereDate('created_at', today())->count() >= 50, 429, 'Daily task limit reached.');
         $t = AiTask::create($d + ['user_id' => $r->user()->id]);
         GenerateProposal::dispatch($t->id);
