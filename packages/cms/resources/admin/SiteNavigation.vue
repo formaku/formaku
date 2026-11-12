@@ -4,15 +4,18 @@ import { computed, onMounted, ref, watch } from "vue";
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-vue-next";
 
 type Link = { label: string; url: string };
+type ColorAccent = "formaku" | "blue" | "plum";
 type Navigation = {
   version: number;
   header: Link[];
   footer: Link[];
   footerText: string;
   theme: "light" | "dark" | "system";
+  accent?: ColorAccent;
 };
 type EditableLink = Link & { key: number };
-type EditableNavigation = Omit<Navigation, "header" | "footer"> & {
+type EditableNavigation = Omit<Navigation, "header" | "footer" | "accent"> & {
+  accent: ColorAccent;
   header: EditableLink[];
   footer: EditableLink[];
 };
@@ -42,6 +45,7 @@ function payload(source: EditableNavigation): Navigation {
     footer: serializeLinks(source.footer),
     footerText: source.footerText,
     theme: source.theme,
+    accent: source.accent,
   };
 }
 
@@ -52,6 +56,7 @@ function applySettings(result: Navigation) {
   const editableLinks = (links: Link[]) => links.map((link) => ({ ...link, key: nextKey++ }));
   const current = {
     ...result,
+    accent: result.accent ?? "formaku",
     header: editableLinks(result.header),
     footer: editableLinks(result.footer),
   };
@@ -132,6 +137,14 @@ onMounted(load);
             <option value="light">{{ t("Jasny") }}</option>
             <option value="dark">{{ t("Ciemny") }}</option>
             <option value="system">{{ t("Zgodny z systemem") }}</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="field-label">{{ t("Akcent kolorystyczny") }}</span>
+          <select v-model="settings.accent" class="select w-full sm:w-auto" :disabled="busy">
+            <option value="formaku">Formaku</option>
+            <option value="blue">{{ t("Niebieski") }}</option>
+            <option value="plum">{{ t("Śliwkowy") }}</option>
           </select>
         </label>
         <p class="text-sm text-base-content/70">{{ t("Użyj ścieżki, np. /p/kontakt, albo pełnego adresu HTTP lub HTTPS.") }}</p>
