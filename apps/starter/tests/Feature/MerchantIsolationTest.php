@@ -80,10 +80,17 @@ class MerchantIsolationTest extends TestCase
     public function test_two_merchants_isolate_catalog_assistants_files_cache_and_queue(): void
     {
         $commerce = getenv('FORMAKU_COMMERCE_TEST_PATH');
-        if ($commerce !== false) {
+        $platform = getenv('FORMAKU_PLATFORM_TEST_PATH');
+        $port = getenv('FORMAKU_MERCHANT_TEST_PG_PORT');
+        if ($commerce !== false || $platform !== false || $port !== false) {
+            $this->assertNotEmpty($commerce, 'Set FORMAKU_COMMERCE_TEST_PATH for the cross-repository test.');
+            $this->assertNotEmpty($platform, 'Set FORMAKU_PLATFORM_TEST_PATH for the cross-repository test.');
+            $this->assertNotEmpty($port, 'Set FORMAKU_MERCHANT_TEST_PG_PORT for the cross-repository test.');
             $this->assertFileExists($commerce.'/src/CommerceServiceProvider.php');
+            $this->assertFileExists($platform.'/bin/formaku-platform');
             $loader = require dirname(__DIR__, 2).'/vendor/autoload.php';
             $loader->addPsr4('Formaku\\Commerce\\', $commerce.'/src');
+            $this->assertTrue(class_exists(CommerceServiceProvider::class));
         }
         $this->directory = sys_get_temp_dir().'/formaku-isolation-'.Str::uuid();
         $this->withCredentials();
@@ -125,6 +132,8 @@ class MerchantIsolationTest extends TestCase
         $this->withUnencryptedCookie($cookieB, $login->getValue());
         $this->get('https://seller-b.test/formaku/media/1')->assertOk()->assertStreamedContent('BETA');
         $this->assertCollections('seller-b.test', 'BETA');
+        Cache::put('shared-key', 'beta');
+        Queue::pushRaw('{"displayName":"beta"}');
         $orderB = $this->placeOrder('seller-b.test');
         if ($orderA !== null) {
             $this->assertNotSame($orderA, $orderB);
@@ -151,6 +160,9 @@ class MerchantIsolationTest extends TestCase
 
         $this->bootMerchant(self::B, migrate: false);
         $this->getJson('https://seller-b.test/formaku/assistant/v1/connection', $headers)->assertUnauthorized();
+        $this->assertSame('beta', Cache::get('shared-key'));
+        $this->assertSame('BETA', Storage::disk('local')->get('same-name.txt'));
+        $this->assertSame('{"displayName":"beta"}', Queue::pop()?->getRawBody());
     }
 
     protected function tearDown(): void
