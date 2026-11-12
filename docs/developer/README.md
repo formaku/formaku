@@ -10,7 +10,7 @@ On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.47' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.48' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -24,9 +24,21 @@ In `config/formaku.php`, set `guard` to the session guard your app uses for logi
 
 Use your app's permissions in the method. Grant `work` to staff who may enter the panel, `build` to staff who may manage models, and `publish` to staff who may publish. Use a route named `login` for Laravel's default guest redirect, or set `redirectGuestsTo` in `bootstrap/app.php` to your existing sign-in page. Sign in through the host app, then open `/formaku`. For an app with login already configured, use the Formaku starter. Leave Formaku's public routes disabled until you want to publish through them.
 
+### Check the Formaku installation
+
+Run the read-only check from the Laravel application directory after installation or an upgrade.
+
+```sh
+php artisan formaku:doctor
+```
+
+The command checks the configured guard and authorization callback, Formaku’s migration history, and whether the published `app.js` and `main.css` match the installed package. It also prints the state of public routes. An installation check that fails produces a nonzero exit code.
+
+If the frontend files are missing from a source checkout, build them from the Formaku repository root. If the published files are missing or outdated, run `php artisan formaku:install` again. For pending migrations, follow the [upgrade guide](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). To verify access for a particular role, sign in to the host app and open the panel as a user with that role.
+
 ### Upgrade an existing Composer installation
 
-After updating to alpha.47, run these commands from the host Laravel app before serving traffic.
+After updating to alpha.48, run these commands from the host Laravel app before serving traffic.
 
 ```sh
 php artisan formaku:install
@@ -51,12 +63,12 @@ Run `php artisan formaku:publish-scheduled` manually to see the counts. A failed
 
 ### Install from a local ZIP
 
-On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.47.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.47). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
+On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.48.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.48). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.47.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.48.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.47' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.48' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```

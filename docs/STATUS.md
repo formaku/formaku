@@ -1,8 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.47**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.48**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
+
+- A read-only Artisan command checks Formaku migrations, panel authorization configuration, and the installed JavaScript and CSS.
 
 - The starter runs the package’s scheduled publication command every minute. Composer hosts can register the same command in their Laravel scheduler.
 

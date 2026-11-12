@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.48 — 2026-11-12
+
+- Run `php artisan formaku:doctor` to check Formaku migrations, the panel guard and authorization callback, and the published JavaScript and CSS.
+- The read-only check reports disabled public routes for information and returns a nonzero exit code when an installation check fails.
+- No new migrations since alpha.37.
+
 ## 0.1.0-alpha.47 — 2026-11-12
 
 - Scheduled publishing reports how many drafts were published, skipped after a concurrent change, or failed. A publication error returns a nonzero exit code after the remaining drafts have been processed.
