@@ -39,6 +39,7 @@
 }
 @plugin "daisyui/theme" {
   name: "dark";
+  prefersdark: true;
   --formaku-hero-background: var(--color-base-300);
 }
 body {

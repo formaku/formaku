@@ -298,6 +298,7 @@ export const messages: Record<string, string> = {
   "Motyw witryny": "Website theme",
   "Jasny": "Light",
   "Ciemny": "Dark",
+  "Zgodny z systemem": "Follow system",
   "Zapisano szablon strony.": "Page template saved.",
   "Wstawiono sekcje szablonu do szkicu.": "Template sections added to the draft.",
   "Usunięto szablon strony.": "Page template deleted.",

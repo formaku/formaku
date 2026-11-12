@@ -9,7 +9,7 @@ type Navigation = {
   header: Link[];
   footer: Link[];
   footerText: string;
-  theme: "light" | "dark";
+  theme: "light" | "dark" | "system";
 };
 type EditableLink = Link & { key: number };
 type EditableNavigation = Omit<Navigation, "header" | "footer"> & {
@@ -131,6 +131,7 @@ onMounted(load);
           <select v-model="settings.theme" class="select w-full sm:w-auto" :disabled="busy">
             <option value="light">{{ t("Jasny") }}</option>
             <option value="dark">{{ t("Ciemny") }}</option>
+            <option value="system">{{ t("Zgodny z systemem") }}</option>
           </select>
         </label>
         <p class="text-sm text-base-content/70">{{ t("Użyj ścieżki, np. /p/kontakt, albo pełnego adresu HTTP lub HTTPS.") }}</p>
