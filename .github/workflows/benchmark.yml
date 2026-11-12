@@ -1,0 +1,63 @@
+name: Formaku reference benchmark
+on:
+  push:
+    paths:
+      - .github/workflows/benchmark.yml
+      - scripts/benchmark.sh
+      - scripts/benchmark-http.py
+      - scripts/benchmark-fixture.php
+  workflow_dispatch:
+    inputs:
+      image:
+        description: Published ghcr.io/formaku/formaku@sha256 image reference
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Measure three independent stacks
+        env:
+          BENCHMARK_IMAGE: ${{ inputs.image || 'ghcr.io/formaku/formaku@sha256:82f143173a04b0a457f84f5d526ac37e1c213cbb5f89beff8117cb65c5446093' }}
+          BENCHMARK_OUTPUT: ${{ runner.temp }}/formaku-benchmark
+        run: |
+          mkdir -p "$BENCHMARK_OUTPUT"
+          for run in 1 2 3; do
+            bash scripts/benchmark.sh "$BENCHMARK_IMAGE" > "$BENCHMARK_OUTPUT/run-$run.json"
+          done
+      - name: Summarize completed samples
+        if: ${{ !cancelled() }}
+        env:
+          BENCHMARK_OUTPUT: ${{ runner.temp }}/formaku-benchmark
+        run: |
+          python3 - <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json
+          import os
+          from pathlib import Path
+
+          reports = []
+          for path in sorted(Path(os.environ["BENCHMARK_OUTPUT"]).glob("run-*.json")):
+              if path.stat().st_size:
+                  reports.append((path.stem, json.loads(path.read_text())))
+          if reports:
+              print(f"Image: `{reports[0][1]['image']}`")
+              print()
+              print("| Sample | Scenario | Attempts | Errors | Requests/s | p95 ms |")
+              print("| --- | --- | ---: | ---: | ---: | ---: |")
+              for name, report in reports:
+                  for row in report["scenarios"]:
+                      print(f"| {name} | {row['name']} | {row['attempted']} | {row['failed']} | {row['requests_per_second']} | {row['p95_ms']} |")
+          PY
+      - name: Upload benchmark reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: formaku-benchmark-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/formaku-benchmark/
+          if-no-files-found: ignore
