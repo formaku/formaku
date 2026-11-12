@@ -43,6 +43,14 @@ php artisan migrate
 Na macOS w poleceniu sprawdzającym sumę użyj `shasum -a 256 -c`. Zachowaj ZIP pod tą samą ścieżką względną w środowiskach, w których uruchamiasz `composer install`. Archiwum zawiera zbudowane zasoby, fonty panelu i informacje o ich licencjach.
 
 
+## Skonfiguruj uprawnienia pól
+
+Definicja pola może zawierać `access.read` i `access.write`, czyli listy kluczy ról rozpoznawanych przez Formaku w aplikacji gospodarza. Pominięta lista dziedziczy dostęp z kolekcji. Pusta lista ogranicza operację do osób z uprawnieniem `build`. Zapis wymaga też odczytu pola i prawa do edycji rekordu. Lista odczytu wymaga `private: true`. Pole adresu `slug` nie przyjmuje listy odczytu.
+
+Przy aktualizacji modelu pominięcie `access` zachowuje dotychczasowe reguły pola. Wyślij jawnie `access: {}`, aby je usunąć. Bieżący model określa dostęp do bieżących danych i starszych rewizji. Przy bezpośrednim wywołaniu `RecordService::save()` dla kolekcji z regułami pól przekaż zalogowanego użytkownika jako `actorUser` i odpowiadający mu identyfikator wykonawcy.
+
+Przed powrotem do wersji sprzed uprawnień pól zabezpiecz dane regułami całej kolekcji albo przywróć schemat i politykę dostępu sprzed włączenia reguł.
+
 ## Zarejestruj rozszerzenia
 
 1. Skopiuj pliki PHP z [examples/app](examples/app) do odpowiadających im ścieżek w katalogu `app/` aplikacji.

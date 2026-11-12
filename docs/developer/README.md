@@ -43,6 +43,14 @@ php artisan migrate
 On macOS, use `shasum -a 256 -c` in the checksum command. Keep the ZIP available at the same relative path in environments where you run `composer install`. The archive includes the compiled panel assets, fonts and their license notices.
 
 
+## Configure field permissions
+
+A field definition can include `access.read` and `access.write`, each a list of role keys from the host’s Formaku role resolver. Leave a list absent to inherit collection access. An empty list restricts the operation to users with the `build` ability. Write access also requires read access to the field and permission to edit the record. Use `private: true` for fields with a read list. The address field `slug` has no read list.
+
+A model update preserves existing field rules if a client omits `access`. To clear a field's rules, send `access: {}` explicitly. The current model controls access to historical revisions as well as current data. For a collection with field rules, a direct call to `RecordService::save()` must pass the authenticated user as `actorUser` and the matching actor ID.
+
+Before rolling back to a version that predates field permissions, secure affected data with collection-level restrictions or restore the schema and access policy that preceded activation.
+
 ## Register the extensions
 
 1. Copy the PHP files under [examples/app](examples/app) into the corresponding paths under your host application's `app/` directory.
