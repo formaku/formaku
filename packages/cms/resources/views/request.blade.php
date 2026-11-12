@@ -19,5 +19,18 @@
                 @endforeach
             </dl>
         @endif
+        @if (! empty($portalAttachments))
+            <section aria-labelledby="portal-request-attachments-heading" class="mt-6 border-t border-base-300 pt-6">
+                <h2 id="portal-request-attachments-heading" class="text-lg">Załączniki do zgłoszenia</h2>
+                <ul class="mt-2 space-y-2">
+                    @foreach ($portalAttachments as $attachment)
+                        <li class="text-sm">
+                            <a href="{{ $attachment['url'] }}" class="link wrap-anywhere" download>{{ $attachment['name'] }}</a>
+                            <span class="ml-2 text-xs text-base-content/70">{{ (int) ceil($attachment['size'] / 1024) }} KiB</span>
+                        </li>
+                    @endforeach
+                </ul>
+            </section>
+        @endif
     </article>
 @endsection

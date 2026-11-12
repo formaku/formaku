@@ -100,6 +100,7 @@ type Release = {
   state: keyof typeof releaseStateLabels;
   run_url: string | null;
 };
+type PortalAttachment = { id: number; name: string; size: number; url: string };
 type PageTemplate = { id: number; name: string };
 type PageTemplatePage = {
   data: PageTemplate[];
@@ -120,6 +121,7 @@ type Collection = {
     seo?: CollectionSeo;
     access?: CollectionRoleRules | CollectionRoleRule[];
     portal_fields?: string[];
+    portal_attachments?: boolean;
   };
 };
 const clone = (v: any) => JSON.parse(JSON.stringify(v));
@@ -153,6 +155,13 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+const portalAttachments = ref<PortalAttachment[]>([]);
+const portalAttachmentsFailed = ref(false);
+const portalRecordId = computed<number | undefined>(() =>
+  section.value === "records" && selected.value?.key === "requests" && selected.value.kind === "data"
+    ? record.value?.id
+    : undefined,
+);
 const translationDirty = ref(false);
 const translationsRecordId = computed<number | undefined>(() =>
   selected.value?.kind === "content" && selected.value.definition.public && boot.value?.abilities?.publish
@@ -328,6 +337,20 @@ async function request(path: string, method = "GET", data?: any) {
   }
   return body;
 }
+watch(portalRecordId, async (id, _previousId, onCleanup) => {
+  portalAttachments.value = [];
+  portalAttachmentsFailed.value = false;
+  if (!id) return;
+
+  let active = true;
+  onCleanup(() => { active = false; });
+  try {
+    const result: PortalAttachment[] = await request(`/records/${id}/attachments`);
+    if (active) portalAttachments.value = result;
+  } catch {
+    if (active) portalAttachmentsFailed.value = true;
+  }
+});
 async function run(fn: () => Promise<void>) {
   busy.value = true;
   error.value = "";
@@ -506,7 +529,7 @@ async function save() {
     const result = await request(
       "/collections/" + collectionId + "/records",
       "POST",
-      { ...snapshot, data },
+      { id: snapshot.id, version: snapshot.version, data },
     );
     if (record.value !== draft || selected.value?.id !== collectionId) return;
     if (JSON.stringify(draft.data) !== JSON.stringify(snapshot.data)) {
@@ -562,6 +585,7 @@ async function saveSchema() {
     } else {
       delete definition.portal_fields;
     }
+    if (!portalSchema.value) delete definition.portal_attachments;
     await request("/collections", "POST", { ...schema.value, definition });
     await load();
     schema.value = null;
@@ -1307,6 +1331,10 @@ const title = computed(
                 <input v-model="portalFieldSelection" type="checkbox" class="checkbox checkbox-sm" :value="field.key" />
                 <span class="min-w-0 wrap-anywhere">{{ field.label }} ({{ field.key }})</span>
               </label>
+              <label class="flex items-center gap-2 border-t border-base-300 mt-2 pt-3 text-sm">
+                <input v-model="schema.definition.portal_attachments" type="checkbox" class="checkbox checkbox-sm" />
+                <span>{{ t("Załączniki do zgłoszeń") }}</span>
+              </label>
             </fieldset>
             <fieldset
               v-if="publicContentSchema"
@@ -1903,6 +1931,22 @@ const title = computed(
                   {{ t("Zaplanuj publikację") }}
                 </button>
               </div>
+              <section
+                v-if="portalAttachments.length || portalAttachmentsFailed"
+                aria-labelledby="record-attachments-heading"
+                class="mt-5 bg-base-100 border border-base-300 rounded-xl p-6"
+              >
+                <h2 id="record-attachments-heading" class="text-lg">{{ t("Załączniki do zgłoszenia") }}</h2>
+                <p v-if="portalAttachmentsFailed" role="alert" class="mt-2 text-sm text-error">
+                  {{ t("Nie udało się wczytać załączników.") }}
+                </p>
+                <ul v-else class="mt-2 space-y-2">
+                  <li v-for="attachment in portalAttachments" :key="attachment.id" class="text-sm">
+                    <a :href="attachment.url" class="link wrap-anywhere" download>{{ attachment.name }}</a>
+                    <span class="ml-2 text-xs text-base-content/70">{{ Math.ceil(attachment.size / 1024) }} KiB</span>
+                  </li>
+                </ul>
+              </section>
               <div v-if="record.id" class="mt-5">
                 <button class="btn btn-sm" @click="openHistory">
                   {{ t("Historia wersji") }}

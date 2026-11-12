@@ -15,7 +15,9 @@
             @endforeach
             {{ $records->links() }}
         </section>
-        <form method="post" action="/portal/requests" class="bg-base-100 p-6 border border-base-300 rounded-xl">
+        <form method="post" action="/portal/requests"
+            @if ($portalAttachmentsEnabled ?? false) enctype="multipart/form-data" @endif
+            class="bg-base-100 p-6 border border-base-300 rounded-xl">
             @csrf
             <h2 class="text-xl mb-5">Jak możemy pomóc?</h2>
             @if ($errors->any())
@@ -77,6 +79,33 @@
                     @enderror
                 </div>
             @endforeach
+            @if ($portalAttachmentsEnabled ?? false)
+                @php
+                    $attachmentErrors = array_unique(array_merge(
+                        $errors->get('_portal_attachments'),
+                        ...array_values($errors->get('_portal_attachments.*')),
+                    ));
+                    $invalidAttachments = $attachmentErrors !== [];
+                @endphp
+                <div class="mb-4">
+                    <label for="portal-attachments" class="field-label">Załączniki do zgłoszenia</label>
+                    <input id="portal-attachments" name="_portal_attachments[]" type="file" multiple
+                        accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
+                        @class(['file-input w-full', 'file-input-error' => $invalidAttachments])
+                        aria-describedby="portal-attachments-hint{{ $invalidAttachments ? ' portal-attachments-errors' : '' }}"
+                        @if ($invalidAttachments) aria-invalid="true" @endif>
+                    <p id="portal-attachments-hint" class="mt-1 text-xs text-base-content/70">
+                        Maksymalnie 3 pliki PDF, PNG lub JPEG, każdy do 5 MiB.
+                    </p>
+                    @if ($invalidAttachments)
+                        <ul id="portal-attachments-errors" class="mt-1 text-sm text-error">
+                            @foreach ($attachmentErrors as $attachmentError)
+                                <li>{{ $attachmentError }}</li>
+                            @endforeach
+                        </ul>
+                    @endif
+                </div>
+            @endif
             <button type="submit" class="btn btn-primary mt-1">Wyślij zgłoszenie</button>
         </form>
     </div>
