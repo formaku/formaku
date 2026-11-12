@@ -72,7 +72,7 @@ The form includes additional fields the signed-in customer can write. Request de
 
 ### Enable request attachments
 
-Set `definition.portal_attachments` to `true` on the `requests` data collection. A request can contain up to three PDF, JPEG or PNG files of up to 5 MiB each. Files use the Laravel `local` disk. Keep that disk private and include it in the same backup schedule as the database. For a Composer host, configure PHP with `upload_max_filesize` of at least `5M`, `post_max_size` of at least `20M` and `max_file_uploads` of at least `3`. Check matching request limits at the reverse proxy. The Docker image configures PHP for these uploads.
+Set `definition.portal_attachments` to `true` on the `requests` data collection. A request can contain up to three PDF, JPEG or PNG files of up to 5 MiB each. Files use the Laravel `local` disk. Keep that disk private and include it in the same backup schedule as the database. For a Composer host, configure PHP with `upload_max_filesize` of at least `5M`, `post_max_size` of at least `20M` and `max_file_uploads` of at least `4`. Check matching request limits at the reverse proxy. The Docker image configures PHP for these uploads.
 
 Apply the alpha.37 migration before running the new version. For a code rollback to alpha.36, retain the attachment table and files to make them available again after re-upgrading.
 
