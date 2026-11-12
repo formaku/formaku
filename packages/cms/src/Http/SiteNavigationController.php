@@ -19,6 +19,7 @@ class SiteNavigationController
             'version' => 'required|integer|min:0',
             'footerText' => 'present|nullable|string|max:500',
             'theme' => 'sometimes|required|string|in:light,dark,system',
+            'accent' => 'sometimes|required|string|in:formaku,blue,plum',
         ];
         foreach (['header', 'footer'] as $area) {
             $rules[$area] = 'present|array|list|max:12';

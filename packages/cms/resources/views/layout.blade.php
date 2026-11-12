@@ -1,5 +1,6 @@
 <!doctype html>
-<html lang="pl"@if ($siteNavigation['theme'] !== 'system') data-theme="{{ $siteNavigation['theme'] }}"@endif>
+<html lang="pl"@if ($siteNavigation['theme'] !== 'system') data-theme="{{ $siteNavigation['theme'] }}"@endif
+@if ($siteNavigation['accent'] !== 'formaku') data-accent="{{ $siteNavigation['accent'] }}"@endif>
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">

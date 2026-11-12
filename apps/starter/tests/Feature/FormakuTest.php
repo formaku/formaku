@@ -53,6 +53,7 @@ class FormakuTest extends TestCase
             'footer' => [],
             'footerText' => '',
             'theme' => 'light',
+            'accent' => 'formaku',
         ];
         $this->actingAs($this->admin())->getJson($endpoint)->assertOk()->assertExactJson($defaults);
 
@@ -65,7 +66,7 @@ class FormakuTest extends TestCase
             'footer' => [['label' => 'Home', 'url' => '/']],
             'footerText' => 'Formaku & Strefa Badań',
         ];
-        $saved = ['version' => 1, 'theme' => 'light'] + $settings;
+        $saved = ['version' => 1, 'theme' => 'light', 'accent' => 'formaku'] + $settings;
         $this->putJson($endpoint, $settings)->assertOk()->assertExactJson($saved);
         $this->getJson($endpoint)->assertOk()->assertExactJson($saved);
         $this->putJson($endpoint, $settings)->assertConflict();
@@ -76,8 +77,8 @@ class FormakuTest extends TestCase
         $this->assertEquals($saved, $layout->getData()['siteNavigation']);
 
         $cleared = ['version' => 1, 'header' => [], 'footer' => [], 'footerText' => ''];
-        $this->putJson($endpoint, $cleared)->assertOk()->assertExactJson(['version' => 2, 'theme' => 'light'] + $cleared);
-        $this->getJson($endpoint)->assertOk()->assertExactJson(['version' => 2, 'theme' => 'light'] + $cleared);
+        $this->putJson($endpoint, $cleared)->assertOk()->assertExactJson(['version' => 2, 'theme' => 'light', 'accent' => 'formaku'] + $cleared);
+        $this->getJson($endpoint)->assertOk()->assertExactJson(['version' => 2, 'theme' => 'light', 'accent' => 'formaku'] + $cleared);
     }
 
     public function test_site_theme_is_shared_by_public_pages_and_previews(): void
@@ -92,7 +93,7 @@ class FormakuTest extends TestCase
         ]);
 
         $this->get('/p/published')->assertOk()->assertSeeHtml('data-theme="light"');
-        $this->actingAs($user)->getJson($endpoint)->assertOk()->assertJsonPath('theme', 'light');
+        $this->actingAs($user)->getJson($endpoint)->assertOk()->assertJsonPath('theme', 'light')->assertJsonPath('accent', 'formaku');
         $this->putJson($endpoint, ['version' => 0, 'theme' => 'unknown'] + $settings)
             ->assertUnprocessable()->assertJsonValidationErrors('theme');
         $this->putJson($endpoint, ['version' => 0, 'theme' => 'dark'] + $settings)
@@ -116,6 +117,37 @@ class FormakuTest extends TestCase
         $this->putJson($endpoint, ['version' => 4, 'theme' => 'light'] + $settings)
             ->assertOk()->assertJsonPath('theme', 'light');
         $this->get('/p/published')->assertOk()->assertSeeHtml('<html lang="pl" data-theme="light">');
+    }
+
+    public function test_site_accent_is_shared_by_public_pages_and_previews(): void
+    {
+        $user = $this->admin();
+        $record = $this->record($this->collection(), $user);
+        app(RecordService::class)->publish($record, $record->version, $user->id);
+        $endpoint = '/formaku/api/v1/site-navigation';
+        $preview = '/formaku/api/v1/records/'.$record->id.'/preview';
+        $settings = ['header' => [], 'footer' => [], 'footerText' => ''];
+
+        $this->actingAs($user)->putJson($endpoint, ['version' => 0, 'theme' => 'system', 'accent' => 'blue'] + $settings)
+            ->assertOk()->assertJsonPath('accent', 'blue');
+        $this->get('/p/published')->assertOk()->assertSeeHtml('<html lang="pl" data-accent="blue">');
+        $this->get($preview)->assertOk()->assertSeeHtml('<html lang="pl" data-accent="blue">');
+        $this->get('/formaku')->assertOk()->assertSeeHtml('<html lang="pl" data-theme="light">');
+
+        $this->putJson($endpoint, ['version' => 1, 'accent' => 'unknown'] + $settings)
+            ->assertUnprocessable()->assertJsonValidationErrors('accent');
+        $this->putJson($endpoint, ['version' => 0, 'theme' => 'dark'] + $settings)->assertConflict();
+        $this->getJson($endpoint)->assertOk()->assertJsonPath('accent', 'blue')->assertJsonPath('theme', 'system');
+
+        $this->putJson($endpoint, ['version' => 1, 'theme' => 'dark'] + $settings)
+            ->assertOk()->assertJsonPath('accent', 'blue');
+        $this->putJson($endpoint, ['version' => 2, 'accent' => 'plum'] + $settings)
+            ->assertOk()->assertJsonPath('accent', 'plum')->assertJsonPath('theme', 'dark');
+        $this->get('/p/published')->assertOk()->assertSeeHtml('<html lang="pl" data-theme="dark" data-accent="plum">');
+
+        $this->putJson($endpoint, ['version' => 3, 'accent' => 'formaku'] + $settings)
+            ->assertOk()->assertJsonPath('accent', 'formaku');
+        $this->get('/p/published')->assertOk()->assertSeeHtml('<html lang="pl" data-theme="dark">');
     }
 
     public function test_site_navigation_settings_require_builder_access(): void

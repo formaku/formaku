@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\DB;
 
 class SiteNavigation
 {
-    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system'} */
+    /** @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system', accent: 'formaku'|'blue'|'plum'} */
     public function current(): array
     {
         $row = $this->row()->first();
@@ -20,16 +20,20 @@ class SiteNavigation
             'footerText' => '',
         ];
 
-        return ['version' => (int) ($row->version ?? 0)] + $settings + ['theme' => 'light'];
+        return ['version' => (int) ($row->version ?? 0)] + $settings + ['theme' => 'light', 'accent' => 'formaku'];
     }
 
     /**
-     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme?: 'light'|'dark'|'system'}  $settings
-     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system'}
+     * @param  array{header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme?: 'light'|'dark'|'system', accent?: 'formaku'|'blue'|'plum'}  $settings
+     * @return array{version: int, header: list<array{label: string, url: string}>, footer: list<array{label: string, url: string}>, footerText: string, theme: 'light'|'dark'|'system', accent: 'formaku'|'blue'|'plum'}
      */
     public function save(int $version, array $settings): array
     {
-        $settings['theme'] ??= $this->current()['theme'];
+        if (! isset($settings['theme'], $settings['accent'])) {
+            $current = $this->current();
+            $settings['theme'] ??= $current['theme'];
+            $settings['accent'] ??= $current['accent'];
+        }
 
         $updated = $this->row()->where('version', $version)->increment('version', 1, [
             'settings' => json_encode($settings, JSON_THROW_ON_ERROR),
