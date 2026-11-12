@@ -101,6 +101,12 @@ Before rolling back to a version that predates field permissions, restrict each 
 
 Run `npm run build` from the Formaku repository root. The bundled stylesheet scans the CMS admin components, Blade views, and server-side renderer sources declared in `packages/cms/resources/admin/style.css`. For a host extension, compile the extension's styles with the host app when it needs utilities outside the bundled set. Run `bash tests/css-sources.sh` to check that unrelated files leave the CSS unchanged.
 
+## Search collection records
+
+With an authenticated panel session, send `GET /formaku/api/v1/collections/{collection}/records?label=Example` to search the latest saved title or name across the collection. The endpoint checks collection access and field read permissions. Use up to 200 characters and URL-encode the value. Characters such as `%` and `_` are matched literally. Case and accent matching depend on the database.
+
+The `label` filter combines with `state` and, for content collections, `scheduled=1`. Follow the response’s pagination links to keep the filters. The existing `search` parameter continues to search published titles.
+
 ## Configure site branding through the API
 
 The versioned site navigation settings accept `brandName` (up to 80 characters) and `brandLogoId` (an ID of a public JPEG, PNG or WebP file). Include the current `version` when saving. Omitted branding keys keep their saved values. Send `null` to clear a setting. Branding uses the existing site settings table and does not require a new migration.

@@ -101,6 +101,12 @@ Przed powrotem do wersji sprzed uprawnień pól ogranicz dostęp do każdej obj�
 
 Uruchom `npm run build` w głównym katalogu repozytorium Formaku. Arkusz skanuje źródła panelu, widoki Blade i kod renderowania zadeklarowane w `packages/cms/resources/admin/style.css`. Jeśli rozszerzenie potrzebuje klas spoza zestawu Formaku, skompiluj jego style w aplikacji gospodarza. Polecenie `bash tests/css-sources.sh` sprawdza, czy pliki spoza wskazanych źródeł pozostawiają CSS identyczny.
 
+## Wyszukaj rekordy kolekcji
+
+W uwierzytelnionej sesji panelu wyślij `GET /formaku/api/v1/collections/{collection}/records?label=Przyklad`, aby wyszukać ostatnio zapisany tytuł lub nazwę w kolekcji. Endpoint uwzględnia zakres dostępu do kolekcji i uprawnienia odczytu pól. Fraza może mieć do 200 znaków. Zakoduj ją jako wartość w adresie URL. Znaki takie jak `%` i `_` są traktowane dosłownie. Rozróżnianie wielkości liter i znaków diakrytycznych zależy od bazy danych.
+
+Filtr `label` można łączyć z `state`, a w kolekcjach treści także z `scheduled=1`. Odnośniki do kolejnych stron w odpowiedzi zachowują filtry. Dotychczasowy parametr `search` nadal przeszukuje opublikowane tytuły.
+
 ## Skonfiguruj markę witryny przez API
 
 Wersjonowane ustawienia menu przyjmują `brandName` (do 80 znaków) i `brandLogoId` (identyfikator publicznego pliku JPEG, PNG lub WebP). Do zapisu dołącz aktualne `version`. Pominięcie pola zachowuje zapisaną wartość. Wyślij `null`, aby wyczyścić ustawienie. Marka korzysta z istniejącej tabeli ustawień witryny.
