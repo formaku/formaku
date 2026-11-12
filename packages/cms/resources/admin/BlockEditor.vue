@@ -19,7 +19,11 @@ import {
 const props = withDefaults(defineProps<{ block: Block; depth?: number; moveDisabled?: boolean }>(), {
   depth: 0,
 });
-const emit = defineEmits<{ change: []; move: [path: BlockPath, trigger: EventTarget | null] }>();
+const emit = defineEmits<{
+  change: [];
+  move: [path: BlockPath, trigger: EventTarget | null];
+  remove: [path: BlockPath];
+}>();
 const childType = ref("text");
 const childTypes = computed(() =>
   Object.entries(blockLabels).filter(
@@ -78,11 +82,6 @@ function moveChild(index: number, offset: number) {
     children[destination],
     children[index],
   ];
-  emit("change");
-}
-
-function removeChild(index: number) {
-  props.block.children?.splice(index, 1);
   emit("change");
 }
 
@@ -192,7 +191,7 @@ function addQuestion() {
               class="btn btn-xs"
               type="button"
               :aria-label='t("Usuń blok z układu")'
-              @click="removeChild(index)"
+              @click="emit('remove', [index])"
             >
               ×
             </button>
@@ -204,6 +203,7 @@ function addQuestion() {
           :move-disabled="moveDisabled"
           @change="emit('change')"
           @move="(path, trigger) => emit('move', [index, ...path], trigger)"
+          @remove="(path) => emit('remove', [index, ...path])"
         />
       </article>
       <div v-if="canAddChild" class="flex flex-wrap items-end gap-2">

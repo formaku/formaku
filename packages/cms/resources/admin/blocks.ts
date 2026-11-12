@@ -148,6 +148,65 @@ export function moveBlockTo(
   return true;
 }
 
+export type RemovedBlock = {
+  block: Block;
+  index: number;
+  parentUid: string | null;
+};
+
+function uniqueLayoutPath(blocks: Block[], uid: string): BlockPath | undefined {
+  let match: BlockPath | undefined;
+  function visit(siblings: Block[], parentPath: BlockPath): boolean {
+    for (const [index, block] of siblings.entries()) {
+      if (!isLayoutBlock(block.type)) continue;
+      const path = [...parentPath, index];
+      if (block.uid === uid) {
+        if (match) return false;
+        match = path;
+      }
+      if (Array.isArray(block.children) && !visit(block.children, path)) return false;
+    }
+    return true;
+  }
+  return visit(blocks, []) ? match : undefined;
+}
+
+export function removeBlock(blocks: Block[], path: BlockPath): RemovedBlock | undefined {
+  const source = blockAt(blocks, path);
+  if (!source) return;
+
+  let parentUid: string | null = null;
+  if (path.length > 1) {
+    const parent = blockAt(blocks, path.slice(0, -1))?.block;
+    if (!parent) return;
+    if (!parent.uid || !uniqueLayoutPath(blocks, parent.uid)) parent.uid = crypto.randomUUID();
+    parentUid = parent.uid;
+  }
+
+  source.siblings.splice(source.index, 1);
+  return { block: source.block, index: source.index, parentUid };
+}
+
+export function restoreBlock(
+  blocks: Block[],
+  removed: RemovedBlock,
+): "restored" | "missing" | "full" | "depth" {
+  let parentPath: BlockPath = [];
+  let siblings = blocks;
+  if (removed.parentUid !== null) {
+    const path = uniqueLayoutPath(blocks, removed.parentUid);
+    const layout = path && blockAt(blocks, path)?.block;
+    if (!path || !layout || !Array.isArray(layout.children)) return "missing";
+    parentPath = path;
+    siblings = layout.children;
+  }
+
+  if (siblings.length >= maxBlocksPerLevel) return "full";
+  if (parentPath.length + blockSubtreeDepth(removed.block) > maxBlockDepth) return "depth";
+  siblings.splice(Math.min(removed.index, siblings.length), 0, removed.block);
+  return "restored";
+}
+
 export function createBlock(type: string): Block {
   const block = { uid: crypto.randomUUID(), type };
   switch (type) {

@@ -42,8 +42,11 @@ import {
   duplicateBlock,
   maxBlocksPerLevel,
   moveBlockTo,
+  removeBlock,
+  restoreBlock,
   type Block,
   type BlockPath,
+  type RemovedBlock,
 } from "./blocks";
 type Field = {
   key: string;
@@ -142,6 +145,7 @@ const boot = ref<any>(null),
   search = ref("");
 const pageBlocks = computed<Block[]>(() => record.value?.data.blocks ?? []);
 const pageBlocksHeading = ref<HTMLElement | null>(null);
+const removedBlock = ref<RemovedBlock | null>(null);
 const blockMoveDialog = ref<HTMLDialogElement | null>(null);
 const blockMoveSource = ref<BlockPath | null>(null);
 const blockMoveDestination = ref<BlockPath | null>(null);
@@ -256,7 +260,7 @@ async function choose(c: Collection) {
   if (dirty.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
   selected.value = c;
   section.value = "records";
-  record.value = null;
+  setDraft(null);
   records.value = [];
   dirty.value = false;
   const d = await request("/collections/" + c.id + "/records");
@@ -274,7 +278,24 @@ function contentTemplate() {
 }
 async function openHistory() {
   await run(async () => {
-    record.value = await request("/records/" + record.value.id);
+    const draft = record.value;
+    const result = await request("/records/" + draft.id);
+    if (record.value !== draft) return;
+    if (JSON.stringify(draft.data) !== JSON.stringify(result.data)) setDraft(result);
+    else record.value = result;
+  });
+}
+async function restoreDraftRevision(revisionId: number) {
+  await run(async () => {
+    const draft = record.value;
+    const result = await request(
+      "/records/" + draft.id + "/restore/" + revisionId,
+      "POST",
+      { version: draft.version },
+    );
+    if (record.value !== draft) return;
+    setDraft(result);
+    message.value = t("Wersja przywrócona do szkicu.");
   });
 }
 async function importProject(e: Event) {
@@ -298,12 +319,16 @@ async function applyProposal(task: any) {
   record.value.data = { ...task.result, slug: "proposal-" + task.id };
   dirty.value = true;
 }
+function setDraft(draft: any) {
+  record.value = draft;
+  removedBlock.value = null;
+}
 function fresh() {
-  record.value = { version: 0, data: {} };
+  setDraft({ version: 0, data: {} });
   dirty.value = false;
 }
 function edit(r: any) {
-  record.value = clone(r);
+  setDraft(clone(r));
   dirty.value = false;
 }
 async function savePageTemplate() {
@@ -343,6 +368,7 @@ async function applyPageTemplate() {
     );
     if (draft !== record.value || collectionId !== selected.value?.id || draft.data.blocks?.length) return;
     draft.data.blocks = clone(result.blocks);
+    removedBlock.value = null;
     dirty.value = true;
     message.value = t("Wstawiono sekcje szablonu do szkicu.");
   });
@@ -368,13 +394,16 @@ async function deletePageTemplate() {
 async function save() {
   clearTimeout(autosaveTimer);
   await run(async () => {
-    const snapshot = clone(record.value);
+    const draft = record.value;
+    const collectionId = selected.value!.id;
+    const snapshot = clone(draft);
     const result = await request(
-      "/collections/" + selected.value!.id + "/records",
+      "/collections/" + collectionId + "/records",
       "POST",
       snapshot,
     );
-    if (JSON.stringify(record.value.data) !== JSON.stringify(snapshot.data)) {
+    if (record.value !== draft || selected.value?.id !== collectionId) return;
+    if (JSON.stringify(draft.data) !== JSON.stringify(snapshot.data)) {
       record.value.id = result.id;
       record.value.version = result.version;
       dirty.value = true;
@@ -385,17 +414,22 @@ async function save() {
       dirty.value = false;
       message.value = t("Szkic zapisany.");
     }
-    const d = await request("/collections/" + selected.value!.id + "/records");
-    records.value = d.data;
+    const d = await request("/collections/" + collectionId + "/records");
+    if (selected.value?.id === collectionId) records.value = d.data;
     await load();
   });
 }
 async function publish() {
   await run(async () => {
-    await request("/records/" + record.value.id + "/publish", "POST", {
-      version: record.value.version,
+    const draft = record.value;
+    await request("/records/" + draft.id + "/publish", "POST", {
+      version: draft.version,
     });
-    record.value = await request("/records/" + record.value.id);
+    if (record.value !== draft) return;
+    removedBlock.value = null;
+    const result = await request("/records/" + draft.id);
+    if (record.value !== draft) return;
+    setDraft(result);
     message.value = t("Treść opublikowana.");
     await load();
   });
@@ -471,6 +505,31 @@ async function confirmBlockMove() {
   await nextTick();
   pageBlocksHeading.value?.focus();
 }
+function removePageBlock(path: BlockPath) {
+  const removed = removeBlock(pageBlocks.value, path);
+  if (!removed) return;
+  removedBlock.value = removed;
+  dirty.value = true;
+}
+async function undoBlockRemoval() {
+  if (!removedBlock.value || busy.value) return;
+  const result = restoreBlock(pageBlocks.value, removedBlock.value);
+  if (result !== "restored") {
+    const errors = {
+      missing: "Nie można przywrócić bloku. Układ docelowy jest niedostępny.",
+      full: "Nie można przywrócić bloku. Lista bloków jest pełna.",
+      depth: "Nie można przywrócić bloku. Układ jest za głęboko zagnieżdżony.",
+    } as const;
+    error.value = t(errors[result]);
+    return;
+  }
+  removedBlock.value = null;
+  dirty.value = true;
+  error.value = "";
+  message.value = t("Przywrócono blok do szkicu.");
+  await nextTick();
+  pageBlocksHeading.value?.focus();
+}
 function moveBlock(i: number, delta: number) {
   const a = record.value.data.blocks,
     j = i + delta;
@@ -483,7 +542,7 @@ async function navigate(s: string) {
   if (dirty.value && !confirm(t("Odrzucić niezapisane zmiany?"))) return;
   dirty.value = false;
   section.value = s;
-  record.value = null;
+  setDraft(null);
   if (s === "media") {
     mediaEdit.value = undefined;
     media.value = null;
@@ -1462,7 +1521,19 @@ const title = computed(
                   v-if="
                     selected.definition.fields.some((f) => f.key === 'blocks')
                   "
-                  ><h2 ref="pageBlocksHeading" tabindex="-1" class="text-lg">{{ t("Sekcje strony") }}</h2>
+                >
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h2 ref="pageBlocksHeading" tabindex="-1" class="text-lg">{{ t("Sekcje strony") }}</h2>
+                    <button
+                      v-if="removedBlock"
+                      class="btn btn-sm"
+                      type="button"
+                      :disabled="busy"
+                      @click="undoBlockRemoval"
+                    >
+                      {{ t("Cofnij usunięcie bloku") }}
+                    </button>
+                  </div>
                   <div class="space-y-4">
                     <article
                       v-for="(b, i) in pageBlocks"
@@ -1514,10 +1585,8 @@ const title = computed(
                           </button
                           ><button
                             class="btn btn-xs"
-                            @click="
-                              record.data.blocks.splice(i, 1);
-                              dirty = true;
-                            "
+                            type="button"
+                            @click="removePageBlock([i])"
                             :aria-label='t("Usuń sekcję")'
                           >
                             ×
@@ -1529,6 +1598,7 @@ const title = computed(
                         :move-disabled="busy"
                         @change="dirty = true"
                         @move="(path, trigger) => openBlockMove([i, ...path], trigger)"
+                        @remove="(path) => removePageBlock([i, ...path])"
                       />
                     </article>
                   </div>
@@ -1595,16 +1665,7 @@ const title = computed(
                     <span>{{ t("Rewizja #") }}{{ h.id }} · {{ h.created_at }}</span
                     ><button
                       class="btn btn-xs"
-                      @click="
-                        run(async () => {
-                          record = await request(
-                            '/records/' + record.id + '/restore/' + h.id,
-                            'POST',
-                            { version: record.version },
-                          );
-                          message = t('Wersja przywrócona do szkicu.');
-                        })
-                      "
+                      @click="restoreDraftRevision(h.id)"
                     >
                       {{ t("Przywróć do szkicu") }}
                     </button>
