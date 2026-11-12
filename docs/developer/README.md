@@ -203,9 +203,28 @@ $registry->field(new \Formaku\Cms\Fields\Field(
 
 In **Build → Edit model**, select **Price in cents** as the field type. The collections API uses the key `example_price_cents`. Install the extension wherever records using that type are saved or published. Media and relation fields keep their built-in behavior through the `media` and `relation` type keys.
 
-The bootstrap API provides `fieldTypes` for built-in fields and extensions implementing `PanelFieldType`. It provides `blockTypes` for built-in blocks and extensions implementing `PanelBlockType`, while `blocks` continues to list built-in keys. The panel uses the extension label and reuses the `text`, `richtext`, `number`, `date`, `boolean` and `select` controls for custom fields. Configure options in the collection model for a `select` input. Fields without a supported control are read-only in the panel. Use the API or a host editor to author custom blocks.
+The bootstrap API provides `fieldTypes` for built-in fields and extensions implementing `PanelFieldType`. It provides `blockTypes` for built-in blocks and extensions implementing `PanelBlockType`, while `blocks` continues to list built-in keys. The panel uses the extension label and reuses the `text`, `richtext`, `number`, `date`, `boolean` and `select` controls for custom fields. Configure options in the collection model for a `select` input. Fields without a supported control are read-only in the panel.
 
-Implement `PanelBlockType::panelSchema()` to describe block settings for a host editor. `BlockType::schema()` remains available for extension-defined validation. If `acceptsChildren()` returns true, Formaku passes the rendered children as the second argument to `render()`. The existing `BlockType` and `FieldType` interfaces remain available for extensions that only provide rendering or validation.
+### Edit custom blocks in Formaku
+
+Register a `PanelBlockType` with `Registry::block()`. The block appears under its extension label in the page editor. Use `panelSchema()` to declare settings with `key`, `label` and `input`. The panel supports `text`, `textarea`, `number`, `boolean` and `select`. Each select option has a `label` and a `value` that is a number, a boolean, or a nonempty string without leading or trailing whitespace.
+
+```php
+public function panelSchema(): array
+{
+    return [
+        ['key' => 'heading', 'label' => 'Heading', 'input' => 'text'],
+        ['key' => 'tone', 'label' => 'Tone', 'input' => 'select', 'options' => [
+            ['label' => 'Neutral', 'value' => 0],
+            ['label' => 'Accent', 'value' => 1],
+        ]],
+    ];
+}
+```
+
+If your block accepts children, authors can add and move blocks inside it in the editor. Existing settings with other input types and settings from blocks without panel metadata remain in the draft. Use the API or a host editor to edit those settings.
+
+`BlockType::schema()` remains available for extension-defined validation. If `acceptsChildren()` returns true, Formaku passes the rendered children as the second argument to `render()`. The existing `BlockType` and `FieldType` interfaces remain available for extensions that only provide rendering or validation.
 
 `AiProvider` and `PipelineDriver` are interfaces without registry registration methods. The starter uses its concrete AI and GitHub integration services.
 

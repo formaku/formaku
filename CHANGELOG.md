@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add and edit registered custom blocks in the page editor, including blocks that accept nested content.
+
 ## 0.1.0-alpha.59 — 2026-11-12
 
 - Choose registered field types in the collection builder and edit their values in the panel using supported controls.

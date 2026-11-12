@@ -203,9 +203,28 @@ $registry->field(new \Formaku\Cms\Fields\Field(
 
 W sekcji **Buduj → Edytuj model** wybierz **Cena w groszach** jako typ pola. API kolekcji używa klucza `example_price_cents`. Zainstaluj rozszerzenie w każdej aplikacji, która zapisuje lub publikuje takie rekordy. Wbudowaną obsługę plików i relacji zapewniają klucze `media` i `relation`.
 
-API startowe zwraca `fieldTypes` dla pól wbudowanych i rozszerzeń implementujących `PanelFieldType` oraz `blockTypes` dla bloków wbudowanych i rozszerzeń implementujących `PanelBlockType`. Lista `blocks` nadal zawiera klucze bloków wbudowanych. Panel pokazuje etykietę rozszerzenia i używa wbudowanych kontrolek `text`, `richtext`, `number`, `date`, `boolean` i `select` dla własnych typów pól. Dla kontrolki `select` ustaw opcje w modelu kolekcji. Pola bez obsługiwanej kontrolki są w panelu tylko do odczytu. Własne bloki obsłuż przez API lub edytor w aplikacji Laravel.
+API startowe zwraca `fieldTypes` dla pól wbudowanych i rozszerzeń implementujących `PanelFieldType` oraz `blockTypes` dla bloków wbudowanych i rozszerzeń implementujących `PanelBlockType`. Lista `blocks` nadal zawiera klucze bloków wbudowanych. Panel pokazuje etykietę rozszerzenia i używa wbudowanych kontrolek `text`, `richtext`, `number`, `date`, `boolean` i `select` dla własnych typów pól. Dla kontrolki `select` ustaw opcje w modelu kolekcji. Pola bez obsługiwanej kontrolki są w panelu tylko do odczytu.
 
-Metoda `PanelBlockType::panelSchema()` opisuje ustawienia bloku dla edytora aplikacji. `BlockType::schema()` pozostaje dostępna do walidacji w rozszerzeniu. Gdy `acceptsChildren()` zwraca `true`, Formaku przekazuje wyrenderowaną zawartość zagnieżdżoną jako drugi argument metody `render()`. Rozszerzenia służące do samego renderowania lub walidacji mogą nadal implementować `BlockType` lub `FieldType`.
+### Edytuj własne bloki w Formaku
+
+Zarejestruj `PanelBlockType` metodą `Registry::block()`. Blok pojawi się w edytorze strony pod etykietą rozszerzenia. W `panelSchema()` opisz ustawienia za pomocą `key`, `label` i `input`. Panel obsługuje `text`, `textarea`, `number`, `boolean` i `select`. Każda opcja listy ma etykietę `label` i wartość `value` w postaci liczby, wartości logicznej albo niepustego tekstu bez białych znaków na początku lub końcu.
+
+```php
+public function panelSchema(): array
+{
+    return [
+        ['key' => 'heading', 'label' => 'Nagłówek', 'input' => 'text'],
+        ['key' => 'tone', 'label' => 'Akcent', 'input' => 'select', 'options' => [
+            ['label' => 'Neutralny', 'value' => 0],
+            ['label' => 'Wyróżniony', 'value' => 1],
+        ]],
+    ];
+}
+```
+
+Jeśli blok przyjmuje dzieci, w edytorze można dodawać i przenosić do niego inne bloki. Zapisane ustawienia o innych typach kontrolek oraz ustawienia bloków bez metadanych panelu pozostają w szkicu. Do ich edycji użyj API lub edytora w aplikacji Laravel.
+
+`BlockType::schema()` pozostaje dostępna do walidacji w rozszerzeniu. Gdy `acceptsChildren()` zwraca `true`, Formaku przekazuje wyrenderowaną zawartość zagnieżdżoną jako drugi argument metody `render()`. Rozszerzenia służące do samego renderowania lub walidacji mogą nadal implementować `BlockType` lub `FieldType`.
 
 Interfejsy `AiProvider` i `PipelineDriver` nie mają metod rejestracji. Starter korzysta z konkretnych usług integrujących AI i GitHuba.
 

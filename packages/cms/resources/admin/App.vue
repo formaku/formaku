@@ -39,10 +39,12 @@ import PanelExtensions from "./PanelExtensions.vue";
 import RolePicker, { isRoleKey, roleDisplayName, type RoleOption } from "./RolePicker.vue";
 import {
   blockEditorKey,
-  blockLabels,
+  blockLabel,
+  buildBlockCatalog,
   blockMoveDestinations,
   createBlock,
   duplicateBlock,
+  isBuiltInBlock,
   maxBlocksPerLevel,
   moveBlockTo,
   removeBlock,
@@ -199,6 +201,7 @@ const translationsRecordId = computed<number | undefined>(() =>
 const hasUnsavedChanges = computed(() => dirty.value || translationDirty.value);
 watch(translationsRecordId, () => { translationDirty.value = false; });
 let pendingAutosave: { id?: number } | null = null;
+const blockCatalog = computed(() => buildBlockCatalog(boot.value?.blockTypes, boot.value?.blocks));
 const pageBlocks = computed<Block[]>(() => record.value?.data.blocks ?? []);
 const pageBlocksHeading = ref<HTMLElement | null>(null);
 const removedBlock = ref<RemovedBlock | null>(null);
@@ -207,7 +210,7 @@ const blockMoveSource = ref<BlockPath | null>(null);
 const blockMoveDestination = ref<BlockPath | null>(null);
 const availableBlockDestinations = computed(() =>
   blockMoveSource.value
-    ? blockMoveDestinations(pageBlocks.value, blockMoveSource.value)
+    ? blockMoveDestinations(pageBlocks.value, blockMoveSource.value, blockCatalog.value)
     : [],
 );
 const refreshingReleases = ref(new Set<string>());
@@ -766,11 +769,12 @@ async function saveSchema() {
 function addBlock(type: string) {
   const blocks = (record.value.data.blocks ??= []);
   if (blocks.length >= maxBlocksPerLevel) return;
-  blocks.push(createBlock(type));
+  if (!blockCatalog.value.has(type)) return;
+  blocks.push(createBlock(type, blockCatalog.value));
   dirty.value = true;
 }
 function duplicatePageBlock(index: number) {
-  if (duplicateBlock(record.value.data.blocks, index)) dirty.value = true;
+  if (duplicateBlock(record.value.data.blocks, index, blockCatalog.value)) dirty.value = true;
 }
 function blockDestinationLabel(path: BlockPath): string {
   if (path.length === 0) return t("Poziom strony");
@@ -780,8 +784,7 @@ function blockDestinationLabel(path: BlockPath): string {
     const block: Block | undefined = siblings?.[index];
     siblings = block?.children;
     const type = block?.type ?? "";
-    const label = blockLabels[type as keyof typeof blockLabels] ?? type;
-    return `${index + 1} · ${t(label)}`;
+    return `${index + 1} · ${blockLabel(type, blockCatalog.value)}`;
   }).join(" / ");
 }
 async function openBlockMove(path: BlockPath, trigger: EventTarget | null) {
@@ -802,7 +805,7 @@ async function confirmBlockMove() {
   const destination = blockMoveDestination.value;
   if (!source || !destination) return;
 
-  const moved = moveBlockTo(pageBlocks.value, source, destination);
+  const moved = moveBlockTo(pageBlocks.value, source, destination, blockCatalog.value);
   closeBlockMove();
   if (!moved) {
     error.value = t("Nie można przenieść tego bloku.");
@@ -813,14 +816,14 @@ async function confirmBlockMove() {
   pageBlocksHeading.value?.focus();
 }
 function removePageBlock(path: BlockPath) {
-  const removed = removeBlock(pageBlocks.value, path);
+  const removed = removeBlock(pageBlocks.value, path, blockCatalog.value);
   if (!removed) return;
   removedBlock.value = removed;
   dirty.value = true;
 }
 async function undoBlockRemoval() {
   if (!removedBlock.value || busy.value) return;
-  const result = restoreBlock(pageBlocks.value, removedBlock.value);
+  const result = restoreBlock(pageBlocks.value, removedBlock.value, blockCatalog.value);
   if (result !== "restored") {
     const errors = {
       missing: "Nie można przywrócić bloku. Układ docelowy jest niedostępny.",
@@ -2084,7 +2087,7 @@ const title = computed(
                     >
                       <div class="flex flex-wrap justify-between items-center gap-2 mb-4">
                         <span class="mono text-xs text-primary">{{
-                          b.type
+                          isBuiltInBlock(b.type) ? b.type : blockLabel(b.type, blockCatalog)
                         }}</span>
                         <div class="flex flex-wrap gap-1">
                           <button
@@ -2133,6 +2136,7 @@ const title = computed(
                       </div>
                       <BlockEditor
                         :block="b"
+                        :catalog="blockCatalog"
                         :move-disabled="busy"
                         @change="dirty = true"
                         @move="(path, trigger) => openBlockMove([i, ...path], trigger)"
@@ -2142,7 +2146,7 @@ const title = computed(
                   </div>
                   <div class="flex flex-wrap gap-2">
                     <button
-                      v-for="b in boot?.blocks"
+                      v-for="b in blockCatalog.keys()"
                       :key="b"
                       class="btn btn-sm"
                       :disabled="
@@ -2150,7 +2154,7 @@ const title = computed(
                       "
                       @click="addBlock(b)"
                     >
-                      <Plus :size="14" />{{ b }}
+                      <Plus :size="14" />{{ isBuiltInBlock(b) ? b : blockLabel(b, blockCatalog) }}
                     </button>
                   </div></template
                 >

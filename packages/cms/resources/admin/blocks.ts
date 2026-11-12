@@ -17,6 +17,66 @@ export type Block = {
   children?: Block[];
 };
 
+type BlockOption = { label: string; value: string | number | boolean };
+export type BlockSetting = {
+  key: string;
+  label: string;
+  input: string;
+  options?: BlockOption[];
+};
+type BlockType = { label: string; children: boolean; schema: BlockSetting[] };
+export type BlockCatalog = ReadonlyMap<string, BlockType>;
+
+export function isBuiltInBlock(type: string): type is keyof typeof blockLabels {
+  return Object.hasOwn(blockLabels, type);
+}
+
+function isBlockOption(option: { label?: unknown; value?: unknown } | null): option is BlockOption {
+  if (typeof option?.label !== "string") return false;
+  const value = option.value;
+  // Laravel trims request strings and turns empty strings into null.
+  if (typeof value === "string") return value !== "" && value.trim() === value;
+  return typeof value === "boolean" || Number.isFinite(value);
+}
+
+export function buildBlockCatalog(metadata: unknown, legacy: unknown): BlockCatalog {
+  const types = new Map<string, BlockType>();
+  const builtIns = Array.isArray(legacy) ? legacy : Object.keys(blockLabels);
+  for (const key of builtIns) {
+    if (typeof key === "string" && isBuiltInBlock(key)) {
+      types.set(key, { label: blockLabels[key], children: isLayoutBlock(key), schema: [] });
+    }
+  }
+  if (!Array.isArray(metadata)) return types;
+  for (const item of metadata) {
+    const key: unknown = item?.key;
+    const label: unknown = item?.label;
+    if (typeof key !== "string" || !key || typeof label !== "string") continue;
+    if (isBuiltInBlock(key)) {
+      if (!types.has(key)) {
+        types.set(key, {
+          label: blockLabels[key], children: isLayoutBlock(key), schema: [],
+        });
+      }
+      continue;
+    }
+
+    const schema = new Map<string, BlockSetting>();
+    for (const field of Array.isArray(item.schema) ? item.schema : []) {
+      if (typeof field?.key !== "string" || !field.key || typeof field.label !== "string"
+        || typeof field.input !== "string") continue;
+      const options = Array.isArray(field.options) ? field.options.filter(isBlockOption) : undefined;
+      schema.set(field.key, { key: field.key, label: field.label, input: field.input, options });
+    }
+    types.set(key, { label, children: item.children === true, schema: [...schema.values()] });
+  }
+  return types;
+}
+
+export function blockLabel(type: string, catalog: BlockCatalog): string {
+  return isBuiltInBlock(type) ? t(blockLabels[type]) : catalog.get(type)?.label ?? type;
+}
+
 export const maxBlocksPerLevel = 100;
 export const maxLayoutDepth = 9;
 const maxBlockDepth = maxLayoutDepth + 1;
@@ -36,48 +96,48 @@ export function blockEditorKey(block: Block): string | symbol {
   return key;
 }
 
-function assignBlockIds(block: Block): void {
+function assignBlockIds(block: Block, catalog: BlockCatalog): void {
   block.uid = crypto.randomUUID();
-  if (isLayoutBlock(block.type) && Array.isArray(block.children)) {
-    block.children.forEach(assignBlockIds);
+  if (isLayoutBlock(block.type, catalog) && Array.isArray(block.children)) {
+    block.children.forEach((child) => assignBlockIds(child, catalog));
   }
 }
 
-export function duplicateBlock(blocks: Block[], index: number): boolean {
+export function duplicateBlock(blocks: Block[], index: number, catalog: BlockCatalog): boolean {
   const original = blocks[index];
   if (!original || blocks.length >= maxBlocksPerLevel) return false;
 
   const copy: Block = JSON.parse(JSON.stringify(original));
-  assignBlockIds(copy);
+  assignBlockIds(copy, catalog);
   blocks.splice(index + 1, 0, copy);
   return true;
 }
 
-export function isLayoutBlock(type: string): boolean {
-  return type === "container" || type === "columns";
+export function isLayoutBlock(type: string, catalog?: BlockCatalog): boolean {
+  return type === "container" || type === "columns" || catalog?.get(type)?.children === true;
 }
 
-function blockAt(blocks: Block[], path: BlockPath) {
+function blockAt(blocks: Block[], path: BlockPath, catalog: BlockCatalog) {
   let siblings = blocks;
   for (const [depth, index] of path.entries()) {
     if (!Number.isInteger(index) || index < 0 || index >= siblings.length) return;
     const block = siblings[index];
     if (!block) return;
     if (depth === path.length - 1) return { block, index, siblings };
-    if (!isLayoutBlock(block.type) || !Array.isArray(block.children)) return;
+    if (!isLayoutBlock(block.type, catalog) || !Array.isArray(block.children)) return;
     siblings = block.children;
   }
 }
 
-function blockSubtreeDepth(block: Block, depth = 0): number {
+function blockSubtreeDepth(block: Block, catalog: BlockCatalog, depth = 0): number {
   if (depth > maxBlockDepth) return depth;
   const children = block.children;
   if (children != null && !Array.isArray(children)) return Infinity;
   if (children && children.length > maxBlocksPerLevel) return Infinity;
-  if (!children && !isLayoutBlock(block.type)) return depth;
+  if (!children && !isLayoutBlock(block.type, catalog)) return depth;
   // A layout renders its children list even if the list is empty.
   return (children ?? []).reduce(
-    (deepest, child) => Math.max(deepest, blockSubtreeDepth(child, depth + 1)),
+    (deepest, child) => Math.max(deepest, blockSubtreeDepth(child, catalog, depth + 1)),
     depth + 1,
   );
 }
@@ -98,12 +158,13 @@ function canAppendBlock(
 export function blockMoveDestinations(
   blocks: Block[],
   source: BlockPath,
+  catalog: BlockCatalog,
 ): BlockMoveDestination[] {
-  const original = blockAt(blocks, source);
+  const original = blockAt(blocks, source, catalog);
   if (!original) return [];
 
   const { block: sourceBlock, siblings: sourceList } = original;
-  const subtreeDepth = blockSubtreeDepth(sourceBlock);
+  const subtreeDepth = blockSubtreeDepth(sourceBlock, catalog);
   const destinations: BlockMoveDestination[] = [];
   if (canAppendBlock(sourceList, blocks, subtreeDepth)) {
     destinations.push({ path: [], type: null });
@@ -113,7 +174,7 @@ export function blockMoveDestinations(
     if (parentPath.length + subtreeDepth >= maxBlockDepth) return;
 
     siblings.forEach((block, index) => {
-      if (block === sourceBlock || !isLayoutBlock(block.type)) return;
+      if (block === sourceBlock || !isLayoutBlock(block.type, catalog)) return;
       const path = [...parentPath, index];
       if (canAppendBlock(sourceList, block.children, path.length + subtreeDepth)) {
         destinations.push({ path, type: block.type });
@@ -130,14 +191,15 @@ export function moveBlockTo(
   blocks: Block[],
   source: BlockPath,
   destination: BlockPath,
+  catalog: BlockCatalog,
 ): boolean {
-  const original = blockAt(blocks, source);
+  const original = blockAt(blocks, source, catalog);
   if (!original || source.every((index, depth) => destination[depth] === index)) return false;
 
-  const layout = destination.length ? blockAt(blocks, destination)?.block : undefined;
-  if (destination.length && (!layout || !isLayoutBlock(layout.type))) return false;
+  const layout = destination.length ? blockAt(blocks, destination, catalog)?.block : undefined;
+  if (destination.length && (!layout || !isLayoutBlock(layout.type, catalog))) return false;
 
-  const deepestDepth = destination.length + blockSubtreeDepth(original.block);
+  const deepestDepth = destination.length + blockSubtreeDepth(original.block, catalog);
   if (!canAppendBlock(original.siblings, layout ? layout.children : blocks, deepestDepth)) {
     return false;
   }
@@ -154,11 +216,11 @@ export type RemovedBlock = {
   parentUid: string | null;
 };
 
-function uniqueLayoutPath(blocks: Block[], uid: string): BlockPath | undefined {
+function uniqueLayoutPath(blocks: Block[], uid: string, catalog: BlockCatalog): BlockPath | undefined {
   let match: BlockPath | undefined;
   function visit(siblings: Block[], parentPath: BlockPath): boolean {
     for (const [index, block] of siblings.entries()) {
-      if (!isLayoutBlock(block.type)) continue;
+      if (!isLayoutBlock(block.type, catalog)) continue;
       const path = [...parentPath, index];
       if (block.uid === uid) {
         if (match) return false;
@@ -171,15 +233,15 @@ function uniqueLayoutPath(blocks: Block[], uid: string): BlockPath | undefined {
   return visit(blocks, []) ? match : undefined;
 }
 
-export function removeBlock(blocks: Block[], path: BlockPath): RemovedBlock | undefined {
-  const source = blockAt(blocks, path);
+export function removeBlock(blocks: Block[], path: BlockPath, catalog: BlockCatalog): RemovedBlock | undefined {
+  const source = blockAt(blocks, path, catalog);
   if (!source) return;
 
   let parentUid: string | null = null;
   if (path.length > 1) {
-    const parent = blockAt(blocks, path.slice(0, -1))?.block;
+    const parent = blockAt(blocks, path.slice(0, -1), catalog)?.block;
     if (!parent) return;
-    if (!parent.uid || !uniqueLayoutPath(blocks, parent.uid)) parent.uid = crypto.randomUUID();
+    if (!parent.uid || !uniqueLayoutPath(blocks, parent.uid, catalog)) parent.uid = crypto.randomUUID();
     parentUid = parent.uid;
   }
 
@@ -190,25 +252,29 @@ export function removeBlock(blocks: Block[], path: BlockPath): RemovedBlock | un
 export function restoreBlock(
   blocks: Block[],
   removed: RemovedBlock,
+  catalog: BlockCatalog,
 ): "restored" | "missing" | "full" | "depth" {
   let parentPath: BlockPath = [];
   let siblings = blocks;
   if (removed.parentUid !== null) {
-    const path = uniqueLayoutPath(blocks, removed.parentUid);
-    const layout = path && blockAt(blocks, path)?.block;
+    const path = uniqueLayoutPath(blocks, removed.parentUid, catalog);
+    const layout = path && blockAt(blocks, path, catalog)?.block;
     if (!path || !layout || !Array.isArray(layout.children)) return "missing";
     parentPath = path;
     siblings = layout.children;
   }
 
   if (siblings.length >= maxBlocksPerLevel) return "full";
-  if (parentPath.length + blockSubtreeDepth(removed.block) > maxBlockDepth) return "depth";
+  if (parentPath.length + blockSubtreeDepth(removed.block, catalog) > maxBlockDepth) return "depth";
   siblings.splice(Math.min(removed.index, siblings.length), 0, removed.block);
   return "restored";
 }
 
-export function createBlock(type: string): Block {
+export function createBlock(type: string, catalog: BlockCatalog): Block {
   const block = { uid: crypto.randomUUID(), type };
+  if (!isBuiltInBlock(type)) {
+    return isLayoutBlock(type, catalog) ? { ...block, props: {}, children: [] } : { ...block, props: {} };
+  }
   switch (type) {
     case "text":
       return {
