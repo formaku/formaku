@@ -115,10 +115,36 @@ class PublicController
     {
         $collection = Collection::where('key', 'requests')->firstOrFail();
         $user = $request->user();
-        $records = Record::where('collection_id', $collection->id)->where('owner_id', $user->id)->latest()->paginate(20);
+        $ownedRecords = Record::where('collection_id', $collection->id)->where('owner_id', $user->id);
+        $stateExpression = match ($ownedRecords->getConnection()->getDriverName()) {
+            'mysql', 'mariadb' => 'cast(state as binary)',
+            'pgsql' => 'state collate "C"',
+            default => 'state',
+        };
+        $states = (clone $ownedRecords)
+            ->selectRaw("$stateExpression as portal_state")
+            ->whereRaw("$stateExpression <> ?", [''])
+            ->distinct()
+            ->orderBy('portal_state')
+            ->pluck('portal_state')
+            ->all();
+
+        $state = $request->query('state');
+        if (is_string($state) && in_array($state, $states, true)) {
+            $ownedRecords->whereRaw("$stateExpression = ?", [$state]);
+        } else {
+            $state = null;
+        }
+
+        $records = $ownedRecords->latest()->orderByDesc('id')->paginate(20);
+        if ($state !== null) {
+            $records->appends('state', $state);
+        }
 
         return view('formaku::portal', [
             'records' => $records,
+            'portalStates' => $states,
+            'portalState' => $state,
             'portalFields' => $this->writablePortalFields($collection, $access, $user),
             'portalAttachmentsEnabled' => $attachments->canUpload($collection, $user),
         ]);
