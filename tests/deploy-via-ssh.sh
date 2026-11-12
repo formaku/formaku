@@ -41,7 +41,7 @@ printf '%s\n' "$2" >> "$TRACE"
 case "$2" in
     "deploy $IMAGE $RELEASE_ID")
         echo 'private deployment output'
-        echo 'private deployment diagnostic' >&2
+        echo 'deployment SSH diagnostic' >&2
         exit "$DEPLOY_RESULT"
         ;;
     "status $RELEASE_ID")
@@ -78,7 +78,7 @@ run_deploy() {
     bash "$root/scripts/deploy-via-ssh.sh" > "$fixture/output" 2>&1 || result=$?
     [[ "$result" == "$expected" ]]
     [[ -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
-    [[ ! -s "$fixture/output" ]]
+    printf 'deployment SSH diagnostic\n' | cmp - "$fixture/output"
     printf 'deploy %s %s\nbounded status\nstatus %s\n' "$IMAGE" "$RELEASE_ID" "$RELEASE_ID" | cmp - "$TRACE"
     grep -Fq "SSH deploy exit code: \`$expected\`" "$GITHUB_STEP_SUMMARY"
 }
@@ -110,6 +110,7 @@ for STATUS_RESPONSE in '' '{' '{"state":"unavailable"}' "$valid"$'\n'"$valid" \
     "$(jq -c '. + {state: "failed", rollback: "private field"}' <<< "$valid")" \
     "$(jq -c '. + {state: "failed"}' <<< "$valid")" \
     "$(jq -c '. + {state: "failed", rollback: "restored", backup: "other-release"}' <<< "$valid")" \
+    "$(jq -c '. + {backup: .release}' <<< "$valid")" \
     "$(jq -c '. + {large: ("x" * 4096)}' <<< "$valid")"; do
     run_deploy 0
     grep -Fxq 'Host status unavailable.' "$GITHUB_STEP_SUMMARY"

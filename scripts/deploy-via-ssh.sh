@@ -26,7 +26,7 @@ connection=(
 )
 
 deploy_result=0
-"${connection[@]}" "deploy $IMAGE $RELEASE_ID" >/dev/null 2>&1 || deploy_result=$?
+"${connection[@]}" "deploy $IMAGE $RELEASE_ID" >/dev/null || deploy_result=$?
 
 host_status='Host status unavailable.'
 if timeout --kill-after=2s 15s "${connection[@]}" "status $RELEASE_ID" 2>/dev/null \
@@ -40,7 +40,7 @@ if timeout --kill-after=2s 15s "${connection[@]}" "status $RELEASE_ID" 2>/dev/nu
             .rollback as $rollback
             | ["not_attempted", "restored", "failed", "unavailable"] | index($rollback) != null
           else .rollback == null end)
-        | select(.backup == null or .backup == $release)
+        | select(.backup == null or (.state == "failed" and .backup == $release))
         | "Host status: `\(.state)`"
           + (if .rollback then "\n\nRollback: `\(.rollback)`" else "" end)
           + (if .backup then "\n\nBackup: `\(.backup)`" else "" end)
