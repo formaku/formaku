@@ -9,19 +9,54 @@ use Illuminate\Support\Facades\DB;
 
 class RecordService
 {
-    public function save(Collection $c, ?Record $record, array $data, int $expected, int $actor, ?string $assistantId = null): Record
-    {
-        return DB::transaction(function () use ($c, $record, $data, $expected, $actor, $assistantId) {
-            $record = $record ? Record::lockForUpdate()->findOrFail($record->id) : new Record(['collection_id' => $c->id, 'owner_id' => $actor, 'state' => $c->definition['states'][0] ?? 'new']);
+    public function save(
+        Collection $c,
+        ?Record $record,
+        array $data,
+        int $expected,
+        int $actor,
+        ?string $assistantId = null,
+        ?object $actorUser = null,
+        bool $restore = false,
+    ): Record {
+        return DB::transaction(function () use ($c, $record, $data, $expected, $actor, $assistantId, $actorUser, $restore) {
+            $c = Collection::lockForUpdate()->findOrFail($c->id);
+            $record = $record
+                ? Record::where('collection_id', $c->id)->lockForUpdate()->findOrFail($record->id)
+                : new Record(['collection_id' => $c->id, 'owner_id' => $actor, 'state' => $c->definition['states'][0] ?? 'new']);
+            $fields = app(FieldAccess::class);
+            $protected = $fields->hasRules($c);
+            $preserved = [];
+            if ($protected) {
+                abort_unless(
+                    $actorUser !== null && method_exists($actorUser, 'getAuthIdentifier')
+                        && (string) $actorUser->getAuthIdentifier() === (string) $actor,
+                    403,
+                );
+                $collections = app(CollectionAccess::class);
+                $collections->check($c, $actorUser, true, $record->exists ? $record : null);
+                abort_if(! $record->exists && $collections->rule($c, $actorUser)['scope'] === 'assigned', 403);
+            }
             abort_unless((int) $record->version === $expected, 409, 'Record changed. Reload and compare.');
-            $data = app(SchemaValidator::class)->record($c->definition, $data);
+            abort_if($restore && ! $record->exists, 422);
+            if ($protected) {
+                [$data, $preserved] = $this->prepareProtectedData($c, $record, $data, $actorUser, $restore, $fields);
+            } else {
+                $data = app(SchemaValidator::class)->record($c->definition, $data);
+            }
+
+            $user = $actorUser ?? auth(config('formaku.guard'))->user();
             foreach ($c->definition['fields'] as $f) {
-                if ($f['type'] === 'relation') {
-                    foreach ($data[$f['key']] ?? [] as $id) {
-                        abort_unless(Record::where('collection_id', $f['target'])->whereKey($id)->exists(), 422, 'Invalid relation.');
-                        if ($user = auth(config('formaku.guard'))->user()) {
-                            app(CollectionAccess::class)->check(Collection::findOrFail($f['target']), $user, false, Record::findOrFail($id));
-                        }
+                if ($f['type'] !== 'relation' || array_key_exists($f['key'], $preserved)) {
+                    continue;
+                }
+
+                foreach ($data[$f['key']] ?? [] as $id) {
+                    abort_unless(is_int($id) || (is_string($id) && ctype_digit($id)), 422, 'Invalid relation.');
+                    $related = Record::where('collection_id', $f['target'])->find($id);
+                    abort_if($related === null, 422, 'Invalid relation.');
+                    if ($user !== null) {
+                        app(CollectionAccess::class)->check(Collection::findOrFail($f['target']), $user, false, $related);
                     }
                 }
             }
@@ -40,6 +75,43 @@ class RecordService
 
             return $record->fresh();
         });
+    }
+
+    /** @return array{array, array} */
+    private function prepareProtectedData(
+        Collection $collection,
+        Record $record,
+        array $submitted,
+        object $user,
+        bool $restore,
+        FieldAccess $access,
+    ): array {
+        $definition = $collection->definition;
+        $current = $record->draft_id === null ? [] : Revision::where('record_id', $record->id)->findOrFail($record->draft_id)->data;
+        $writable = [];
+        $preserved = [];
+        foreach ($definition['fields'] as $field) {
+            $key = $field['key'];
+            if ($access->canWrite($collection, $field, $user)) {
+                $writable[] = $field;
+
+                continue;
+            }
+
+            if (! $restore && array_key_exists($key, $submitted)) {
+                abort_unless($access->canRead($collection, $field, $user), 403);
+                abort_unless(array_key_exists($key, $current) && $submitted[$key] === $current[$key], 403);
+            }
+            abort_if(! $record->exists && ($field['required'] ?? false), 403);
+            if (array_key_exists($key, $current)) {
+                $preserved[$key] = $current[$key];
+            }
+        }
+
+        $definition['fields'] = $writable;
+        $validated = app(SchemaValidator::class)->record($definition, $submitted);
+
+        return [$validated + $preserved, $preserved];
     }
 
     public function publish(Record $record, int $expected, int $actor, ?string $assistantId = null): Record

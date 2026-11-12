@@ -10,18 +10,30 @@ class CollectionAccess
 {
     public function rule(Collection $collection, object $user): array
     {
-        $authorize = config('formaku.authorize');
-        if (is_callable($authorize) && $authorize($user, 'build')) {
+        if ($this->canBuild($user)) {
             return ['scope' => 'all', 'write' => true];
         }
         $rules = $collection->definition['access'] ?? null;
         if ($rules === null) {
             return ['scope' => 'all', 'write' => true];
         }
+
+        return $rules[$this->role($user)] ?? ['scope' => 'none', 'write' => false];
+    }
+
+    public function canBuild(object $user): bool
+    {
+        $authorize = config('formaku.authorize');
+
+        return is_callable($authorize) && $authorize($user, 'build');
+    }
+
+    public function role(object $user): string|int
+    {
         $resolver = config('formaku.role');
         $role = is_callable($resolver) ? $resolver($user) : ($user->role ?? '');
 
-        return $rules[$role] ?? ['scope' => 'none', 'write' => false];
+        return is_string($role) || is_int($role) ? $role : '';
     }
 
     public function query(Collection $collection, object $user): Builder

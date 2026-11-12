@@ -29,6 +29,8 @@ class SchemaValidator
             'definition.seo.title' => 'nullable|string|max:49',
             'definition.seo.description' => 'nullable|string|max:49',
         ])->validate();
+        $this->validateFieldAccess($d['definition']['fields'], $input['definition']['fields'], $old['fields'] ?? []);
+
         if ($d['kind'] === 'content' && ($d['definition']['public'] ?? false)) {
             foreach ($d['definition']['fields'] as $index => $field) {
                 if ($field['key'] === 'slug' && ($field['private'] ?? false)) {
@@ -67,6 +69,46 @@ class SchemaValidator
         }
 
         return $d;
+    }
+
+    private function validateFieldAccess(array &$fields, array $input, array $oldFields): void
+    {
+        $previous = array_column($oldFields, null, 'key');
+        foreach ($fields as $index => &$field) {
+            $submitted = $input[$index];
+            $original = $previous[$field['key']] ?? [];
+            if (! array_key_exists('access', $submitted) && ! array_key_exists('access', $original)) {
+                continue;
+            }
+
+            $access = array_key_exists('access', $submitted) ? $submitted['access'] : $original['access'];
+            $path = "definition.fields.{$index}.access";
+            if (! is_array($access) || array_diff(array_keys($access), ['read', 'write']) !== []) {
+                throw ValidationException::withMessages([$path => 'Field access must specify read or write role lists.']);
+            }
+            if ($access === []) {
+                unset($field['access']);
+
+                continue;
+            }
+            foreach ($access as $operation => $roles) {
+                if (! is_array($roles) || ! array_is_list($roles)) {
+                    throw ValidationException::withMessages([$path.'.'.$operation => 'Field access must use a list of roles.']);
+                }
+
+                $seen = [];
+                foreach ($roles as $role) {
+                    if (! is_string($role) || $role === '' || trim($role) !== $role || mb_strlen($role) > 100 || isset($seen[$role])) {
+                        throw ValidationException::withMessages([$path.'.'.$operation => 'Use distinct, nonempty role names of at most 100 characters.']);
+                    }
+                    $seen[$role] = true;
+                }
+            }
+            if (array_key_exists('read', $access) && (! ($field['private'] ?? false) || $field['key'] === 'slug')) {
+                throw ValidationException::withMessages([$path.'.read' => 'Read access can only be limited on private fields other than slug.']);
+            }
+            $field['access'] = $access;
+        }
     }
 
     /** @return list<string> */
