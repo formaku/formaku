@@ -70,7 +70,7 @@ Od alpha.29 w polu **Akcent kolorystyczny** wybierz **Formaku**, **Niebieski** a
 
 ### Pola prywatne na publicznych stronach
 
-Od alpha.33 opcja **Prywatne** obejmuje także publiczną stronę, katalog i karty. Prywatne bloki pozostają w szkicu i podglądzie w panelu. Gdy tytuł jest prywatny, Formaku pokazuje publiczną nazwę lub fragment adresu.
+Od alpha.33 opcja **Prywatne** obejmuje także publiczną stronę, katalog i karty. Prywatne bloki pozostają w szkicu i podglądzie w panelu. Gdy tytuł jest prywatny, Formaku pokazuje publiczną nazwę lub fragment adresu. Widoczność samych plików ustawiasz osobno w bibliotece mediów.
 
 Pole `slug` jest częścią publicznego adresu. W **Buduj → Edytuj model** odznacz przy nim **Prywatne**, jeśli adresy mają być publiczne. Aby zachować prywatne adresy, wyłącz **Publiczna kolekcja treści**. Po aktualizacji kolekcja z prywatnym polem `slug` będzie ukryta w witrynie do czasu zmiany konfiguracji. Jej rekordy i rewizje pozostają w bazie.
 
@@ -186,7 +186,7 @@ Starting with `0.1.0-alpha.4`, publishing a public page under a new URL creates 
 
 Starting with alpha.32, the **Extensions** section lists resources and actions enabled for you by the host Laravel application. Choose a resource to browse its rows or choose an action, enter its fields, and select **Run action**. See the [integration guide](../developer/README.md#show-laravel-resources-and-actions-in-the-panel) for setup.
 
-Starting with alpha.33, **Private** fields are filtered from public pages, catalogs and cards. Private page blocks remain available in the editor preview. The URL slug is part of the public address. In **Build → Edit model**, clear **Private** for `slug` to make the addresses public, or turn off **Public content collection** to keep them private. The upgrade hides collections with private slugs until you review their configuration and preserves their drafts and revisions.
+Starting with alpha.33, **Private** fields are filtered from public pages, catalogs and cards. Private page blocks remain available in the editor preview. Set file visibility separately in the media library. The URL slug is part of the public address. In **Build → Edit model**, clear **Private** for `slug` to make the addresses public, or turn off **Public content collection** to keep them private. The upgrade hides collections with private slugs until you review their configuration and preserves their drafts and revisions.
 
 ## Dostęp do kolekcji
 
