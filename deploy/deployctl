@@ -1,53 +1,126 @@
 #!/usr/bin/env bash
 # Invoked on a dedicated Linux host; runtime configuration stays on that host.
 set -euo pipefail
-cd /opt/formaku
-exec 9>/opt/formaku/deploy.lock
-flock -n 9 || { echo 'Another deployment is active' >&2; exit 1; }
+umask 077
+
 command=${1:-status}
-if [[ "$command" == status ]]; then cat release.json 2>/dev/null || echo '{"state":"not_installed"}'; exit; fi
+cd /opt/formaku
+if [[ "$command" == status && $# -le 1 ]]; then
+    cat release.json 2>/dev/null || echo '{"state":"not_installed"}'
+    exit
+fi
 [[ "$command" == deploy && $# == 3 ]] || { echo 'Usage: deployctl deploy IMAGE@sha256:DIGEST RELEASE_UUID' >&2; exit 2; }
 image=$2
 release=$3
 [[ "$image" =~ ^ghcr.io/[a-z0-9_.-]+/[a-z0-9_.-]+@sha256:[a-f0-9]{64}$ ]] || exit 2
 [[ "$release" =~ ^[a-f0-9-]{36}$ ]] || exit 2
+
+exec 9>/opt/formaku/deploy.lock
+flock -n 9 || { echo 'Another deployment is active' >&2; exit 1; }
 [[ -f allowed-image && "${image%@*}" == "$(cat allowed-image)" ]] || exit 2
 [[ -f .env.docker && -f backup.key ]] || exit 2
-export FORMAKU_IMAGE="$image"
-# Download before interrupting service; backups require the existing DB to be running.
-docker pull "$image"
-previous=$(cat active-image 2>/dev/null || true)
-mkdir -p backups
-chmod 700 backups
+
+backup_archive="backups/$release.tar.enc"
+if [[ -e "$backup_archive" || -L "$backup_archive" ]]; then
+    echo 'A backup already exists for this release. Use a new release UUID.' >&2
+    exit 2
+fi
+
 stage=$(mktemp -d /opt/formaku/.backup.XXXXXX)
-completed=false
+backup_tmp=''
+previous=''
+stop_attempted=false
+start_attempted=false
+updating_markers=false
+export FORMAKU_IMAGE="$image"
+compose=(docker compose --env-file .env.docker)
+
+write_status() {
+    local state=$1 failure_fields=''
+    if [[ "$state" == failed ]]; then
+        printf -v failure_fields ',"rollback":"%s"' "$2"
+        if [[ -n "$backup_tmp" && "$backup_tmp" -ef "$backup_archive" ]]; then
+            printf -v failure_fields '%s,"backup":"%s"' "$failure_fields" "$release"
+        fi
+    fi
+    printf '{"state":"%s","release":"%s","image":"%s"%s}\n' "$state" "$release" "$image" "$failure_fields" \
+        > "$stage/release.json" && mv "$stage/release.json" release.json
+}
+
+restore_marker() {
+    local marker=$1
+    if [[ -f "$stage/$marker.old" ]]; then
+        mv "$stage/$marker.old" "$marker"
+    else
+        rm -f "$marker"
+    fi
+}
+
 cleanup() {
- code=$?
- rm -rf "$stage"
- if [[ "$completed" != true && -n "$previous" ]]; then
-  FORMAKU_IMAGE="$previous" docker compose --env-file .env.docker up -d || true
-  printf '{"state":"failed","release":"%s"}\n' "$release" > release.json
- fi
- exit "$code"
+    local code=$? rollback=not_attempted
+    trap - EXIT
+    trap '' INT TERM
+    if [[ "$code" != 0 ]]; then
+        if [[ "$stop_attempted" == true ]]; then
+            if [[ -z "$previous" ]]; then
+                rollback=unavailable
+                if [[ "$start_attempted" == true ]]; then
+                    "${compose[@]}" stop web worker scheduler || echo 'Could not stop the unverified deployment' >&2
+                fi
+            elif FORMAKU_IMAGE="$previous" "${compose[@]}" up -d --no-build --wait --wait-timeout 120; then
+                rollback=restored
+            else
+                rollback=failed
+            fi
+        fi
+        if [[ "$updating_markers" == true ]]; then
+            restore_marker previous-image || echo 'Could not restore previous-image' >&2
+            restore_marker active-image || echo 'Could not restore active-image' >&2
+        fi
+        write_status failed "$rollback" || echo 'Could not write the failed deployment status' >&2
+    fi
+    if [[ -n "$backup_tmp" ]]; then
+        rm -f "$backup_tmp" || true
+    fi
+    rm -rf "$stage" || true
+    exit "$code"
 }
 trap cleanup EXIT
-printf '{"state":"deploying","release":"%s","image":"%s"}\n' "$release" "$image" > release.json.tmp
-mv release.json.tmp release.json
-docker compose --env-file .env.docker stop web worker scheduler
-# Block all writes by stopping app containers. Credentials are read inside the DB container.
-docker compose --env-file .env.docker exec -T database sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > "$stage/database.sql"
-docker compose --env-file .env.docker run --rm --no-deps --user root --entrypoint tar web -C /app/storage/app -czf - . > "$stage/uploads.tar.gz"
-cp .env.docker "$stage/runtime.env"
-tar -C "$stage" -cf - . | openssl enc -aes-256-cbc -salt -pbkdf2 -pass file:backup.key -out "backups/$release.tar.enc"
-# Only backwards-compatible migrations belong in automatic deployment releases.
-if docker compose --env-file .env.docker run --rm --no-deps web php artisan migrate --force && docker compose --env-file .env.docker up -d --wait --wait-timeout 120; then
- printf '%s\n' "$previous" > previous-image
- printf '%s\n' "$image" > active-image
- printf '{"state":"deployed","release":"%s","image":"%s"}\n' "$release" "$image" > release.json.tmp
- mv release.json.tmp release.json
- completed=true
-else
- if [[ -n "$previous" ]]; then FORMAKU_IMAGE="$previous" docker compose --env-file .env.docker up -d --wait --wait-timeout 120; fi
- printf '{"state":"failed","release":"%s","backup":"%s"}\n' "$release" "$release" > release.json
- exit 1
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
+write_status deploying
+for marker in active-image previous-image; do
+    if [[ -f "$marker" ]]; then
+        cp -p "$marker" "$stage/$marker.old"
+    fi
+done
+if [[ -f "$stage/active-image.old" ]]; then
+    previous=$(cat "$stage/active-image.old")
 fi
+
+# Pull before stopping writers; the database must stay up for the backup.
+docker pull "$image"
+mkdir -p backups
+chmod 700 backups
+backup_tmp=$(mktemp "backups/.${release}.XXXXXX")
+stop_attempted=true
+"${compose[@]}" stop web worker scheduler
+"${compose[@]}" exec -T database sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > "$stage/database.sql"
+"${compose[@]}" run --rm --no-deps --user root --entrypoint tar web -C /app/storage/app -czf - . > "$stage/uploads.tar.gz"
+cp .env.docker "$stage/runtime.env"
+tar -C "$stage" -cf - database.sql uploads.tar.gz runtime.env \
+    | openssl enc -aes-256-cbc -salt -pbkdf2 -pass file:backup.key -out "$backup_tmp"
+# Publish the completed archive without replacing an existing backup.
+ln "$backup_tmp" "$backup_archive"
+
+# Only backwards-compatible migrations belong in automatic deployment releases.
+"${compose[@]}" run --rm --no-deps web php artisan migrate --force
+start_attempted=true
+"${compose[@]}" up -d --no-build --wait --wait-timeout 120
+printf '%s\n' "$previous" > "$stage/previous-image"
+printf '%s\n' "$image" > "$stage/active-image"
+updating_markers=true
+mv "$stage/previous-image" previous-image
+mv "$stage/active-image" active-image
+write_status deployed
