@@ -222,6 +222,8 @@ public function panelSchema(): array
 }
 ```
 
+The Laravel host applies its request normalization to text values. Use strings for identifiers larger than JavaScript’s safe integer range.
+
 If your block accepts children, authors can add and move blocks inside it in the editor. Existing settings with other input types and settings from blocks without panel metadata remain in the draft. Use the API or a host editor to edit those settings.
 
 `BlockType::schema()` remains available for extension-defined validation. If `acceptsChildren()` returns true, Formaku passes the rendered children as the second argument to `render()`. The existing `BlockType` and `FieldType` interfaces remain available for extensions that only provide rendering or validation.

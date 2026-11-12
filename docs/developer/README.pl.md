@@ -222,6 +222,8 @@ public function panelSchema(): array
 }
 ```
 
+Do wartości tekstowych Laravel stosuje skonfigurowaną normalizację żądań. Identyfikatory większe niż zakres bezpiecznych liczb całkowitych JavaScript przekazuj jako tekst.
+
 Jeśli blok przyjmuje dzieci, w edytorze można dodawać i przenosić do niego inne bloki. Zapisane ustawienia o innych typach kontrolek oraz ustawienia bloków bez metadanych panelu pozostają w szkicu. Do ich edycji użyj API lub edytora w aplikacji Laravel.
 
 `BlockType::schema()` pozostaje dostępna do walidacji w rozszerzeniu. Gdy `acceptsChildren()` zwraca `true`, Formaku przekazuje wyrenderowaną zawartość zagnieżdżoną jako drugi argument metody `render()`. Rozszerzenia służące do samego renderowania lub walidacji mogą nadal implementować `BlockType` lub `FieldType`.
