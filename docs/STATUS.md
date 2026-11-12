@@ -78,6 +78,7 @@ This is **0.1.0-alpha.61**. The remaining v1 work is listed below.
 - Assistant adapter: the Node stdio test exercises validation errors, collection templates, image listing, public v1 and v2 catalog requests without the CMS token, filtering by category, and local adapter replacement.
 - Frontend: vue-tsc and Vite production build pass. A real rendered dashboard screenshot is in test-results/dashboard-chromium.png (ignored build artifact).
 - Docker: image built; Laravel command runs, HTTP login returns 200, runtime UID is 33 (www-data). GitHub CI verifies that the web process, database, queue worker and scheduler start with Compose.
+- PostgreSQL upgrade CI uses the published alpha.60 image to create a page and a newer draft, applies the revision history index, and rolls back that migration. It compares the stored revisions and checks the public page before and after both steps.
 - Clean-host Composer integration: installed in a separate unmodified Laravel project; original root route retained, Formaku admin registered, public routes absent by default.
 - Live paid AI calls, SMTP delivery and VPS deployment are still pending. Database restoration has been exercised with synthetic data.
 
