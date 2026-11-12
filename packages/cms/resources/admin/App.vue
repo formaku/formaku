@@ -383,10 +383,11 @@ async function load() {
 async function loadRecords(page: number, onlyScheduled: boolean) {
   const collectionId = selected.value!.id;
   const requestId = ++recordsRequest;
-  const query = new URLSearchParams({ page: String(page) });
+  const query = new URLSearchParams();
+  if (page > 1) query.set("page", String(page));
   if (onlyScheduled) query.set("scheduled", "1");
   const path = `/collections/${collectionId}/records`;
-  let result = await request(`${path}?${query}`);
+  let result = await request(query.size ? `${path}?${query}` : path);
   if (requestId !== recordsRequest || selected.value?.id !== collectionId) return;
   if (result.current_page > result.last_page) {
     query.set("page", String(result.last_page));
