@@ -199,6 +199,9 @@ test("browser authoring and publication", async ({ page }, info) => {
   await page.getByLabel("title", { exact: true }).fill("Browser publication");
   await page.getByRole("button", { name: "Zapisz szkic" }).click();
   await expect(preview.getByRole("heading", { name: "Browser publication" })).toBeVisible();
+  const publicationCheck = page.getByRole("region", { name: "Kontrola przed publikacją" });
+  await publicationCheck.getByRole("button", { name: "Sprawdź zapisany szkic" }).click();
+  await expect(publicationCheck.getByText("Uzupełnij opis SEO.")).toBeVisible();
   await page
     .getByRole("button", { name: "Opublikuj treść", exact: true })
     .click();

@@ -42,6 +42,47 @@ class FormakuTest extends TestCase
         return app(RecordService::class)->save($c, null, ['title' => 'Published title', 'slug' => 'published', 'blocks' => [['type' => 'hero', 'props' => ['title' => 'Original']]]], 0, $u->id);
     }
 
+    public function test_publication_check_reports_issues_for_the_saved_revision_without_publishing(): void
+    {
+        $admin = $this->admin();
+        $collection = $this->collection();
+        $media = Media::create([
+            'owner_id' => $admin->id, 'disk' => 'public', 'path' => 'demo.png',
+            'name' => 'demo.png', 'mime' => 'image/png', 'visibility' => 'public',
+            'alt' => '', 'size' => 10,
+        ]);
+        $record = app(RecordService::class)->save($collection, null, [
+            'title' => 'Draft', 'slug' => 'draft',
+            'blocks' => [
+                ['type' => 'cta', 'props' => ['title' => '', 'label' => '', 'url' => '#']],
+                ['type' => 'image', 'props' => ['media_id' => $media->id]],
+            ],
+        ], 0, $admin->id);
+        $base = '/formaku/api/v1/records/'.$record->id;
+        $url = $base.'/publication-check?version='.$record->version;
+
+        $this->getJson($url)->assertUnauthorized();
+        $this->actingAs(User::factory()->create(['role' => 'editor']))->getJson($url)->assertForbidden();
+        $this->actingAs($admin)->getJson($base.'/publication-check?version=0')->assertConflict();
+        $this->putJson($base.'/translations', ['version' => 0, 'locale' => 'en', 'group' => 'draft'])->assertOk();
+        $this->getJson($url)->assertOk()->assertJsonPath('revision_id', $record->draft_id)
+            ->assertJsonFragment(['code' => 'seo_description', 'severity' => 'warning', 'count' => 1])
+            ->assertJsonFragment(['code' => 'image_alt', 'severity' => 'warning', 'count' => 1])
+            ->assertJsonFragment(['code' => 'link', 'severity' => 'warning', 'count' => 1])
+            ->assertJsonFragment(['code' => 'heading_empty', 'severity' => 'warning', 'count' => 1])
+            ->assertJsonFragment(['code' => 'heading_order', 'severity' => 'warning', 'count' => 1])
+            ->assertJsonFragment(['code' => 'translation_unpublished', 'severity' => 'warning', 'count' => 1]);
+        $this->assertNull($record->fresh()->published_id);
+        $this->get('/p/draft')->assertNotFound();
+
+        $definition = $collection->definition;
+        $definition['fields'][2]['access'] = ['read' => ['admin']];
+        $collection->update(['definition' => $definition]);
+        $this->actingAs(User::factory()->create(['role' => 'publisher']))->getJson($url)->assertOk()
+            ->assertJsonMissing(['code' => 'link'])
+            ->assertJsonMissing(['code' => 'image_alt']);
+    }
+
     public function test_site_navigation_defaults_and_saves_ordered_settings(): void
     {
         $endpoint = '/formaku/api/v1/site-navigation';

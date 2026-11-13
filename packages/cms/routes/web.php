@@ -1,5 +1,5 @@
 <?php
-use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,PanelExtensionController,PageTemplateController,RecordTranslationController,SiteNavigationController,SitemapController};
+use Illuminate\Support\Facades\Route;use Formaku\Cms\Http\{Access,ApiController,PublicController,IntegrationController,PanelExtensionController,PageTemplateController,PublicationCheckController,RecordTranslationController,SiteNavigationController,SitemapController};
 use Formaku\Cms\Services\Registry;
 Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::get('/',fn()=>view('formaku::admin'))->middleware([ 'auth:'.config('formaku.guard'),Access::class.':work']);
@@ -25,6 +25,7 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::get('/records/{record}/attachments', [ApiController::class, 'attachmentIndex']);
   Route::get('/records/{record}/attachments/{attachment}', [ApiController::class, 'attachment'])
       ->whereNumber('attachment')->name('formaku.staff.attachment');
+  Route::get('/records/{record}/publication-check', PublicationCheckController::class)->middleware(Access::class.':publish');
   Route::post('/records/{record}/publish',[ApiController::class,'publish'])->middleware(Access::class.':publish');
   Route::delete('/records/{record}/publish', [ApiController::class, 'unpublish'])->middleware(Access::class.':publish');
   Route::post('/records/{record}/schedule',[ApiController::class,'schedule'])->middleware(Access::class.':publish');

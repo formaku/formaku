@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Check the saved draft before publishing for image alt text, incomplete links, heading structure, missing SEO descriptions, and unpublished language versions. The report identifies the checked revision.
+
 ## 0.1.0-alpha.74 — 2026-11-12
 
 - Read the current runtime status and verified active image from a manual GitHub Actions workflow using the host's restricted SSH dispatcher.

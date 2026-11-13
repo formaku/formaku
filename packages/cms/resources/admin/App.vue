@@ -35,6 +35,7 @@ import RelationPicker from "./RelationPicker.vue";
 import AssistantConnection from "./AssistantConnection.vue";
 import SiteNavigation from "./SiteNavigation.vue";
 import PageTranslations from "./PageTranslations.vue";
+import PublicationCheck from "./PublicationCheck.vue";
 import PanelExtensions from "./PanelExtensions.vue";
 import RolePicker, { isRoleKey, roleDisplayName, type RoleOption } from "./RolePicker.vue";
 import {
@@ -2152,6 +2153,13 @@ const title = computed(
                   </button>
                 </div>
               </div>
+              <PublicationCheck
+                v-if="record.id && selected.kind === 'content' && selected.definition.public && boot?.abilities?.publish"
+                :record-id="record.id"
+                :version="record.version"
+                :dirty="hasUnsavedChanges || draftSaveConflict"
+                :request="request"
+              />
               <section v-if="draftSaveConflict" class="alert alert-warning alert-vertical sm:alert-horizontal mb-6">
                 <div role="alert">
                   <p class="font-semibold">{{ t("Szkic zmienił się na serwerze.") }}</p>
