@@ -117,6 +117,15 @@ jobs:
           bash tests/backup-recovery.sh
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npx playwright test --reporter=line,github
+        id: playwright
+      - name: Retain Playwright failure context
+        if: failure() && steps.playwright.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-error-context
+          path: test-results/**/error-context.md
+          retention-days: 7
+          if-no-files-found: ignore
 
   deploy-controller:
     if: github.event_name != 'workflow_dispatch'
