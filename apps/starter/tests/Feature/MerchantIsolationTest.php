@@ -93,6 +93,9 @@ class MerchantIsolationTest extends TestCase
             $loader->addPsr4('Formaku\\Commerce\\', $commerce.'/src');
             $this->assertTrue(class_exists(CommerceServiceProvider::class));
         }
+        if (getenv('FORMAKU_REQUIRE_PANEL_CATALOG') === '1') {
+            $this->assertTrue(class_exists(CatalogResource::class), 'The Commerce panel catalog is required for this rehearsal.');
+        }
         $this->directory = sys_get_temp_dir().'/formaku-isolation-'.Str::uuid();
         $this->withCredentials();
 

@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+require_panel_catalog=0
+if [[ ${1:-} == --require-panel-catalog ]]; then
+    require_panel_catalog=1
+    shift
+fi
+
 if [[ $# -ne 2 ]]; then
-    echo "Usage: $0 <Commerce 0.2 checkout> <Platform 0.2 checkout>" >&2
+    echo "Usage: $0 [--require-panel-catalog] <Commerce 0.2 checkout> <Platform 0.2 checkout>" >&2
     exit 2
 fi
 
@@ -12,6 +18,11 @@ root=$(cd "$(dirname "$0")/.." && pwd -P)
 
 if [[ ! -f "$commerce/src/CommerceServiceProvider.php" || ! -f "$platform/bin/formaku-platform" || ! -f "$root/apps/starter/vendor/autoload.php" ]]; then
     echo 'Provide the Commerce and Platform checkouts and install the starter Composer dependencies.' >&2
+    exit 2
+fi
+
+if [[ "$require_panel_catalog" == 1 && ! -f "$commerce/src/Bridge/Formaku/CatalogResource.php" ]]; then
+    echo 'The supplied Commerce checkout does not contain the panel catalog.' >&2
     exit 2
 fi
 
@@ -67,5 +78,5 @@ bash "$platform/tests/runtime.sh"
 
 cd "$root/apps/starter"
 env -i PATH="$PATH" TMPDIR="$scratch" APP_ENV=testing APP_CONFIG_CACHE="$scratch/config.php" \
-    FORMAKU_MERCHANT_TEST_PG_PORT="$port" FORMAKU_COMMERCE_TEST_PATH="$commerce" FORMAKU_PLATFORM_TEST_PATH="$platform" \
+    FORMAKU_REQUIRE_PANEL_CATALOG="$require_panel_catalog" FORMAKU_MERCHANT_TEST_PG_PORT="$port" FORMAKU_COMMERCE_TEST_PATH="$commerce" FORMAKU_PLATFORM_TEST_PATH="$platform" \
     php vendor/bin/phpunit --filter=MerchantIsolationTest --display-warnings --fail-on-warning

@@ -263,3 +263,5 @@ scripts/test-merchant-isolation.sh /sciezka/do/commerce /sciezka/do/platform
 ```
 
 Jeśli `pg_config --bindir` nie wskazuje katalogu serwera PostgreSQL, ustaw `FORMAKU_TEST_PG_BIN` na katalog z `initdb`, `pg_ctl` i `psql`. PHP CLI wymaga sterownika PDO PostgreSQL.
+
+Aby wymagać sprawdzenia katalogu panelu, dodaj `--require-panel-catalog` przed ścieżkami i wskaż checkout Commerce zawierający katalog. Test zakończy się błędem, jeśli katalogu zabraknie.

@@ -263,3 +263,5 @@ scripts/test-merchant-isolation.sh /path/to/commerce /path/to/platform
 ```
 
 Set `FORMAKU_TEST_PG_BIN` to the directory containing `initdb`, `pg_ctl` and `psql` if `pg_config --bindir` does not point to the server binaries. The PHP CLI needs the PostgreSQL PDO driver.
+
+To require the panel catalog checks, add `--require-panel-catalog` before the checkout paths and use a Commerce checkout that includes the catalog. The test fails if the catalog is missing.
