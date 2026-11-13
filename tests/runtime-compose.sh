@@ -45,5 +45,6 @@ check_runtime verified
 "${compose[@]}" stop scheduler
 [[ $(docker container inspect --format '{{.State.Status}}' "$scheduler") == exited ]]
 check_runtime mismatch
-"${compose[@]}" start --wait --wait-timeout 60 scheduler
+"${compose[@]}" up --detach --no-build --no-deps --no-recreate --pull never --wait --wait-timeout 60 scheduler
+[[ $("${compose[@]}" ps --quiet scheduler) == "$scheduler" ]]
 check_runtime verified
