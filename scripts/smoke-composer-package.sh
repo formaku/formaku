@@ -2,13 +2,17 @@
 set -euo pipefail
 
 check_missing_chunk=false
-if [[ ${1:-} == --check-missing-chunk ]]; then
-    check_missing_chunk=true
+check_missing_table=false
+while [[ ${1:-} == --check-missing-chunk || ${1:-} == --check-missing-table ]]; do
+    case "$1" in
+        --check-missing-chunk) check_missing_chunk=true ;;
+        --check-missing-table) check_missing_table=true ;;
+    esac
     shift
-fi
+done
 
 if [[ $# -ne 1 || "$1" != /*/formaku-cms-v*.zip ]]; then
-    echo "Usage: $0 [--check-missing-chunk] /absolute/path/formaku-cms-v0.1.0-alpha.51.zip" >&2
+    echo "Usage: $0 [--check-missing-chunk] [--check-missing-table] /absolute/path/formaku-cms-v0.1.0-alpha.51.zip" >&2
     exit 1
 fi
 
@@ -63,11 +67,12 @@ env -i PATH="$PATH" TMPDIR="$scratch" \
     COMPOSER_HOME="$scratch/composer-home" COMPOSER_CACHE_DIR="$scratch/composer-cache" \
     APP_ENV=testing APP_DEBUG=false DB_CONNECTION=sqlite DB_DATABASE="$scratch/host.sqlite" \
     SESSION_DRIVER=array CACHE_STORE=array QUEUE_CONNECTION=sync FORMAKU_PUBLIC_ROUTES=false \
-    bash -s -- "$scratch" "$version" "$check_missing_chunk" <<'SMOKE'
+    bash -s -- "$scratch" "$version" "$check_missing_chunk" "$check_missing_table" <<'SMOKE'
 set -euo pipefail
 scratch=$1
 version=$2
 check_missing_chunk=$3
+check_missing_table=$4
 cd "$scratch"
 
 php -r 'if (PHP_VERSION_ID < 80400 || ! extension_loaded("pdo_sqlite")) {
@@ -209,6 +214,33 @@ if [[ "$check_missing_chunk" == true ]]; then
     cmp "$scratch/editor-chunk" "$published_chunk"
     php artisan formaku:doctor --no-interaction
     echo "Verified missing editor chunk detection and recovery."
+fi
+
+if [[ "$check_missing_table" == true ]]; then
+    cp "$DB_DATABASE" "$scratch/complete.sqlite"
+    python3 - "$DB_DATABASE" <<'PYTHON'
+import sqlite3
+import sys
+
+with sqlite3.connect(sys.argv[1]) as connection:
+    connection.execute("ALTER TABLE formaku_site_navigation RENAME TO formaku_site_navigation_fixture")
+PYTHON
+    cp "$DB_DATABASE" "$scratch/incomplete.sqlite"
+
+    doctor_status=0
+    doctor_log="$scratch/doctor-missing-table.log"
+    php artisan formaku:doctor --no-ansi --no-interaction > "$doctor_log" 2>&1 || doctor_status=$?
+    if [[ "$doctor_status" != 1 ]] ||
+        ! grep -Eq '^Applied Formaku migrations: [0-9]+\.$' "$doctor_log" ||
+        ! grep -Fxq 'Missing Formaku tables: formaku_site_navigation. Check the database or restore a complete backup.' "$doctor_log"; then
+        cat "$doctor_log" >&2
+        echo 'Expected Formaku doctor to report the missing table despite complete migration history.' >&2
+        exit 1
+    fi
+    cmp "$scratch/incomplete.sqlite" "$DB_DATABASE"
+    mv "$scratch/complete.sqlite" "$DB_DATABASE"
+    php artisan formaku:doctor --no-interaction
+    echo 'Verified missing table detection with complete migration history.'
 fi
 
 php smoke-host.php verify > "$scratch/host-record-after.json"

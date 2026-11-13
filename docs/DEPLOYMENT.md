@@ -69,10 +69,10 @@ For new tagged releases, the release workflow runs the SQLite installation check
 Run the same installation check locally with the ZIP and its adjacent `.sha256` file. It needs PHP 8.4 or later with PDO SQLite, Composer, Python 3, ZIP support and access to Packagist for the test host.
 
 ```sh
-bash scripts/smoke-composer-package.sh --check-missing-chunk /absolute/path/formaku-cms-v0.1.0-alpha.80.zip
+bash scripts/smoke-composer-package.sh --check-missing-chunk --check-missing-table /absolute/path/formaku-cms-v0.1.0-alpha.80.zip
 ```
 
-The check creates a temporary Laravel 13 application and installs the ZIP as a Composer distribution. It verifies Formaku migrations, panel configuration and published assets, plus the host’s existing route and a synthetic database record. For alpha.79 or later, `--check-missing-chunk` removes a published editor chunk inside the temporary host, verifies that `formaku:doctor` reports the missing file with exit code 1, and checks that `formaku:install` restores it.
+The check creates a temporary Laravel 13 application and installs the ZIP as a Composer distribution. It verifies Formaku migrations, panel configuration and published assets, plus the host’s existing route and a synthetic database record. For alpha.79 or later, `--check-missing-chunk` removes a published editor chunk inside the temporary host, verifies that `formaku:doctor` reports the missing file with exit code 1, and checks that `formaku:install` restores it. For alpha.80 or later, `--check-missing-table` renames a CMS table in the temporary SQLite database and verifies that the diagnostic reports it despite complete migration history and leaves the database untouched.
 
 ### Upgrade an existing alpha installation
 
