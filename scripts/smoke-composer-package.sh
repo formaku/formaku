@@ -3,16 +3,18 @@ set -euo pipefail
 
 check_missing_chunk=false
 check_missing_table=false
-while [[ ${1:-} == --check-missing-chunk || ${1:-} == --check-missing-table ]]; do
+check_doctor_json=false
+while [[ ${1:-} == --check-missing-chunk || ${1:-} == --check-missing-table || ${1:-} == --check-doctor-json ]]; do
     case "$1" in
         --check-missing-chunk) check_missing_chunk=true ;;
         --check-missing-table) check_missing_table=true ;;
+        --check-doctor-json) check_doctor_json=true ;;
     esac
     shift
 done
 
 if [[ $# -ne 1 || "$1" != /*/formaku-cms-v*.zip ]]; then
-    echo "Usage: $0 [--check-missing-chunk] [--check-missing-table] /absolute/path/formaku-cms-v0.1.0-alpha.51.zip" >&2
+    echo "Usage: $0 [--check-missing-chunk] [--check-missing-table] [--check-doctor-json] /absolute/path/formaku-cms-v0.1.0-alpha.51.zip" >&2
     exit 1
 fi
 
@@ -67,12 +69,13 @@ env -i PATH="$PATH" TMPDIR="$scratch" \
     COMPOSER_HOME="$scratch/composer-home" COMPOSER_CACHE_DIR="$scratch/composer-cache" \
     APP_ENV=testing APP_DEBUG=false DB_CONNECTION=sqlite DB_DATABASE="$scratch/host.sqlite" \
     SESSION_DRIVER=array CACHE_STORE=array QUEUE_CONNECTION=sync FORMAKU_PUBLIC_ROUTES=false \
-    bash -s -- "$scratch" "$version" "$check_missing_chunk" "$check_missing_table" <<'SMOKE'
+    bash -s -- "$scratch" "$version" "$check_missing_chunk" "$check_missing_table" "$check_doctor_json" <<'SMOKE'
 set -euo pipefail
 scratch=$1
 version=$2
 check_missing_chunk=$3
 check_missing_table=$4
+check_doctor_json=$5
 cd "$scratch"
 
 php -r 'if (PHP_VERSION_ID < 80400 || ! extension_loaded("pdo_sqlite")) {
@@ -189,9 +192,39 @@ return [
 ];
 PHP
 
+verify_doctor_json() {
+    local expected_status=$1
+    local status=0
+    php artisan formaku:doctor --json --no-ansi --no-interaction > "$scratch/doctor.json" || status=$?
+    if [[ "$status" != "$expected_status" ]]; then
+        cat "$scratch/doctor.json" >&2
+        echo "Expected Formaku doctor JSON exit code $expected_status, got $status." >&2
+        exit 1
+    fi
+
+    python3 - "$scratch/doctor.json" "$expected_status" <<'PYTHON'
+import json
+from pathlib import Path
+import sys
+
+healthy = sys.argv[2] == "0"
+expected = {
+    "ok": healthy,
+    "checks": {"authentication": True, "database": healthy, "assets": True},
+    "public_routes": False,
+}
+actual = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
+if json.dumps(actual, sort_keys=True) != json.dumps(expected, sort_keys=True):
+    sys.exit(f"Unexpected Formaku doctor JSON: {actual!r}")
+PYTHON
+}
+
 php artisan migrate --force --no-interaction
 php artisan config:cache --no-interaction
 php artisan formaku:doctor --no-interaction
+if [[ "$check_doctor_json" == true ]]; then
+    verify_doctor_json 0
+fi
 if [[ "$check_missing_chunk" == true ]]; then
     chunks=(vendor/formaku/cms/public/assets/editor-*.js)
     bundled_chunk=${chunks[0]}
@@ -216,7 +249,7 @@ if [[ "$check_missing_chunk" == true ]]; then
     echo "Verified missing editor chunk detection and recovery."
 fi
 
-if [[ "$check_missing_table" == true ]]; then
+if [[ "$check_missing_table" == true || "$check_doctor_json" == true ]]; then
     cp "$DB_DATABASE" "$scratch/complete.sqlite"
     python3 - "$DB_DATABASE" <<'PYTHON'
 import sqlite3
@@ -236,6 +269,10 @@ PYTHON
         cat "$doctor_log" >&2
         echo 'Expected Formaku doctor to report the missing table despite complete migration history.' >&2
         exit 1
+    fi
+    if [[ "$check_doctor_json" == true ]]; then
+        verify_doctor_json 1
+        echo 'Verified Formaku doctor JSON on healthy and incomplete databases.'
     fi
     cmp "$scratch/incomplete.sqlite" "$DB_DATABASE"
     mv "$scratch/complete.sqlite" "$DB_DATABASE"
