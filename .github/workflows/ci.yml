@@ -169,6 +169,9 @@ jobs:
         run: |
           curl --fail --silent --show-error http://127.0.0.1:8080/up
           curl --fail --silent --show-error --output /dev/null http://127.0.0.1:8080/login
+      - name: Verify runtime observation on the published Compose stack
+        if: github.event_name == 'workflow_dispatch'
+        run: bash tests/runtime-compose.sh
       - name: Verify PostgreSQL revision index upgrade and rollback
         if: github.event_name != 'workflow_dispatch'
         run: bash tests/revision-index-upgrade.sh

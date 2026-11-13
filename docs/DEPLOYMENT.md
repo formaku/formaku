@@ -224,6 +224,8 @@ On the deployment host, run `sudo /usr/local/sbin/formaku-deployctl runtime` wit
 
 Use `status` to read the result of the last deployment attempt and its rollback outcome. Use the public URL to verify the external route separately.
 
+To verify the controller with a published image in a disposable Linux environment, run **CI** from GitHub Actions and enter the published `sha256:…` digest in `published_digest`. The Compose test checks a healthy stack, stops its scheduler to verify that the controller reports a mismatch, then restores the scheduler and verifies the runtime again. The run uses test credentials and its own Compose project.
+
 ### Read the running image from GitHub Actions
 
 Update the host controller and forced-command dispatcher from the same release. If the deployment account should be able to read runtime remotely, add the exact `runtime` command to its existing sudoers configuration. Replace `formaku-deploy` with that account and validate the file with `visudo -c`.
