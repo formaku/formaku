@@ -1,8 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+check_missing_chunk=false
+if [[ ${1:-} == --check-missing-chunk ]]; then
+    check_missing_chunk=true
+    shift
+fi
+
 if [[ $# -ne 1 || "$1" != /*/formaku-cms-v*.zip ]]; then
-    echo "Usage: $0 /absolute/path/formaku-cms-v0.1.0-alpha.51.zip" >&2
+    echo "Usage: $0 [--check-missing-chunk] /absolute/path/formaku-cms-v0.1.0-alpha.51.zip" >&2
     exit 1
 fi
 
@@ -57,10 +63,11 @@ env -i PATH="$PATH" TMPDIR="$scratch" \
     COMPOSER_HOME="$scratch/composer-home" COMPOSER_CACHE_DIR="$scratch/composer-cache" \
     APP_ENV=testing APP_DEBUG=false DB_CONNECTION=sqlite DB_DATABASE="$scratch/host.sqlite" \
     SESSION_DRIVER=array CACHE_STORE=array QUEUE_CONNECTION=sync FORMAKU_PUBLIC_ROUTES=false \
-    bash -s -- "$scratch" "$version" <<'SMOKE'
+    bash -s -- "$scratch" "$version" "$check_missing_chunk" <<'SMOKE'
 set -euo pipefail
 scratch=$1
 version=$2
+check_missing_chunk=$3
 cd "$scratch"
 
 php -r 'if (PHP_VERSION_ID < 80400 || ! extension_loaded("pdo_sqlite")) {
@@ -180,6 +187,30 @@ PHP
 php artisan migrate --force --no-interaction
 php artisan config:cache --no-interaction
 php artisan formaku:doctor --no-interaction
+if [[ "$check_missing_chunk" == true ]]; then
+    chunks=(vendor/formaku/cms/public/assets/editor-*.js)
+    bundled_chunk=${chunks[0]}
+    test -s "$bundled_chunk"
+    relative_chunk=${bundled_chunk#vendor/formaku/cms/public/}
+    published_chunk="public/vendor/formaku/$relative_chunk"
+    cmp "$bundled_chunk" "$published_chunk"
+    mv "$published_chunk" "$scratch/editor-chunk"
+
+    doctor_status=0
+    php artisan formaku:doctor --no-ansi --no-interaction > "$scratch/doctor-missing-chunk.log" 2>&1 || doctor_status=$?
+    if [[ "$doctor_status" != 1 ]] ||
+        ! grep -Fxq "Published $relative_chunk is missing or unreadable. Run php artisan formaku:install." "$scratch/doctor-missing-chunk.log"; then
+        cat "$scratch/doctor-missing-chunk.log" >&2
+        echo "Expected Formaku doctor to report the missing editor chunk and exit with code 1." >&2
+        exit 1
+    fi
+    test ! -e "$published_chunk"
+    php artisan formaku:install --no-interaction
+    cmp "$scratch/editor-chunk" "$published_chunk"
+    php artisan formaku:doctor --no-interaction
+    echo "Verified missing editor chunk detection and recovery."
+fi
+
 php smoke-host.php verify > "$scratch/host-record-after.json"
 cmp "$scratch/host-record-before.json" "$scratch/host-record-after.json"
 

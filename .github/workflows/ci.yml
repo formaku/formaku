@@ -78,7 +78,7 @@ jobs:
           tag=v0.0.0-alpha.0
           archive_dir="$RUNNER_TEMP/formaku-composer"
           bash scripts/build-composer-package.sh "$tag" "$archive_dir"
-          bash scripts/smoke-composer-package.sh "$archive_dir/formaku-cms-$tag.zip"
+          bash scripts/smoke-composer-package.sh --check-missing-chunk "$archive_dir/formaku-cms-$tag.zip"
 
   browser:
     if: github.event_name != 'workflow_dispatch'
