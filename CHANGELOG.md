@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.78 — 2026-11-13
+
+- The manual CI check for a published image verifies runtime observation with a real Compose stack, including scheduler interruption and recovery.
+- No new migrations since alpha.77.
+
 ## 0.1.0-alpha.77 — 2026-11-13
 
 - Open the configured GitHub Actions runtime status workflow directly from Releases, including before any observation has been recorded.
