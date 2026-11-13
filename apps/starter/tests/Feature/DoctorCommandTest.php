@@ -91,6 +91,31 @@ class DoctorCommandTest extends TestCase
         $this->assertSame('synthetic stale script', File::get($publishedScript));
     }
 
+    public function test_checks_nested_editor_chunks_and_fonts_without_republishing_them(): void
+    {
+        $bundle = $this->fixture.'/bundle';
+        $public = $this->fixture.'/public/vendor/formaku';
+        File::ensureDirectoryExists($bundle.'/assets');
+        File::put($bundle.'/assets/editor-example.js', 'editor chunk');
+        File::put($bundle.'/inter-example.woff2', 'font bundle');
+        File::put($public.'/inter-example.woff2', 'stale font');
+
+        $this->artisan('formaku:doctor')
+            ->expectsOutput('Published assets/editor-example.js is missing or unreadable. Run php artisan formaku:install.')
+            ->expectsOutput('Published inter-example.woff2 does not match the bundle. Run php artisan formaku:install.')
+            ->assertFailed();
+
+        $this->assertFileDoesNotExist($public.'/assets/editor-example.js');
+        $this->assertSame('stale font', File::get($public.'/inter-example.woff2'));
+
+        File::copyDirectory($bundle, $public);
+        File::put($public.'/previous-release.js', 'leftover asset');
+
+        $this->artisan('formaku:doctor')
+            ->expectsOutput('All published Formaku panel assets match the bundle.')
+            ->assertSuccessful();
+    }
+
     public function test_counts_only_missing_formaku_migrations_and_leaves_missing_assets_unpublished(): void
     {
         $table = config('database.migrations.table');

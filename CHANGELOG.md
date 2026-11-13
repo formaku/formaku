@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.79 — 2026-11-13
+
+- The installation check verifies all published panel assets, including editor chunks and fonts.
+- The Compose test waits for the existing scheduler container to become healthy after restarting it.
+- No new migrations since alpha.78.
+
 ## 0.1.0-alpha.78 — 2026-11-13
 
 - The manual CI check for a published image verifies runtime observation with a real Compose stack, including scheduler interruption and recovery.

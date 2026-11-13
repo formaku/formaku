@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.78**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.79**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -24,7 +24,7 @@ This is **0.1.0-alpha.78**. The remaining v1 work is listed below.
 
 - Filter scheduled content drafts in the panel and browse paginated collection records.
 
-- A read-only Artisan command checks Formaku migrations, panel authorization configuration, and the installed JavaScript and CSS.
+- A read-only Artisan command checks Formaku migrations, panel authorization configuration, and whether all bundled panel assets match the published files.
 
 - The starter runs the package’s scheduled publication command every minute. Composer hosts can register the same command in their Laravel scheduler.
 

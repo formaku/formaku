@@ -5,6 +5,7 @@ namespace Formaku\Cms\Console;
 use Formaku\Cms\FormakuServiceProvider;
 use Illuminate\Console\Command;
 use Illuminate\Database\Migrations\Migrator;
+use Symfony\Component\Finder\Finder;
 use Throwable;
 
 class DoctorCommand extends Command
@@ -95,7 +96,23 @@ class DoctorCommand extends Command
 
         $passed = true;
         foreach ($paths as $source => $target) {
-            foreach (['main.css', 'app.js'] as $asset) {
+            $entrypoints = ['main.css', 'app.js'];
+            $assets = $entrypoints;
+            if (is_dir($source)) {
+                try {
+                    foreach (Finder::create()->files()->ignoreDotFiles(false)->ignoreVCS(false)->in($source)->sortByName() as $file) {
+                        $asset = $file->getRelativePathname();
+                        if (! in_array($asset, $entrypoints, true)) {
+                            $assets[] = $asset;
+                        }
+                    }
+                } catch (Throwable) {
+                    $this->error('Could not list the bundled panel assets. Check the package installation.');
+                    $passed = false;
+                }
+            }
+
+            foreach ($assets as $asset) {
                 $bundle = $this->assetHash($source.'/'.$asset);
                 $published = $this->assetHash($target.'/'.$asset);
 
@@ -106,13 +123,19 @@ class DoctorCommand extends Command
                 } elseif ($published !== $bundle) {
                     $this->error("Published {$asset} does not match the bundle. Run php artisan formaku:install.");
                 } else {
-                    $this->info("Published {$asset} matches the bundle.");
+                    if (in_array($asset, $entrypoints, true)) {
+                        $this->info("Published {$asset} matches the bundle.");
+                    }
 
                     continue;
                 }
 
                 $passed = false;
             }
+        }
+
+        if ($passed) {
+            $this->info('All published Formaku panel assets match the bundle.');
         }
 
         return $passed;
