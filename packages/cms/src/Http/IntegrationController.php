@@ -7,6 +7,7 @@ use Formaku\Cms\Models\AiTask;
 use Formaku\Cms\Models\Release;
 use Formaku\Cms\Services\AiGateway;
 use Formaku\Cms\Services\DeploymentReceipt;
+use Formaku\Cms\Services\RuntimeObservation;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -148,6 +149,14 @@ class IntegrationController
         $cfg = $this->githubConfiguration();
 
         return response()->json($receipt->read($cfg['repository'], $cfg['token'], (int) $data['run_id'], $data['release_id'], $data['image']))
+            ->header('Cache-Control', 'no-store');
+    }
+
+    public function runtimeObservation(RuntimeObservation $observation): JsonResponse
+    {
+        $cfg = $this->githubConfiguration();
+
+        return response()->json($observation->read($cfg['repository'], $cfg['token']))
             ->header('Cache-Control', 'no-store');
     }
 

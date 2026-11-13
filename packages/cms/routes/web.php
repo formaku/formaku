@@ -40,6 +40,7 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
   Route::get('/releases',[IntegrationController::class,'releases'])->middleware(Access::class.':build');Route::post('/releases',[IntegrationController::class,'release'])->middleware(Access::class.':build');
   Route::post('/releases/{release}/refresh', [IntegrationController::class, 'refreshRelease'])->whereUuid('release')->middleware(Access::class.':build');
   Route::get('/deployments/receipt', [IntegrationController::class, 'deploymentReceipt'])->middleware(Access::class.':build');
+  Route::get('/deployments/runtime-observation', [IntegrationController::class, 'runtimeObservation'])->middleware(Access::class.':build');
  });
 });
 if (config('formaku.public_routes')) {

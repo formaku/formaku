@@ -236,6 +236,12 @@ On `main`, run **Read runtime status**. It uses the existing `production` enviro
 
 For automation, download the `formaku-runtime-<attempt>` artifact from the runtime workflow. Its `formaku-runtime.json` contains the run ID, attempt number, UTC observation time and host state. The image reference is included for `verified` observations. Match the run and attempt before using the result. Run a new observation to check the host again.
 
+### Read a recorded runtime observation in Formaku
+
+With Build access, open **Releases → Runtime observation** and select **Read observation**. The CMS reads the artifact for the latest manual run of **Read runtime status** on `main` in `GITHUB_REPOSITORY`. It needs PHP’s ZIP extension and a `GITHUB_TOKEN` with [Actions read permission](https://docs.github.com/en/rest/actions/artifacts#list-workflow-run-artifacts).
+
+The panel shows the run, attempt and saved observation time. The image digest appears for a verified observation. If the latest run is still in progress or its artifact is unavailable, the panel shows that state for the same run. Start a new run in GitHub Actions to record a fresh observation, then select **Read observation** again in Formaku.
+
 Automatic deployment supports backwards-compatible migrations. An image rollback uses the existing database and files. Recover data from the encrypted archive as a separate operation if needed. Store `backup.key` separately from the host and test data recovery before using real data. CI exercises deployment failures against a synthetic Compose fixture. The target VPS still needs its own acceptance test.
 
 Compose must read .env.docker for interpolation: use docker compose --env-file .env.docker. The host helper exports DB_PASSWORD from the runtime file through Compose's env-file option (see script).

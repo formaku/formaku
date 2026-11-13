@@ -108,6 +108,23 @@ type Release = {
   state: keyof typeof releaseStateLabels;
   run_url: string | null;
 };
+const runtimeHostLabels = {
+  verified: "Zgodność runtime potwierdzona",
+  transitioning: "Wykryto zmianę podczas odczytu",
+  mismatch: "Wykryto niezgodność obrazu lub usług",
+  unavailable: "Stan hosta był niedostępny",
+};
+type RuntimeObservationResult = { state: "none" } | ({
+  run_id: number;
+  run_attempt: number;
+  run_url: string;
+} & (
+  { state: "pending" | "unavailable" } |
+  { state: "observed"; observation: {
+    recorded_at: string;
+    host: { state: keyof typeof runtimeHostLabels; image?: string };
+  } }
+));
 const deploymentHostStateLabels = {
   deploying: "Wdrażanie w toku",
   deployed: "Wdrożono",
@@ -308,6 +325,17 @@ const deploymentReceiptQuery = ref({ run_id: "", release_id: "", image: "" });
 const deploymentReceiptResult = ref<DeploymentReceiptResult | null>(null);
 const deploymentReceiptLoading = ref(false);
 const deploymentReceiptFailed = ref(false);
+const runtimeObservation = ref<RuntimeObservationResult | null>(null);
+const runtimeObservationLoading = ref(false);
+const runtimeObservationFailed = ref(false);
+let runtimeObservationRequest = 0;
+watch(section, (current) => {
+  if (current === "releases") return;
+  runtimeObservationRequest++;
+  runtimeObservation.value = null;
+  runtimeObservationLoading.value = false;
+  runtimeObservationFailed.value = false;
+}, { flush: "sync" });
 const templateName = ref("");
 const templatePage = ref<PageTemplatePage | null>(null);
 const templateId = ref<number | null>(null);
@@ -1165,6 +1193,21 @@ async function checkDeploymentReceipt() {
     deploymentReceiptFailed.value = true;
   } finally {
     deploymentReceiptLoading.value = false;
+  }
+}
+async function readRuntimeObservation() {
+  if (runtimeObservationLoading.value) return;
+  const requestId = ++runtimeObservationRequest;
+  runtimeObservation.value = null;
+  runtimeObservationFailed.value = false;
+  runtimeObservationLoading.value = true;
+  try {
+    const result: RuntimeObservationResult = await request("/deployments/runtime-observation");
+    if (requestId === runtimeObservationRequest) runtimeObservation.value = result;
+  } catch {
+    if (requestId === runtimeObservationRequest) runtimeObservationFailed.value = true;
+  } finally {
+    if (requestId === runtimeObservationRequest) runtimeObservationLoading.value = false;
   }
 }
 function downloadJson(filename: string, data: unknown) {
@@ -2821,6 +2864,53 @@ const title = computed(
                 {{ t("Zbuduj wydanie") }}<ArrowUpRight :size="16" />
               </button>
             </div>
+            <section v-if="boot?.abilities?.build" class="card card-border bg-base-100" aria-labelledby="runtime-observation-heading">
+              <div class="card-body gap-4">
+                <h2 id="runtime-observation-heading" class="card-title">{{ t("Obserwacja runtime") }}</h2>
+                <p class="text-sm text-base-content/70">
+                  {{ t("Odczytaj wynik najnowszego ręcznego uruchomienia workflow Read runtime status w GitHub Actions.") }}
+                </p>
+                <div class="card-actions">
+                  <button type="button" class="btn" :disabled="runtimeObservationLoading" @click="readRuntimeObservation">
+                    <span v-if="runtimeObservationLoading" class="loading loading-spinner loading-xs" aria-hidden="true"></span>
+                    {{ runtimeObservationLoading ? t("Odczytywanie obserwacji…") : t("Odczytaj obserwację") }}
+                  </button>
+                </div>
+                <p v-if="runtimeObservationFailed" class="alert alert-error" role="alert">
+                  {{ t("Nie udało się odczytać obserwacji runtime.") }}
+                </p>
+                <div role="status">
+                  <p v-if="runtimeObservation?.state === 'none'">{{ t("Brak ręcznych uruchomień workflow odczytu runtime.") }}</p>
+                  <div v-else-if="runtimeObservation" class="space-y-3 rounded-box bg-base-200 p-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                      <p class="font-medium">{{ t("Uruchomienie {0}, próba {1}", runtimeObservation.run_id, runtimeObservation.run_attempt) }}</p>
+                      <a :href="runtimeObservation.run_url" target="_blank" rel="noopener noreferrer" class="link">
+                        {{ t("Otwórz uruchomienie w GitHub Actions") }}
+                      </a>
+                    </div>
+                    <p v-if="runtimeObservation.state === 'pending'">{{ t("Workflow odczytu runtime nadal trwa.") }}</p>
+                    <p v-else-if="runtimeObservation.state === 'unavailable'">{{ t("Zapisana obserwacja jest niedostępna dla tej próby.") }}</p>
+                    <template v-else-if="runtimeObservation.state === 'observed'">
+                      <p class="text-sm text-base-content/70">{{ t("Historyczna obserwacja zapisana przez GitHub Actions.") }}</p>
+                      <dl class="space-y-2 text-sm">
+                        <div>
+                          <dt class="font-medium">{{ t("Czas zapisu") }}</dt>
+                          <dd><time :datetime="runtimeObservation.observation.recorded_at">{{ formatPublicationTime(runtimeObservation.observation.recorded_at) }}</time></dd>
+                        </div>
+                        <div>
+                          <dt class="font-medium">{{ t("Stan hosta w obserwacji") }}</dt>
+                          <dd>{{ t(runtimeHostLabels[runtimeObservation.observation.host.state]) }}</dd>
+                        </div>
+                        <div v-if="runtimeObservation.observation.host.state === 'verified' && runtimeObservation.observation.host.image">
+                          <dt class="font-medium">{{ t("Digest obrazu") }}</dt>
+                          <dd class="mono break-all">{{ runtimeObservation.observation.host.image }}</dd>
+                        </div>
+                      </dl>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </section>
             <section
               v-if="boot?.abilities?.build"
               class="card card-border bg-base-100"
