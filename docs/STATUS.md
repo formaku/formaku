@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.79**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.80**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 

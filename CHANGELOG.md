@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.80 — 2026-11-13
+
+- `formaku:doctor` reports missing CMS tables even when migration history is complete.
+- CI restores a synthetic encrypted backup and verifies the recovered page and media download.
+- Composer release checks verify detection and recovery of a missing editor chunk.
+- No new migrations since alpha.79.
+
 ## 0.1.0-alpha.79 — 2026-11-13
 
 - The installation check verifies all published panel assets, including editor chunks and fonts.
