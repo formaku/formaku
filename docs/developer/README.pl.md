@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.80' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.81' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -36,11 +36,11 @@ Polecenie sprawdza ustawienia mechanizmu sesji i funkcji autoryzacji, historię 
 
 Jeśli brakuje plików panelu w kopii źródeł, zbuduj je w głównym katalogu repozytorium Formaku. Brakujące lub nieaktualne pliki publiczne odśwież przez `php artisan formaku:install`. Przy zaległych migracjach postępuj zgodnie z [instrukcją aktualizacji](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). Aby sprawdzić uprawnienia konkretnej roli, zaloguj się w aplikacji jako użytkownik tej roli i otwórz panel.
 
-W CI i skryptach wdrożeniowych uruchom `php artisan formaku:doctor --json` z wersji kodu obsługującej tę opcję. Polecenie zwraca jeden obiekt JSON z polem `ok` i wynikami logicznymi `authentication`, `database` i `assets` w polu `checks`. Pole `public_routes` podaje stan konfiguracji tras publicznych. Kod wyjścia to 0, jeśli wszystkie kontrole przeszły, albo 1, jeśli któraś wykryła problem. Błąd uruchamiania Laravel może wystąpić przed wypisaniem JSON.
+W CI i skryptach wdrożeniowych uruchom `php artisan formaku:doctor --json` w wersji alpha.81 lub nowszej. Polecenie zwraca jeden obiekt JSON z polem `ok` i wynikami logicznymi `authentication`, `database` i `assets` w polu `checks`. Pole `public_routes` podaje stan konfiguracji tras publicznych. Kod wyjścia to 0, jeśli wszystkie kontrole przeszły, albo 1, jeśli któraś wykryła problem. Błąd uruchamiania Laravel może wystąpić przed wypisaniem JSON.
 
 ### Aktualizacja istniejącej instalacji Composer
 
-Po aktualizacji do alpha.80 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
+Po aktualizacji do alpha.81 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
 
 ```sh
 php artisan formaku:install
@@ -67,12 +67,12 @@ Uruchom ręcznie `php artisan formaku:publish-scheduled`, aby zobaczyć podsumow
 
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.80.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.80). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.81.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.81). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.80.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.81.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.80' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.81' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```

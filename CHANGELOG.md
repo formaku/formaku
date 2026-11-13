@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.81 — 2026-11-13
+
+- Run `php artisan formaku:doctor --json` to read installation diagnostics in CI and deployment scripts.
+- The Composer archive check verifies the JSON result and exit codes on complete and incomplete databases.
+- No new migrations since alpha.80.
+
 ## 0.1.0-alpha.80 — 2026-11-13
 
 - `formaku:doctor` reports missing CMS tables even when migration history is complete.
