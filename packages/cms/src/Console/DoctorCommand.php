@@ -14,6 +14,26 @@ class DoctorCommand extends Command
 
     protected $description = 'Check Formaku authentication, migrations and published panel assets';
 
+    private const REQUIRED_TABLES = [
+        'formaku_ai_tasks',
+        'formaku_assistant_creates',
+        'formaku_assistants',
+        'formaku_collections',
+        'formaku_events',
+        'formaku_media',
+        'formaku_media_usages',
+        'formaku_page_templates',
+        'formaku_portal_attachments',
+        'formaku_record_translations',
+        'formaku_records',
+        'formaku_relations',
+        'formaku_releases',
+        'formaku_revisions',
+        'formaku_schema_versions',
+        'formaku_site_navigation',
+        'formaku_slug_redirects',
+    ];
+
     public function handle(Migrator $migrator): int
     {
         $checks = [
@@ -81,6 +101,23 @@ class DoctorCommand extends Command
         }
 
         $this->info('Applied Formaku migrations: '.count($migrations).'.');
+
+        try {
+            $schema = $migrator->resolveConnection(null)->getSchemaBuilder();
+            $missing = array_filter(self::REQUIRED_TABLES, fn (string $table): bool => ! $schema->hasTable($table));
+        } catch (Throwable) {
+            $this->error('Could not inspect Formaku tables. Check the configured database connection.');
+
+            return false;
+        }
+
+        if ($missing !== []) {
+            $this->error('Missing Formaku tables: '.implode(', ', $missing).'. Check the database or restore a complete backup.');
+
+            return false;
+        }
+
+        $this->info('All required Formaku tables exist.');
 
         return true;
     }

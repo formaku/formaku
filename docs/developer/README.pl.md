@@ -32,7 +32,7 @@ Po instalacji lub aktualizacji uruchom polecenie diagnostyczne w katalogu aplika
 php artisan formaku:doctor
 ```
 
-Polecenie sprawdza ustawienia mechanizmu sesji i funkcji autoryzacji, historię migracji Formaku oraz zgodność wszystkich plików panelu z zainstalowanym pakietem, w tym modułów edytora i fontów. Wyświetla też stan tras publicznych. Gdy któraś kontrola się nie powiedzie, polecenie zwraca niezerowy kod wyjścia.
+Polecenie sprawdza ustawienia mechanizmu sesji i funkcji autoryzacji, historię migracji Formaku oraz zgodność wszystkich plików panelu z zainstalowanym pakietem, w tym modułów edytora i fontów. Wyświetla też stan tras publicznych. Gdy któraś kontrola się nie powiedzie, polecenie zwraca niezerowy kod wyjścia. Po sprawdzeniu historii migracji polecenie sprawdza też, czy istnieją wszystkie wymagane tabele Formaku. Jeśli historia jest kompletna, a tabel brakuje, sprawdź bazę wybraną w Laravel i zawartość odtworzonej kopii.
 
 Jeśli brakuje plików panelu w kopii źródeł, zbuduj je w głównym katalogu repozytorium Formaku. Brakujące lub nieaktualne pliki publiczne odśwież przez `php artisan formaku:install`. Przy zaległych migracjach postępuj zgodnie z [instrukcją aktualizacji](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). Aby sprawdzić uprawnienia konkretnej roli, zaloguj się w aplikacji jako użytkownik tej roli i otwórz panel.
 

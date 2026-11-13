@@ -32,7 +32,7 @@ Run the read-only check from the Laravel application directory after installatio
 php artisan formaku:doctor
 ```
 
-The command checks the configured guard and authorization callback, Formaku’s migration history, and whether every bundled panel asset has a matching published file, including editor chunks and fonts. It also prints the state of public routes. An installation check that fails produces a nonzero exit code.
+The command checks the configured guard and authorization callback, Formaku’s migration history, and whether every bundled panel asset has a matching published file, including editor chunks and fonts. It also prints the state of public routes. An installation check that fails produces a nonzero exit code. After confirming the migration history, the command checks that every required Formaku table exists. If it reports missing tables despite complete history, check the database selected by Laravel and verify that the backup included those tables.
 
 If the frontend files are missing from a source checkout, build them from the Formaku repository root. If the published files are missing or outdated, run `php artisan formaku:install` again. For pending migrations, follow the [upgrade guide](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). To verify access for a particular role, sign in to the host app and open the panel as a user with that role.
 

@@ -134,6 +134,23 @@ class DoctorCommandTest extends TestCase
         $this->assertFileDoesNotExist($missingAsset);
     }
 
+    public function test_detects_missing_tables_despite_complete_migration_history(): void
+    {
+        Schema::rename('formaku_site_navigation', 'formaku_site_navigation_fixture');
+
+        try {
+            $this->artisan('formaku:doctor')
+                ->expectsOutputToContain('Applied Formaku migrations:')
+                ->expectsOutput('Missing Formaku tables: formaku_site_navigation. Check the database or restore a complete backup.')
+                ->assertFailed();
+
+            $this->assertFalse(Schema::hasTable('formaku_site_navigation'));
+            $this->assertTrue(Schema::hasTable('formaku_site_navigation_fixture'));
+        } finally {
+            Schema::rename('formaku_site_navigation_fixture', 'formaku_site_navigation');
+        }
+    }
+
     public function test_reports_an_empty_migration_connection_without_creating_the_history_table(): void
     {
         $default = config('database.default');
