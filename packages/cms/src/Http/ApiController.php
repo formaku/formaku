@@ -18,6 +18,7 @@ use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Registry;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\RevisionChanges;
+use Formaku\Cms\Services\RuntimeObservation;
 use Formaku\Cms\Services\SchemaValidator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
@@ -45,6 +46,10 @@ class ApiController
 
         if ($bootstrap['abilities']['build']) {
             $bootstrap['roles'] = $this->roleCatalog();
+            $runtimeWorkflowUrl = RuntimeObservation::workflowUrl(config('formaku.github.repository'));
+            if ($runtimeWorkflowUrl !== null) {
+                $bootstrap['runtimeWorkflowUrl'] = $runtimeWorkflowUrl;
+            }
         }
 
         return $bootstrap;

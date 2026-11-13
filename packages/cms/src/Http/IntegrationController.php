@@ -7,6 +7,7 @@ use Formaku\Cms\Models\AiTask;
 use Formaku\Cms\Models\Release;
 use Formaku\Cms\Services\AiGateway;
 use Formaku\Cms\Services\DeploymentReceipt;
+use Formaku\Cms\Services\GitHubActionsArtifact;
 use Formaku\Cms\Services\RuntimeObservation;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\JsonResponse;
@@ -166,8 +167,7 @@ class IntegrationController
         $cfg = config('formaku.github', []);
         abort_unless(
             is_string($cfg['token'] ?? null) && $cfg['token'] !== ''
-            && is_string($cfg['repository'] ?? null)
-            && preg_match('~\A(?!\.{1,2}/)[A-Za-z0-9_.-]+/(?!\.{1,2}\z)[A-Za-z0-9_.-]+\z~', $cfg['repository']),
+            && GitHubActionsArtifact::validRepository($cfg['repository'] ?? null),
             422,
             'Configure the GitHub repository and token first.',
         );

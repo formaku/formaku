@@ -44,6 +44,26 @@ class RuntimeObservationTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_bootstrap_only_exposes_the_configured_runtime_workflow_to_builders(): void
+    {
+        $bootstrap = '/formaku/api/v1/bootstrap';
+        $this->actingAs(User::factory()->create(['role' => 'editor']))
+            ->getJson($bootstrap)->assertOk()->assertJsonMissingPath('runtimeWorkflowUrl');
+
+        $this->admin();
+        $url = 'https://github.com/example/cms/actions/workflows/runtime-status.yml';
+        $this->getJson($bootstrap)->assertOk()->assertJsonPath('runtimeWorkflowUrl', $url)->assertDontSee('synthetic-token');
+
+        config(['formaku.github.token' => null]);
+        $this->getJson($bootstrap)->assertOk()->assertJsonPath('runtimeWorkflowUrl', $url);
+        foreach ([null, ['example/cms'], 'https://github.com/example/cms', 'example/cms?secret=value', '../cms', 'example/..'] as $repository) {
+            config(['formaku.github.repository' => $repository]);
+            $this->getJson($bootstrap)->assertOk()->assertJsonMissingPath('runtimeWorkflowUrl');
+        }
+
+        Http::assertNothingSent();
+    }
+
     public function test_no_dispatch_and_pending_latest_attempt_are_distinct(): void
     {
         Http::fake([

@@ -240,7 +240,7 @@ For automation, download the `formaku-runtime-<attempt>` artifact from the runti
 
 With Build access, open **Releases → Runtime observation** and select **Read observation**. The CMS reads the artifact for the latest manual run of **Read runtime status** on `main` in `GITHUB_REPOSITORY`. It needs PHP’s ZIP extension and a `GITHUB_TOKEN` with [Actions read permission](https://docs.github.com/en/rest/actions/artifacts#list-workflow-run-artifacts).
 
-The panel shows the run, attempt and saved observation time. The image digest appears for a verified observation. If the latest run is still in progress or its artifact is unavailable, the panel shows that state for the same run. Start a new run in GitHub Actions to record a fresh observation, then select **Read observation** again in Formaku.
+The panel shows the run, attempt and saved observation time. The image digest appears for a verified observation. If the latest run is still in progress or its artifact is unavailable, the panel shows that state for the same run. To record a fresh observation, select **Open runtime status workflow**, start a new run on `main` in GitHub Actions, then return to Formaku and select **Read observation**. The workflow link uses `GITHUB_REPOSITORY` even before an observation exists.
 
 Automatic deployment supports backwards-compatible migrations. An image rollback uses the existing database and files. Recover data from the encrypted archive as a separate operation if needed. Store `backup.key` separately from the host and test data recovery before using real data. CI exercises deployment failures against a synthetic Compose fixture. The target VPS still needs its own acceptance test.
 

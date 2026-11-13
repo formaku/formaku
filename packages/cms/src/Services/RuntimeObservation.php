@@ -12,6 +12,13 @@ class RuntimeObservation
 
     public function __construct(private GitHubActionsArtifact $artifacts) {}
 
+    public static function workflowUrl(mixed $repository): ?string
+    {
+        return GitHubActionsArtifact::validRepository($repository)
+            ? 'https://github.com/'.$repository.'/actions/workflows/'.self::WORKFLOW
+            : null;
+    }
+
     public function read(string $repository, string $token): array
     {
         abort_unless(class_exists(ZipArchive::class), 503, 'Runtime observations require the PHP ZIP extension.');

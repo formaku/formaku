@@ -2867,8 +2867,16 @@ const title = computed(
             <section v-if="boot?.abilities?.build" class="card card-border bg-base-100" aria-labelledby="runtime-observation-heading">
               <div class="card-body gap-4">
                 <h2 id="runtime-observation-heading" class="card-title">{{ t("Obserwacja runtime") }}</h2>
-                <p class="text-sm text-base-content/70">
-                  {{ t("Odczytaj wynik najnowszego ręcznego uruchomienia workflow Read runtime status w GitHub Actions.") }}
+                <div v-if="boot.runtimeWorkflowUrl" class="space-y-2">
+                  <a :href="boot.runtimeWorkflowUrl" target="_blank" rel="noopener noreferrer" class="link">
+                    {{ t("Otwórz workflow odczytu runtime") }}
+                  </a>
+                  <p class="text-sm text-base-content/70">
+                    {{ t("W GitHub Actions uruchom nowy odczyt na gałęzi main, wróć tutaj i wybierz „Odczytaj obserwację”.") }}
+                  </p>
+                </div>
+                <p v-else class="text-sm text-base-content/70">
+                  {{ t("Skonfiguruj GITHUB_REPOSITORY, aby otworzyć workflow odczytu runtime.") }}
                 </p>
                 <div class="card-actions">
                   <button type="button" class="btn" :disabled="runtimeObservationLoading" @click="readRuntimeObservation">

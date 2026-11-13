@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("reads historical runtime observations without starting a workflow", async ({ page }) => {
+  const workflowUrl = "https://github.com/formaku/formaku/actions/workflows/runtime-status.yml";
   const run = {
     run_id: 820001,
     run_attempt: 2,
@@ -26,7 +27,15 @@ test("reads historical runtime observations without starting a workflow", async 
   const holdFailure = Promise.withResolvers<void>();
   const holdNavigation = Promise.withResolvers<void>();
   let received = 0;
+  let configured = true;
   await page.addInitScript(() => localStorage.setItem("formaku.admin.locale", "en"));
+  await page.route("**/formaku/api/v1/bootstrap", async (route) => {
+    const response = await route.fetch();
+    const bootstrap = await response.json();
+    if (configured) bootstrap.runtimeWorkflowUrl = workflowUrl;
+    else delete bootstrap.runtimeWorkflowUrl;
+    await route.fulfill({ response, json: bootstrap });
+  });
   await page.route("**/formaku/api/v1/deployments/runtime-observation", async (route) => {
     expect(route.request().method()).toBe("GET");
     const index = received++;
@@ -44,18 +53,27 @@ test("reads historical runtime observations without starting a workflow", async 
   const panel = page.getByRole("region", { name: "Runtime observation" });
   const read = panel.getByRole("button", { name: "Read observation" });
   const result = panel.getByRole("status");
+  const workflow = panel.getByRole("link", { name: "Open runtime status workflow" });
+  const attempt = result.getByRole("link", { name: "Open run in GitHub Actions" });
   await expect(read).toBeVisible();
+  await expect(workflow).toHaveAttribute("href", workflowUrl);
+  await expect(workflow).toHaveAttribute("target", "_blank");
+  await expect(workflow).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(panel).toContainText("Start a new run on the main branch");
+  await expect(attempt).toHaveCount(0);
   expect(received).toBe(0);
 
   await read.click();
   await expect(result).toContainText("There are no manual runs");
+  await expect(workflow).toBeVisible();
   await read.click();
   await expect(result).toContainText("The runtime observation workflow is still in progress.");
   await read.click();
   await expect(result).toContainText("The saved observation is unavailable for this attempt.");
   await read.click();
   await expect(result).toContainText("Run 820001, attempt 2");
-  await expect(result.getByRole("link", { name: "Open run in GitHub Actions" })).toHaveAttribute("href", run.run_url);
+  await expect(attempt).toHaveAttribute("href", run.run_url);
+  await expect(workflow).toHaveAttribute("href", workflowUrl);
   await expect(result).toContainText("Historical observation recorded by GitHub Actions.");
   await expect(result.locator("time")).toHaveAttribute("datetime", recorded_at);
   await expect(result.locator("time")).not.toBeEmpty();
@@ -71,6 +89,7 @@ test("reads historical runtime observations without starting a workflow", async 
   }
   await expect(panel.getByRole("alert")).toContainText("Could not read the runtime observation.");
   await expect(result).toBeEmpty();
+  await expect(workflow).toBeVisible();
 
   const response = page.waitForResponse((response) =>
     response.url().endsWith("/deployments/runtime-observation"),
@@ -97,5 +116,16 @@ test("reads historical runtime observations without starting a workflow", async 
     await expect(result).toContainText(hostState);
     await expect(result).not.toContainText(image);
   }
+  expect(received).toBe(responses.length);
+
+  await page.getByRole("combobox", { name: "Panel language" }).selectOption("pl");
+  const polishPanel = page.getByRole("region", { name: "Obserwacja runtime" });
+  await expect(polishPanel.getByRole("link", { name: "Otwórz workflow odczytu runtime" })).toHaveAttribute("href", workflowUrl);
+  await expect(polishPanel).toContainText("uruchom nowy odczyt na gałęzi main");
+  configured = false;
+  await page.reload();
+  await releases.click();
+  await expect(workflow).toHaveCount(0);
+  await expect(panel).toContainText("Configure GITHUB_REPOSITORY to open the runtime status workflow.");
   expect(received).toBe(responses.length);
 });

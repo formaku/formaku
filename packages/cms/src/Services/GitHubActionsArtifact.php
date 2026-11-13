@@ -14,6 +14,12 @@ class GitHubActionsArtifact
 
     private const RECEIPT_LIMIT = 4096;
 
+    public static function validRepository(mixed $repository): bool
+    {
+        return is_string($repository)
+            && preg_match('~\A(?!\.{1,2}/)[A-Za-z0-9_.-]+/(?!\.{1,2}\z)[A-Za-z0-9_.-]+\z~', $repository) === 1;
+    }
+
     public function read(string $actions, string $token, int $runId, string $name, string $filename, bool $requireDigest = false): mixed
     {
         $response = $this->github($token, $actions.'/runs/'.$runId.'/artifacts', ['name' => $name, 'per_page' => 2]);
