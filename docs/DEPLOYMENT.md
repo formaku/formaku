@@ -275,4 +275,6 @@ tar -C "$recovery_uploads" -xzf "$restore_dir/uploads.tar.gz"
 
 Start the release that was running when the backup was taken, with the restored directory mounted as `/app/storage/app` and writable by its runtime user. Check `php artisan formaku:doctor`, open an existing published page, and check a known upload through the application. Keep the encrypted original and remove the temporary plaintext copy when the rehearsal is finished.
 
+For an automated rehearsal with synthetic data, install the starter's Composer dependencies, build and publish the panel assets, then run `bash tests/backup-recovery.sh`. The test uses PostgreSQL binaries from `pg_config --bindir` or `FORMAKU_TEST_PG_BIN` and needs PHP's PDO PostgreSQL extension. It starts a private Unix socket, restores to a fresh database, compares the extracted files and checks a published page.
+
 Compose must read .env.docker for interpolation: use docker compose --env-file .env.docker. The host helper exports DB_PASSWORD from the runtime file through Compose's env-file option (see script).

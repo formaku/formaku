@@ -92,7 +92,7 @@ jobs:
       - uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # v2
         with:
           php-version: '8.5'
-          extensions: gd, exif
+          extensions: gd, exif, pdo_pgsql
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
@@ -108,6 +108,13 @@ jobs:
           php apps/starter/artisan migrate --force
           php apps/starter/artisan formaku:install
           php scripts/e2e-fixtures.php
+      - name: Rehearse encrypted backup recovery
+        run: |
+          if ! command -v pg_config || [ ! -x "$(pg_config --bindir)/initdb" ]; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql libpq-dev
+          fi
+          bash tests/backup-recovery.sh
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npx playwright test --reporter=line,github
 
