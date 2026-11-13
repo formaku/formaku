@@ -12,7 +12,7 @@ export USER=formaku-deploy HOST=example.invalid
 export SSH_KEY='test-secret-private-key' KNOWN_HOSTS='test-pinned-host-key'
 export GITHUB_STEP_SUMMARY="$fixture/summary" TRACE="$fixture/trace"
 export DEPLOY_RESULT=0 STATUS_RESULT=0 STATUS_TIMEOUT=0
-unset FORMAKU_DEPLOYMENT_RECEIPT
+unset FORMAKU_DEPLOYMENT_RECEIPT FORMAKU_RUNTIME_OBSERVATION
 
 cat > "$fixture/bin/ssh" <<'MOCK'
 #!/usr/bin/env bash
@@ -110,13 +110,18 @@ run_status() {
 }
 
 run_runtime() {
-    local expected=$1 expected_summary=$2 result=0
+    local expected=$1 expected_summary=$2 observation_error=${3:-0} result=0
     : > "$TRACE"
     : > "$GITHUB_STEP_SUMMARY"
     env -u IMAGE -u RELEASE_ID bash "$root/scripts/deploy-via-ssh.sh" --runtime-only \
         > "$fixture/output" 2>&1 || result=$?
     [[ "$result" == "$expected" ]]
-    [[ ! -s "$fixture/output" && -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
+    [[ -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
+    if [[ "$observation_error" == 1 ]]; then
+        printf 'Could not write the deployment runtime observation.\n' | cmp - "$fixture/output"
+    else
+        [[ ! -s "$fixture/output" ]]
+    fi
     printf 'bounded runtime\nruntime\n' | cmp - "$TRACE"
     printf '### Deployment runtime\n\n%s\n' "$expected_summary" | cmp - "$GITHUB_STEP_SUMMARY"
 }
@@ -128,13 +133,25 @@ check_receipt() {
         "$FORMAKU_DEPLOYMENT_RECEIPT" > /dev/null
 }
 
+check_observation() {
+    jq -es --argjson run_id "$GITHUB_RUN_ID" --argjson run_attempt "$GITHUB_RUN_ATTEMPT" \
+        --argjson host "$1" '
+        length == 1 and (.[0] |
+            (.recorded_at | fromdateiso8601 | type) == "number"
+            and del(.recorded_at) == {format: 1, $run_id, $run_attempt, $host})
+    ' "$FORMAKU_RUNTIME_OBSERVATION" > /dev/null
+}
+
 export STATUS_RESPONSE
 STATUS_RESPONSE=$(status_json deployed)
 run_deploy 0
 grep -Fxq 'Host status: `deployed`' "$GITHUB_STEP_SUMMARY"
 
 export FORMAKU_DEPLOYMENT_RECEIPT="$fixture/deployment receipt.json"
+export FORMAKU_RUNTIME_OBSERVATION="$fixture/runtime observation.json"
+export GITHUB_RUN_ID=9876543210 GITHUB_RUN_ATTEMPT=2
 run_deploy 0
+[[ ! -e "$FORMAKU_RUNTIME_OBSERVATION" ]]
 check_receipt 0 '{"state":"deployed","rollback":null,"backup":null}'
 
 DEPLOY_RESULT=17
@@ -218,23 +235,28 @@ STATUS_TIMEOUT=1
 run_status 3 'Host status unavailable.'
 STATUS_TIMEOUT=0
 [[ ! -e "$receipt" ]]
+[[ ! -e "$FORMAKU_RUNTIME_OBSERVATION" ]]
 
 runtime_valid=$(jq -nc --arg image "$IMAGE" '{state:"verified", $image}')
 STATUS_RESPONSE=$runtime_valid
 printf 'existing deployment receipt\n' > "$receipt"
 run_runtime 0 "$(printf 'Host runtime: `verified`\n\nActive image: `%s`' "$IMAGE")"
+check_observation "$runtime_valid"
 printf 'existing deployment receipt\n' | cmp - "$receipt"
 rm -f -- "$receipt"
 
 result=0
+rm -f -- "$FORMAKU_RUNTIME_OBSERVATION"
 GITHUB_STEP_SUMMARY="$fixture" env -u IMAGE -u RELEASE_ID bash "$root/scripts/deploy-via-ssh.sh" --runtime-only \
     > "$fixture/output" 2>&1 || result=$?
 [[ "$result" == 3 && ! -e "$receipt" ]]
 grep -Fxq 'Could not write the deployment runtime summary.' "$fixture/output"
+check_observation "$runtime_valid"
 
 for state in transitioning mismatch unavailable; do
     STATUS_RESPONSE=$(jq -nc --arg state "$state" '{$state}')
     run_runtime 3 "$(printf 'Host runtime: `%s`' "$state")"
+    check_observation "$STATUS_RESPONSE"
 done
 
 for STATUS_RESPONSE in '' '{' '[]' "$runtime_valid"$'\n'"$runtime_valid" \
@@ -246,15 +268,29 @@ for STATUS_RESPONSE in '' '{' '[]' "$runtime_valid"$'\n'"$runtime_valid" \
     "$(jq -c '.image = "ghcr.io/example/site@sha256:bad"' <<< "$runtime_valid")" \
     "$(printf '%4097s%s' '' "$runtime_valid")"; do
     run_runtime 3 'Host runtime: `unavailable`'
+    check_observation '{"state":"unavailable"}'
 done
 STATUS_RESPONSE=$runtime_valid
 STATUS_RESULT=255
 run_runtime 3 'Host runtime: `unavailable`'
+check_observation '{"state":"unavailable"}'
 STATUS_RESULT=0
 STATUS_TIMEOUT=1
 run_runtime 3 'Host runtime: `unavailable`'
+check_observation '{"state":"unavailable"}'
 STATUS_TIMEOUT=0
 [[ ! -e "$receipt" ]]
+observation=$FORMAKU_RUNTIME_OBSERVATION
+rm -f -- "$observation"
+verified_summary=$(printf 'Host runtime: `verified`\n\nActive image: `%s`' "$IMAGE")
+FORMAKU_RUNTIME_OBSERVATION= run_runtime 0 "$verified_summary"
+GITHUB_RUN_ID='' run_runtime 3 "$verified_summary" 1
+GITHUB_RUN_ID=9007199254740992 run_runtime 3 "$verified_summary" 1
+GITHUB_RUN_ATTEMPT=0 run_runtime 3 "$verified_summary" 1
+GITHUB_RUN_ATTEMPT='bad attempt' run_runtime 3 "$verified_summary" 1
+FORMAKU_RUNTIME_OBSERVATION="$fixture" run_runtime 3 "$verified_summary" 1
+[[ ! -e "$observation" ]]
+[[ -z $(find "$fixture" -maxdepth 1 -name 'runtime observation.json.*' -print -quit) ]]
 
 : > "$TRACE"
 : > "$GITHUB_STEP_SUMMARY"
@@ -284,7 +320,7 @@ done
 result=0
 bash "$root/scripts/deploy-via-ssh.sh" --runtime-only extra > "$fixture/output" 2>&1 || result=$?
 [[ "$result" == 2 ]]
-[[ ! -s "$TRACE" && ! -s "$GITHUB_STEP_SUMMARY" && ! -e "$receipt" ]]
+[[ ! -s "$TRACE" && ! -s "$GITHUB_STEP_SUMMARY" && ! -e "$receipt" && ! -e "$observation" ]]
 [[ -z $(find "$TMPDIR" -mindepth 1 -print -quit) ]]
 
-printf 'PASS: pinned SSH deploy, status and runtime reads, scoped summaries and receipt, bounded queries and credential cleanup\n'
+printf 'PASS: pinned SSH deploy, status and runtime reads, scoped summaries and artifacts, bounded queries and credential cleanup\n'

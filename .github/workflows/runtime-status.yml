@@ -19,4 +19,12 @@ jobs:
           KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
           HOST: ${{ vars.DEPLOY_HOST }}
           USER: ${{ vars.DEPLOY_USER }}
+          FORMAKU_RUNTIME_OBSERVATION: ${{ runner.temp }}/formaku-runtime.json
         run: bash scripts/deploy-via-ssh.sh --runtime-only
+      - name: Upload runtime observation
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: formaku-runtime-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/formaku-runtime.json
+          if-no-files-found: error

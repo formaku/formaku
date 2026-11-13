@@ -234,6 +234,8 @@ formaku-deploy ALL=(root) NOPASSWD: /usr/local/sbin/formaku-deployctl runtime
 
 On `main`, run **Read runtime status**. It uses the existing `production` environment and pinned SSH host key. The summary includes the observed state and, for `verified`, the full image digest. A failed run can report `transitioning`, `mismatch`, or `unavailable`. For deployment attempt history, use **Read deployment status** with the attempt's UUID and image.
 
+For automation, download the `formaku-runtime-<attempt>` artifact from the runtime workflow. Its `formaku-runtime.json` contains the run ID, attempt number, UTC observation time and host state. The image reference is included for `verified` observations. Match the run and attempt before using the result. Run a new observation to check the host again.
+
 Automatic deployment supports backwards-compatible migrations. An image rollback uses the existing database and files. Recover data from the encrypted archive as a separate operation if needed. Store `backup.key` separately from the host and test data recovery before using real data. CI exercises deployment failures against a synthetic Compose fixture. The target VPS still needs its own acceptance test.
 
 Compose must read .env.docker for interpolation: use docker compose --env-file .env.docker. The host helper exports DB_PASSWORD from the runtime file through Compose's env-file option (see script).

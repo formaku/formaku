@@ -44,6 +44,22 @@ connection=(
     "$USER@$HOST"
 )
 
+write_runtime_observation() {
+    local path=$1 state=$2 image=$3 recorded_at
+    local run_id=${GITHUB_RUN_ID:-} run_attempt=${GITHUB_RUN_ATTEMPT:-}
+    [[ "$run_id" =~ ^[1-9][0-9]{0,15}$ && "$run_attempt" =~ ^[1-9][0-9]{0,15}$ && ! -d "$path" ]] || return 1
+    recorded_at=$(date -u '+%Y-%m-%dT%H:%M:%SZ') || return 1
+    receipt_tmp=$(mktemp -- "${path}.XXXXXX") || return 1
+    jq -ne --argjson run_id "$run_id" --argjson run_attempt "$run_attempt" \
+        --arg recorded_at "$recorded_at" --arg state "$state" --arg image "$image" '
+        select($run_id <= 9007199254740991 and $run_attempt <= 9007199254740991)
+        | {format: 1, $run_id, $run_attempt, $recorded_at,
+            host: ({$state} + if $state == "verified" then {$image} else {} end)}
+    ' > "$receipt_tmp" || return 1
+    mv -f -- "$receipt_tmp" "$path" || return 1
+    receipt_tmp=
+}
+
 if (( runtime_only )); then
     runtime_observation=unavailable
     if timeout --kill-after=2s 55s "${connection[@]}" runtime 2>/dev/null \
@@ -72,6 +88,16 @@ if (( runtime_only )); then
         ' "$ssh_dir/runtime.json" 2>/dev/null) || runtime_observation=unavailable
     fi
     runtime_state=${runtime_observation%% *}
+    runtime_result=3
+    if [[ "$runtime_state" == verified ]]; then
+        runtime_result=0
+    fi
+    if [[ -n "${FORMAKU_RUNTIME_OBSERVATION:-}" ]]; then
+        if ! write_runtime_observation "$FORMAKU_RUNTIME_OBSERVATION" "$runtime_state" "${runtime_observation#verified }" 2>/dev/null; then
+            echo 'Could not write the deployment runtime observation.' >&2
+            runtime_result=3
+        fi
+    fi
     {
         printf '### Deployment runtime\n\nHost runtime: `%s`\n' "$runtime_state"
         if [[ "$runtime_state" == verified ]]; then
@@ -81,10 +107,7 @@ if (( runtime_only )); then
         echo 'Could not write the deployment runtime summary.' >&2
         exit 3
     }
-    if [[ "$runtime_state" == verified ]]; then
-        exit 0
-    fi
-    exit 3
+    exit "$runtime_result"
 fi
 
 deploy_result=0
