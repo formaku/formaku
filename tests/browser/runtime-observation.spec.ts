@@ -31,6 +31,7 @@ test("reads historical runtime observations without starting a workflow", async 
   await page.addInitScript(() => localStorage.setItem("formaku.admin.locale", "en"));
   await page.route("**/formaku/api/v1/bootstrap", async (route) => {
     const response = await route.fetch();
+    expect(response.ok(), "Authenticated panel bootstrap").toBe(true);
     const bootstrap = await response.json();
     if (configured) bootstrap.runtimeWorkflowUrl = workflowUrl;
     else delete bootstrap.runtimeWorkflowUrl;
@@ -49,6 +50,8 @@ test("reads historical runtime observations without starting a workflow", async 
   await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
   await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
   const releases = page.getByRole("button", { name: "Releases", exact: true });
+  // The Releases button is visible before the panel receives the build permission.
+  await expect(page.getByRole("button", { name: "Website assistant", exact: true })).toBeVisible();
   await releases.click();
   const panel = page.getByRole("region", { name: "Runtime observation" });
   const read = panel.getByRole("button", { name: "Read observation" });
@@ -124,8 +127,9 @@ test("reads historical runtime observations without starting a workflow", async 
   await expect(polishPanel).toContainText("uruchom nowy odczyt na gałęzi main");
   configured = false;
   await page.reload();
+  await expect(page.getByRole("button", { name: "Website assistant", exact: true })).toBeVisible();
   await releases.click();
-  await expect(workflow).toHaveCount(0);
   await expect(panel).toContainText("Configure GITHUB_REPOSITORY to open the runtime status workflow.");
+  await expect(workflow).toHaveCount(0);
   expect(received).toBe(responses.length);
 });
