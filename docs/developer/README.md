@@ -245,3 +245,23 @@ APP_KEY="base64:$(openssl rand -base64 32)" php artisan test --compact --filter=
 ```
 
 The test covers draft creation, preview, publication, HTML escaping, and extension authentication, resource scope, and action validation in both the panel API and host routes.
+
+## Run an isolated merchant installation
+
+Set both `FORMAKU_MERCHANT_ID` and `FORMAKU_MERCHANT_HOST` to enable managed mode in the Laravel starter. It uses one process group per merchant. Start its HTTP application, queue worker and scheduler with the same merchant settings. Keep writable storage and the Laravel bootstrap cache separate for each installation. Run each group with a filesystem identity or container that can access only its own writable volume.
+
+Use the [Formaku Platform registry](https://github.com/formaku/platform) to generate the merchant UUID, verified hostname, PostgreSQL database name and role name. Supply the database endpoint, role password and a unique `APP_KEY` separately. Create the database with that merchant's dedicated login role as owner. Revoke database `CONNECT` from `PUBLIC`, and keep merchant roles free of superuser privileges and membership in other merchant roles. Run the CMS and Commerce migrations against that installation's database.
+
+Configure HTTPS at the reverse proxy and route each approved hostname only to its own HTTP process. Forward the canonical hostname in the `Host` header, including on upstream health checks. The starter returns HTTP 421 on a host mismatch before starting a session. It uses the merchant database for sessions, cache, rate limits and queues. Serve uploaded media through the CMS routes.
+
+To enable the optional [Commerce package](https://github.com/formaku/commerce), install it in the starter and set `FORMAKU_COMMERCE_ENABLED=true`. In the starter, Commerce catalog, inventory, order management and payment confirmation require the administrator role.
+
+Run the cross-repository test from the CMS checkout after installing the starter's Composer dependencies. Supply the Commerce 0.2 foundation checkout and the Platform 0.2 bootstrap checkout. The script starts a temporary PostgreSQL server on loopback, creates two databases with separate login roles, runs the Platform registry and CMS isolation tests, and shuts down the server.
+
+```sh
+scripts/test-merchant-isolation.sh /path/to/commerce /path/to/platform
+```
+
+Set `FORMAKU_TEST_PG_BIN` to the directory containing `initdb`, `pg_ctl` and `psql` if `pg_config --bindir` does not point to the server binaries. The PHP CLI needs the PostgreSQL PDO driver.
+
+To require the panel catalog checks, add `--require-panel-catalog` before the checkout paths and use a Commerce checkout that includes the catalog. The test fails if the catalog is missing.
