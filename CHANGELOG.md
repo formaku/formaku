@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.76 — 2026-11-13
+
+- Read the recorded host runtime observation from the latest manual GitHub Actions run in the Releases panel.
+- No new migrations since alpha.75.
+
 ## 0.1.0-alpha.75 — 2026-11-13
 
 - The manual runtime status workflow publishes a JSON artifact scoped to its exact run and attempt, with the observation time and the verified image when available.
