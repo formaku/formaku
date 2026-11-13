@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
+use Formaku\Commerce\Bridge\Formaku\CatalogResource;
 use Formaku\Commerce\CommerceServiceProvider;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Filesystem\Filesystem;
@@ -288,5 +289,9 @@ class MerchantIsolationTest extends TestCase
                 ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.sku', $sku);
         }
 
+        if (class_exists(CatalogResource::class)) {
+            $this->getJson('https://'.$host.'/formaku/api/v1/extensions/resources/'.CatalogResource::KEY)
+                ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.sku', $sku);
+        }
     }
 }
