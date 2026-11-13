@@ -36,6 +36,8 @@ Polecenie sprawdza ustawienia mechanizmu sesji i funkcji autoryzacji, historię 
 
 Jeśli brakuje plików panelu w kopii źródeł, zbuduj je w głównym katalogu repozytorium Formaku. Brakujące lub nieaktualne pliki publiczne odśwież przez `php artisan formaku:install`. Przy zaległych migracjach postępuj zgodnie z [instrukcją aktualizacji](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). Aby sprawdzić uprawnienia konkretnej roli, zaloguj się w aplikacji jako użytkownik tej roli i otwórz panel.
 
+W CI i skryptach wdrożeniowych uruchom `php artisan formaku:doctor --json` z wersji kodu obsługującej tę opcję. Polecenie zwraca jeden obiekt JSON z polem `ok` i wynikami logicznymi `authentication`, `database` i `assets` w polu `checks`. Pole `public_routes` podaje stan konfiguracji tras publicznych. Kod wyjścia to 0, jeśli wszystkie kontrole przeszły, albo 1, jeśli któraś wykryła problem. Błąd uruchamiania Laravel może wystąpić przed wypisaniem JSON.
+
 ### Aktualizacja istniejącej instalacji Composer
 
 Po aktualizacji do alpha.80 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.

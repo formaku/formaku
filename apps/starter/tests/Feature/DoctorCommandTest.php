@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Formaku\Cms\FormakuServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -65,6 +66,39 @@ class DoctorCommandTest extends TestCase
             ->expectsOutput('Published app.js matches the bundle.')
             ->expectsOutput('Public routes are disabled.')
             ->assertSuccessful();
+    }
+
+    public function test_json_reports_success_with_public_routes_disabled(): void
+    {
+        config(['formaku.public_routes' => false]);
+
+        $this->assertSame(0, Artisan::call('formaku:doctor', ['--json' => true]));
+        $this->assertSame([
+            'ok' => true,
+            'checks' => ['authentication' => true, 'database' => true, 'assets' => true],
+            'public_routes' => false,
+        ], json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR));
+    }
+
+    public function test_json_reports_failed_checks_without_printing_connection_details(): void
+    {
+        $default = config('database.default');
+        config([
+            'database.default' => 'synthetic-private-connection',
+            'formaku.public_routes' => true,
+        ]);
+        File::delete($this->fixture.'/public/vendor/formaku/main.css');
+
+        try {
+            $this->assertSame(1, Artisan::call('formaku:doctor', ['--json' => true]));
+            $this->assertSame([
+                'ok' => false,
+                'checks' => ['authentication' => true, 'database' => false, 'assets' => false],
+                'public_routes' => true,
+            ], json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR));
+        } finally {
+            config(['database.default' => $default]);
+        }
     }
 
     public function test_reports_configuration_and_asset_problems_without_changing_the_installation(): void

@@ -36,6 +36,8 @@ The command checks the configured guard and authorization callback, Formaku’s 
 
 If the frontend files are missing from a source checkout, build them from the Formaku repository root. If the published files are missing or outdated, run `php artisan formaku:install` again. For pending migrations, follow the [upgrade guide](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). To verify access for a particular role, sign in to the host app and open the panel as a user with that role.
 
+For CI and deployment scripts, run `php artisan formaku:doctor --json` from a checkout that supports the flag. It emits one JSON object with `ok` and the boolean checks `authentication`, `database`, and `assets`. The separate `public_routes` field reports the route setting. The exit code is 0 when the checks pass and 1 when any check fails. A Laravel boot failure can occur before the command emits JSON.
+
 ### Upgrade an existing Composer installation
 
 After updating to alpha.80, run these commands from the host Laravel app before serving traffic.
