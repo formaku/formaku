@@ -248,7 +248,7 @@ The test covers draft creation, preview, publication, HTML escaping, and extensi
 
 ## Run an isolated merchant installation
 
-The managed mode of the Laravel starter uses one process group per merchant. Start its HTTP application, queue worker and scheduler with the same merchant settings. Keep writable storage and the Laravel bootstrap cache separate for each installation. Run each group with a filesystem identity or container that can access only its own writable volume.
+Set both `FORMAKU_MERCHANT_ID` and `FORMAKU_MERCHANT_HOST` to enable managed mode in the Laravel starter. It uses one process group per merchant. Start its HTTP application, queue worker and scheduler with the same merchant settings. Keep writable storage and the Laravel bootstrap cache separate for each installation. Run each group with a filesystem identity or container that can access only its own writable volume.
 
 Use the [Formaku Platform registry](https://github.com/formaku/platform) to generate the merchant UUID, verified hostname, PostgreSQL database name and role name. Supply the database endpoint, role password and a unique `APP_KEY` separately. Create the database with that merchant's dedicated login role as owner. Revoke database `CONNECT` from `PUBLIC`, and keep merchant roles free of superuser privileges and membership in other merchant roles. Run the CMS and Commerce migrations against that installation's database.
 

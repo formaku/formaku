@@ -245,3 +245,21 @@ APP_KEY="base64:$(openssl rand -base64 32)" php artisan test --compact --filter=
 ```
 
 Test obejmuje zapis szkicu, podgląd, publikację, kodowanie znaków HTML oraz uwierzytelnienie, zakres zasobu i walidację akcji w API panelu i na trasach gospodarza.
+
+## Uruchom odizolowaną instalację sprzedawcy
+
+Ustaw `FORMAKU_MERCHANT_ID` i `FORMAKU_MERCHANT_HOST`, aby włączyć tryb zarządzany startera Laravel. Uruchom osobną grupę procesów dla każdego sprzedawcy. Aplikacja HTTP, worker kolejki i harmonogram muszą używać tej samej konfiguracji sprzedawcy. Oddziel katalogi zapisu i cache startowy Laravel. Użyj osobnego konta systemowego lub kontenera z dostępem wyłącznie do woluminu tej instalacji.
+
+Użyj [rejestru Formaku Platform](https://github.com/formaku/platform), aby uzyskać UUID sprzedawcy, zweryfikowaną nazwę hosta oraz nazwę bazy i roli PostgreSQL. Osobno podaj adres serwera bazy, hasło roli i unikalny `APP_KEY`. Właścicielem bazy powinna być osobna rola logowania sprzedawcy. Odbierz uprawnienie `CONNECT` roli `PUBLIC`. Role sprzedawców nie powinny mieć uprawnień superużytkownika ani członkostwa w rolach innych sprzedawców. Uruchom migracje CMS i Commerce na bazie tej instalacji.
+
+Skonfiguruj HTTPS na reverse proxy i kieruj każdą zatwierdzoną domenę do właściwego procesu HTTP. Przekazuj kanoniczną nazwę hosta w nagłówku `Host`, również w zapytaniach sprawdzających stan usługi. Przy niezgodnym hoście starter zwraca HTTP 421 przed uruchomieniem sesji. Sesje, cache, limity żądań i kolejki korzystają z bazy danego sprzedawcy. Udostępniaj przesłane pliki przez trasy CMS.
+
+Aby włączyć opcjonalny [pakiet Commerce](https://github.com/formaku/commerce), zainstaluj go w starterze i ustaw `FORMAKU_COMMERCE_ENABLED=true`. W starterze dostęp do katalogu Commerce, stanów magazynowych, obsługi zamówień i potwierdzania płatności wymaga roli administratora.
+
+Po zainstalowaniu zależności Composer startera uruchom test z repozytorium CMS. Wskaż katalogi robocze Commerce 0.2 i Platform 0.2. Skrypt uruchamia tymczasowy PostgreSQL na adresie lokalnym, tworzy dwie bazy z osobnymi rolami logowania, sprawdza rejestr Platform i izolację CMS, a następnie zamyka serwer.
+
+```sh
+scripts/test-merchant-isolation.sh /sciezka/do/commerce /sciezka/do/platform
+```
+
+Jeśli `pg_config --bindir` nie wskazuje katalogu serwera PostgreSQL, ustaw `FORMAKU_TEST_PG_BIN` na katalog z `initdb`, `pg_ctl` i `psql`. PHP CLI wymaga sterownika PDO PostgreSQL.
