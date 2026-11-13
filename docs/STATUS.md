@@ -102,6 +102,12 @@ The static project website and its bilingual documentation are maintained separa
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
 
+## Alpha.78 verification — 2026-11-13
+
+- The [prerelease](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.78) and [release workflow](https://github.com/formaku/formaku/actions/runs/43466103263) identify source commit `17e44d6ee75007579edebae212e3f71cc7d1d920` and public image `ghcr.io/formaku/formaku@sha256:a026fcbea6e2a4ce38fc631ad6352fb8e0f78c416294bc1b2638dfe51979832e`.
+- The [manual Compose test](https://github.com/formaku/formaku/actions/runs/43467147251/job/132029213089#step:10:1) used the corrected test on `main` at `1db7f85` to check that released image. The controller reported `verified`, `mismatch` after stopping the scheduler, and `verified` after restarting it. CI removed its test stack.
+- A separate Laravel host upgraded from alpha.77 using the [public Composer index](https://formaku.eu/composer/packages.json). The downloaded archive matched the indexed SHA-1 and the [published SHA-256 checksum](https://github.com/formaku/formaku/releases/download/v0.1.0-alpha.78/formaku-cms-v0.1.0-alpha.78.zip.sha256). The upgrade republished the panel assets, retained the host configuration, routes and SQLite data, and had no pending migrations.
+
 ## Release candidate verification — 2026-11-07
 
 - Built the Linux AMD64 container locally from a clean archive of `340828e1d32ca676ae527900ba30e9b3d1756cc3`. The local image ID is `sha256:d0f0afa687d202453923e080a1b729e8e4524ef870b7a6eb53716c97ff579491`. Use the registry digest reported by the release workflow for public distribution.
