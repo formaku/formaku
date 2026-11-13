@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.77 — 2026-11-13
+
+- Open the configured GitHub Actions runtime status workflow directly from Releases, including before any observation has been recorded.
+- No new migrations since alpha.76.
+
 ## 0.1.0-alpha.76 — 2026-11-13
 
 - Read the recorded host runtime observation from the latest manual GitHub Actions run in the Releases panel.
