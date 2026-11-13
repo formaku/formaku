@@ -224,7 +224,7 @@ On the deployment host, run `sudo /usr/local/sbin/formaku-deployctl runtime` wit
 
 Use `status` to read the result of the last deployment attempt and its rollback outcome. Use the public URL to verify the external route separately.
 
-To verify the controller with a published image in a disposable Linux environment, run **CI** from GitHub Actions and enter the published `sha256:…` digest in `published_digest`. The Compose test checks a healthy stack, stops its scheduler to verify that the controller reports a mismatch, then restores the scheduler and verifies the runtime again. The run uses test credentials and its own Compose project.
+To verify the controller with a published image, open [CI](https://github.com/formaku/formaku/actions/workflows/ci.yml) in GitHub Actions, select **Run workflow**, and choose `main` under **Use workflow from**. This selects the test code. To select the image to test, copy the `sha256:…` digest from the release notes into `published_digest`. In the **Verify runtime observation on the published Compose stack** step, expect `verified`, `mismatch` after the scheduler stops, and `verified` after it resumes. The run uses test credentials and removes its Compose stack after the check.
 
 ### Read the running image from GitHub Actions
 
