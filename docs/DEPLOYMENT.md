@@ -244,6 +244,35 @@ With Build access, open **Releases → Runtime observation** and select **Read o
 
 The panel shows the run, attempt and saved observation time. The image digest appears for a verified observation. If the latest run is still in progress or its artifact is unavailable, the panel shows that state for the same run. To record a fresh observation, select **Open runtime status workflow**, start a new run on `main` in GitHub Actions, then return to Formaku and select **Read observation**. The workflow link uses `GITHUB_REPOSITORY` even before an observation exists.
 
-Automatic deployment supports backwards-compatible migrations. An image rollback uses the existing database and files. Recover data from the encrypted archive as a separate operation if needed. Store `backup.key` separately from the host and test data recovery before using real data. CI exercises deployment failures against a synthetic Compose fixture. The target VPS still needs its own acceptance test.
+Automatic deployment supports backwards-compatible migrations. An image rollback uses the existing database and files. For data recovery, use the [encrypted backup rehearsal](#rehearse-recovery-from-an-encrypted-backup). Store `backup.key` separately from the host and test data recovery before using real data. CI exercises deployment failures against a synthetic Compose fixture. The target VPS still needs its own acceptance test.
+
+### Rehearse recovery from an encrypted backup
+
+Use an archive from your deployment controller and the separately stored `backup.key`. Run the rehearsal on an isolated host with an empty PostgreSQL database and an empty uploads directory. Use PostgreSQL tools compatible with the version that created the backup. Keep the web process, worker and scheduler stopped while restoring data.
+
+Decrypt into a private directory on a protected volume. Set `archive` and `key` to the paths of your trusted archive and its matching key.
+
+```sh
+umask 077
+restore_dir=$(mktemp -d)
+openssl enc -d -aes-256-cbc -pbkdf2 -pass "file:$key" \
+  -in "$archive" -out "$restore_dir/backup.tar" &&
+tar -C "$restore_dir" -xf "$restore_dir/backup.tar" \
+  database.sql uploads.tar.gz runtime.env
+```
+
+Before continuing, confirm that decryption and extraction succeeded. The controller stores a plain PostgreSQL SQL dump, the contents of `storage/app`, and the previous `.env.docker`. Review `runtime.env` privately. It can contain secrets. Keep the original `APP_KEY` for encrypted application data, and configure the recovery host with its own database endpoint and credentials. Disable real outbound integrations on that host.
+
+Create an empty recovery database owned by the recovery role. Set the variables below to point explicitly to that isolated database and to an empty directory for the extracted files. Restore with one SQL transaction so a SQL error rolls back the import.
+
+```sh
+psql -X --single-transaction --set=ON_ERROR_STOP=1 \
+  --host="$recovery_host" --port="$recovery_port" \
+  --username="$recovery_user" --dbname="$recovery_db" \
+  --file="$restore_dir/database.sql" &&
+tar -C "$recovery_uploads" -xzf "$restore_dir/uploads.tar.gz"
+```
+
+Start the release that was running when the backup was taken, with the restored directory mounted as `/app/storage/app` and writable by its runtime user. Check `php artisan formaku:doctor`, open an existing published page, and check a known upload through the application. Keep the encrypted original and remove the temporary plaintext copy when the rehearsal is finished.
 
 Compose must read .env.docker for interpolation: use docker compose --env-file .env.docker. The host helper exports DB_PASSWORD from the runtime file through Compose's env-file option (see script).
