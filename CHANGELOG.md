@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.75 — 2026-11-13
+
+- The manual runtime status workflow publishes a JSON artifact scoped to its exact run and attempt, with the observation time and the verified image when available.
+- No new migrations since alpha.74.
+
 ## 0.1.0-alpha.74 — 2026-11-12
 
 - Read the current runtime status and verified active image from a manual GitHub Actions workflow using the host's restricted SSH dispatcher.
