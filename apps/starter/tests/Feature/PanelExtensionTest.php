@@ -227,6 +227,234 @@ class PanelExtensionTest extends TestCase
         $this->assertSame([[$viewer->id, []]], $action->calls);
     }
 
+    public function test_row_only_action_registration_and_bootstrap_behavior(): void
+    {
+        $viewer = User::factory()->create(['role' => 'editor']);
+        $target = User::factory()->create(['name' => 'Team '.$viewer->id.' Target']);
+        $registry = app(Registry::class);
+        $resource = $this->resource();
+        $rowOnlyAction = $this->action();
+        $sharedAction = $this->action();
+
+        $registry->resource($resource, $this->rowResourceDefinition([
+            ['action' => 'row_only_action', 'label' => 'Row only', 'input_key' => 'member_id'],
+            ['action' => 'shared_action', 'label' => 'Shared', 'input_key' => 'member_id'],
+            ['action' => 'missing_action', 'label' => 'Missing', 'input_key' => 'member_id'],
+        ]));
+        $this->assertSame(0, $resource->calls);
+
+        $registry->action('row_only_action', $rowOnlyAction, [
+            'label' => 'Row only action',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [
+                ['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'text'],
+            ],
+        ]);
+        $registry->action('shared_action', $sharedAction, [
+            'label' => 'Shared action',
+            'authorize' => static fn (User $user): bool => true,
+            'fields' => [
+                ['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true],
+            ],
+        ]);
+
+        $this->actingAs($viewer)->getJson(self::PREFIX.'bootstrap')
+            ->assertOk()
+            ->assertJsonCount(1, 'extensions.actions')
+            ->assertJsonPath('extensions.actions.0.key', 'shared_action')
+            ->assertJsonPath('extensions.resources.0.row_key', 'id')
+            ->assertJsonPath('extensions.resources.0.row_actions', [
+                ['action' => 'row_only_action', 'label' => 'Row only', 'input_key' => 'member_id'],
+                ['action' => 'shared_action', 'label' => 'Shared', 'input_key' => 'member_id'],
+            ]);
+
+        $this->postJson(self::PREFIX.'extensions/actions/row_only_action', ['input' => ['member_id' => $target->id]])
+            ->assertNotFound();
+        $this->postJson(self::PREFIX.'extensions/resources/team-members/actions/missing_action', ['row' => $target->id, 'input' => (object) []])
+            ->assertNotFound();
+
+        $this->postJson(self::PREFIX.'extensions/actions/shared_action', ['input' => ['member_id' => $target->id]])
+            ->assertOk();
+        $this->postJson(self::PREFIX.'extensions/resources/team-members/actions/shared_action', ['row' => $target->id, 'input' => (object) []])
+            ->assertOk();
+        $this->assertCount(2, $sharedAction->calls);
+    }
+
+    public function test_row_action_uses_adapter_row_identifier_overwrites_client_input_and_validates_fields(): void
+    {
+        $viewer = User::factory()->create(['role' => 'editor']);
+        $target = User::factory()->create(['name' => 'Team '.$viewer->id.' Target']);
+        $registry = app(Registry::class);
+        $action = $this->action();
+
+        $registry->resource($this->resource(), $this->rowResourceDefinition([
+            ['action' => 'mark_member', 'label' => 'Mark', 'input_key' => 'member_id'],
+        ]));
+        $registry->action('mark_member', $action, [
+            'label' => 'Mark member',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [
+                ['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true],
+                ['key' => 'count', 'label' => 'Count', 'type' => 'integer', 'required' => true],
+                ['key' => 'note', 'label' => 'Note', 'type' => 'text'],
+            ],
+        ]);
+        $url = self::PREFIX.'extensions/resources/team-members/actions/mark_member';
+
+        $this->actingAs($viewer);
+        $this->postJson($url, ['row' => ['bad'], 'input' => ['count' => 1]])->assertUnprocessable()->assertJsonValidationErrors('row');
+        $this->postJson($url, ['row' => '', 'input' => ['count' => 1]])->assertUnprocessable()->assertJsonValidationErrors('row');
+        $this->postJson($url, ['row' => str_repeat('a', 256), 'input' => ['count' => 1]])->assertUnprocessable()->assertJsonValidationErrors('row');
+        $this->postJson($url, ['row' => $target->id, 'input' => ['count' => 'not-int']])->assertUnprocessable()->assertJsonValidationErrors('input.count');
+        $this->postJson($url, ['row' => $target->id, 'input' => []])->assertUnprocessable()->assertJsonValidationErrors('input.count');
+        $this->assertSame([], $action->calls);
+
+        $this->postJson($url, [
+            'row' => $target->id,
+            'input' => ['member_id' => 999999, 'count' => 3, 'note' => 'ok'],
+        ])->assertOk()->assertExactJson([
+            'result' => ['member_id' => $target->id, 'count' => 3, 'note' => 'ok'],
+        ]);
+        $this->assertSame([[$viewer->id, ['member_id' => $target->id, 'count' => 3, 'note' => 'ok']]], $action->calls);
+    }
+
+    public function test_row_action_rejects_bounded_post_filtered_and_ambiguous_resources(): void
+    {
+        $viewer = User::factory()->create(['role' => 'editor']);
+        $first = User::factory()->create(['name' => 'Team '.$viewer->id.' First', 'role' => 'customer']);
+        User::factory()->create(['name' => 'Team '.$viewer->id.' Second', 'role' => 'customer']);
+        $registry = app(Registry::class);
+        $action = $this->action();
+        $registry->action('mark_member', $action, [
+            'label' => 'Mark member',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true]],
+        ]);
+        $url = self::PREFIX.'extensions/resources/team-members/actions/mark_member';
+
+        foreach ([
+            static fn (Builder $query) => $query->limit(5),
+            static fn (Builder $query) => $query->offset(1),
+            static fn (Builder $query) => $query->groupLimit(1, 'role'),
+            static fn (Builder $query) => $query->afterQuery(static fn (Collection $rows): Collection => $rows),
+        ] as $scope) {
+            $registry->resource($this->resource($scope), $this->rowResourceDefinition([
+                ['action' => 'mark_member', 'label' => 'Mark', 'input_key' => 'member_id'],
+            ]));
+            $this->actingAs($viewer)->postJson($url, ['row' => $first->id, 'input' => (object) []])->assertUnprocessable();
+        }
+
+        $duplicateRoleResource = new class implements ResourceAdapter
+        {
+            public function key(): string
+            {
+                return 'team-members';
+            }
+
+            public function query(object $user): Builder
+            {
+                return User::query()->where('name', 'like', 'Team '.$user->id.' %')->select(['id', 'role'])->orderBy('id');
+            }
+        };
+        $registry->resource($duplicateRoleResource, [
+            'label' => 'Team members',
+            'authorize' => static fn (User $user): bool => true,
+            'columns' => [['key' => 'id', 'label' => 'ID'], ['key' => 'role', 'label' => 'Role']],
+            'row_key' => 'role',
+            'row_actions' => [['action' => 'mark_member', 'label' => 'Mark', 'input_key' => 'member_id']],
+        ]);
+        $registry->action('mark_member', $action, [
+            'label' => 'Mark member',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [['key' => 'member_id', 'label' => 'Role', 'type' => 'text', 'required' => true]],
+        ]);
+        $this->actingAs($viewer)->postJson($url, ['row' => 'customer', 'input' => (object) []])->assertUnprocessable();
+        $this->assertSame([], $action->calls);
+    }
+
+    public function test_row_action_enforces_permissions_row_scope_and_definition_constraints(): void
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $editor = User::factory()->create(['role' => 'editor']);
+        $customer = User::factory()->create(['role' => 'customer']);
+        $owned = User::factory()->create(['name' => 'Team '.$admin->id.' Owned']);
+        $other = User::factory()->create(['name' => 'Other user']);
+        $registry = app(Registry::class);
+        $action = $this->action();
+        $url = self::PREFIX.'extensions/resources/team-members/actions/mark_member';
+
+        $registry->resource($this->resource(), array_replace($this->rowResourceDefinition([
+            ['action' => 'mark_member', 'label' => 'Mark', 'input_key' => 'member_id'],
+        ]), ['authorize' => static fn (User $user): bool => $user->role === 'admin']));
+        $registry->action('mark_member', $action, [
+            'label' => 'Mark member',
+            'authorize' => static fn (User $user): bool => $user->role === 'admin',
+            'row_only' => true,
+            'fields' => [['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true]],
+        ]);
+
+        $this->postJson($url, ['row' => $owned->id, 'input' => (object) []])->assertUnauthorized();
+        $this->actingAs($customer)->postJson($url, ['row' => $owned->id, 'input' => (object) []])->assertForbidden();
+        $this->actingAs($editor)->postJson($url, ['row' => $owned->id, 'input' => (object) []])->assertNotFound();
+
+        $registry->action('mark_member', $action, [
+            'label' => 'Mark member',
+            'authorize' => static fn (User $user): bool => false,
+            'row_only' => true,
+            'fields' => [['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true]],
+        ]);
+        $this->actingAs($admin)->getJson(self::PREFIX.'bootstrap')
+            ->assertOk()->assertJsonPath('extensions.resources.0.row_actions', []);
+        $this->postJson($url, ['row' => $owned->id, 'input' => (object) []])->assertNotFound();
+
+        $registry->action('mark_member', $action, [
+            'label' => 'Mark member',
+            'authorize' => static fn (User $user): bool => $user->role === 'admin',
+            'row_only' => true,
+            'fields' => [['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true]],
+        ]);
+        $this->actingAs($admin)->postJson($url, ['row' => $other->id, 'input' => (object) []])->assertNotFound();
+        $this->postJson($url, ['row' => 999999, 'input' => (object) []])->assertNotFound();
+
+        $registry->resource($this->resource(), array_replace($this->rowResourceDefinition([
+            ['action' => 'mark_member', 'label' => 'Mark', 'input_key' => 'member_id'],
+        ]), ['row_key' => 'undeclared']));
+        $this->getJson(self::PREFIX.'bootstrap')->assertOk()->assertJsonPath('extensions.resources', []);
+        $this->postJson($url, ['row' => $owned->id, 'input' => (object) []])->assertNotFound();
+
+        $registry->resource($this->resource(), $this->rowResourceDefinition([
+            ['action' => 'mark_member', 'label' => 'Mark', 'input_key' => 'confirm'],
+        ]));
+        $registry->action('mark_member', $action, [
+            'label' => 'Mark member',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [['key' => 'confirm', 'label' => 'Confirm', 'type' => 'boolean', 'required' => true]],
+        ]);
+        $this->getJson(self::PREFIX.'bootstrap')->assertOk()->assertJsonPath('extensions.resources.0.row_actions', []);
+        $this->postJson($url, ['row' => $owned->id, 'input' => (object) []])->assertNotFound();
+        $this->assertSame([], $action->calls);
+    }
+
+    private function rowResourceDefinition(array $rowActions): array
+    {
+        return [
+            'label' => 'Team members',
+            'authorize' => static fn (User $user): bool => true,
+            'columns' => [
+                ['key' => 'id', 'label' => 'ID'],
+                ['key' => 'display_name', 'label' => 'Name'],
+            ],
+            'row_key' => 'id',
+            'row_actions' => $rowActions,
+        ];
+    }
+
     private function resourceDefinition(): array
     {
         return [

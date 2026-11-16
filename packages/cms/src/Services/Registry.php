@@ -115,22 +115,33 @@ class Registry
     }
 
     /**
-     * @param  array{label: string, columns: list<array{key: string, label: string}>, authorize: callable(object): bool}|null  $panel
+     * @param  array{
+     *   label: string,
+     *   columns: list<array{key: string, label: string}>,
+     *   authorize: callable(object): bool,
+     *   row_key?: string,
+     *   row_actions?: list<array{action: string, label: string, input_key: string}>,
+     * }|null  $panel
      */
     public function resource(ResourceAdapter $type, ?array $panel = null): void
     {
         $key = $type->key();
         $this->resources[$key] = $type;
-        $this->panelResources[$key] = $this->panelDefinition($key, $panel, 'columns');
+        $this->panelResources[$key] = $this->panelResourceDefinition($key, $panel);
     }
 
     /**
-     * @param  array{label: string, fields: list<array{key: string, label: string, type: 'text'|'integer'|'boolean', required?: bool}>, authorize: callable(object): bool}|null  $panel
+     * @param  array{
+     *   label: string,
+     *   fields: list<array{key: string, label: string, type: 'text'|'integer'|'boolean', required?: bool}>,
+     *   authorize: callable(object): bool,
+     *   row_only?: bool,
+     * }|null  $panel
      */
     public function action(string $key, ActionHandler $type, ?array $panel = null): void
     {
         $this->actions[$key] = $type;
-        $this->panelActions[$key] = $this->panelDefinition($key, $panel, 'fields');
+        $this->panelActions[$key] = $this->panelActionDefinition($key, $panel);
     }
 
     public function fields(): array
@@ -155,9 +166,36 @@ class Registry
 
     public function panelExtensions(object $user): array
     {
+        $resources = [];
+        foreach ($this->panelResources as $entry) {
+            $visible = $this->visiblePanelEntry($entry, $user);
+            if ($visible === null) {
+                continue;
+            }
+
+            if (isset($visible['row_actions'])) {
+                $visible['row_actions'] = array_values(array_filter(
+                    $visible['row_actions'],
+                    fn (array $rowAction): bool => $this->resolveRowAction($rowAction, $user) !== null,
+                ));
+            }
+            $resources[] = $visible;
+        }
+
+        $actions = [];
+        foreach ($this->panelActions as $entry) {
+            if ($entry === null || ($entry['row_only'] ?? false) === true) {
+                continue;
+            }
+            $visible = $this->visiblePanelEntry($entry, $user);
+            if ($visible !== null) {
+                $actions[] = $visible;
+            }
+        }
+
         return [
-            'resources' => $this->visiblePanelEntries($this->panelResources, $user),
-            'actions' => $this->visiblePanelEntries($this->panelActions, $user),
+            'resources' => $resources,
+            'actions' => $actions,
         ];
     }
 
@@ -168,15 +206,55 @@ class Registry
 
     public function panelAction(string $key, object $user): ?array
     {
-        return $this->visiblePanelEntry($this->panelActions[$key] ?? null, $user);
+        $entry = $this->panelActions[$key] ?? null;
+        if ($entry === null || ($entry['row_only'] ?? false) === true) {
+            return null;
+        }
+
+        return $this->visiblePanelEntry($entry, $user);
     }
 
-    private function visiblePanelEntries(array $entries, object $user): array
+    public function panelRowAction(string $resourceKey, string $actionKey, object $user): ?array
     {
-        return array_values(array_filter(array_map(
-            fn (?array $entry) => $this->visiblePanelEntry($entry, $user),
-            $entries,
-        )));
+        $resource = $this->panelResource($resourceKey, $user);
+        if ($resource === null || ! isset($resource['row_key'], $resource['row_actions'])) {
+            return null;
+        }
+
+        foreach ($resource['row_actions'] as $rowAction) {
+            if ($rowAction['action'] !== $actionKey) {
+                continue;
+            }
+
+            $resolved = $this->resolveRowAction($rowAction, $user);
+            if ($resolved === null) {
+                return null;
+            }
+
+            return $resolved + ['row_key' => $resource['row_key']];
+        }
+
+        return null;
+    }
+
+    private function resolveRowAction(array $rowAction, object $user): ?array
+    {
+        $action = $this->visiblePanelEntry($this->panelActions[$rowAction['action']] ?? null, $user);
+        if ($action === null) {
+            return null;
+        }
+
+        foreach ($action['fields'] as $field) {
+            if ($field['key'] === $rowAction['input_key'] && in_array($field['type'], ['text', 'integer'], true)) {
+                return [
+                    'action' => $action,
+                    'input_key' => $rowAction['input_key'],
+                    'input_type' => $field['type'],
+                ];
+            }
+        }
+
+        return null;
     }
 
     private function visiblePanelEntry(?array $entry, object $user): ?array
@@ -186,6 +264,69 @@ class Registry
         }
 
         return $entry['metadata'];
+    }
+
+    private function panelResourceDefinition(string $key, ?array $panel): ?array
+    {
+        $base = $this->panelDefinition($key, $panel, 'columns');
+        if ($base === null) {
+            return null;
+        }
+
+        $hasRowKey = array_key_exists('row_key', $panel);
+        $hasRowActions = array_key_exists('row_actions', $panel);
+        if (! $hasRowKey && ! $hasRowActions) {
+            return $base;
+        }
+
+        $rowKey = $panel['row_key'] ?? null;
+        $rowActions = $panel['row_actions'] ?? null;
+        $columnKeys = array_column($base['metadata']['columns'], 'key');
+        if (! $hasRowKey || ! $hasRowActions || ! is_string($rowKey) || ! in_array($rowKey, $columnKeys, true)
+            || ! is_array($rowActions) || ! array_is_list($rowActions) || $rowActions === []) {
+            return null;
+        }
+
+        $normalizedActions = [];
+        foreach ($rowActions as $item) {
+            if (! is_array($item)) {
+                return null;
+            }
+            $actionKey = $item['action'] ?? null;
+            $label = $item['label'] ?? null;
+            $inputKey = $item['input_key'] ?? null;
+            if (! is_string($actionKey) || ! preg_match('/\A'.self::PANEL_KEY_PATTERN.'\z/', $actionKey)
+                || isset($normalizedActions[$actionKey]) || ! $this->isPanelLabel($label)
+                || ! $this->isValidPanelFieldKey($inputKey)) {
+                return null;
+            }
+
+            $normalizedActions[$actionKey] = [
+                'action' => $actionKey,
+                'label' => $label,
+                'input_key' => $inputKey,
+            ];
+        }
+
+        $base['metadata']['row_key'] = $rowKey;
+        $base['metadata']['row_actions'] = array_values($normalizedActions);
+
+        return $base;
+    }
+
+    private function panelActionDefinition(string $key, ?array $panel): ?array
+    {
+        $base = $this->panelDefinition($key, $panel, 'fields');
+        if ($base === null) {
+            return null;
+        }
+
+        $rowOnly = array_key_exists('row_only', $panel) ? $panel['row_only'] : false;
+        if (! is_bool($rowOnly)) {
+            return null;
+        }
+
+        return $base + ['row_only' => $rowOnly];
     }
 
     private function panelDefinition(string $key, ?array $panel, string $itemsKey): ?array
@@ -209,9 +350,7 @@ class Registry
 
             $itemKey = $item['key'] ?? null;
             $itemLabel = $item['label'] ?? null;
-            if (! is_string($itemKey) || ! preg_match('/\A[A-Za-z_][A-Za-z0-9_]{0,63}\z/', $itemKey)
-                || in_array($itemKey, ['__proto__', 'constructor', 'prototype'], true)
-                || isset($normalized[$itemKey]) || ! $this->isPanelLabel($itemLabel)) {
+            if (! $this->isValidPanelFieldKey($itemKey) || isset($normalized[$itemKey]) || ! $this->isPanelLabel($itemLabel)) {
                 return null;
             }
 
@@ -231,6 +370,13 @@ class Registry
             'authorize' => $authorize,
             'metadata' => ['key' => $key, 'label' => $label, $itemsKey => array_values($normalized)],
         ];
+    }
+
+    private function isValidPanelFieldKey(mixed $key): bool
+    {
+        return is_string($key)
+            && preg_match('/\A[A-Za-z_][A-Za-z0-9_]{0,63}\z/', $key) === 1
+            && ! in_array($key, ['__proto__', 'constructor', 'prototype'], true);
     }
 
     private function isPanelLabel(mixed $label): bool
