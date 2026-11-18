@@ -2,13 +2,17 @@
 
 namespace Formaku\Cms\Services;
 
+use Formaku\Cms\Contracts\BlockType;
 use Formaku\Cms\Contracts\PanelBlockType;
+use Formaku\Cms\Contracts\ValidatedBlockType;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 
 class Renderer
 {
     /** @return array{title: ?string, description: ?string, html: string} */
-    public function page(array $definition, array $data, ?string $title, string $slug): array
+    public function page(array $definition, array $data, ?string $title, string $slug, bool $tolerateMissingBlocks = false, ?int $recordId = null): array
     {
         $publicTextKeys = SchemaValidator::publicTextKeys($definition);
         $seo = $definition['seo'] ?? [];
@@ -19,7 +23,7 @@ class Renderer
             'title' => $this->metadataText($seo['title'] ?? null, $publicTextKeys, $data)
                 ?? ($privateTitle ? $slug : $title),
             'description' => $this->metadataText($seo['description'] ?? null, $publicTextKeys, $data),
-            'html' => $this->blocks($data['blocks'] ?? []),
+            'html' => $this->renderBlocks($data['blocks'] ?? [], 0, true, false, $tolerateMissingBlocks, $recordId),
         ];
     }
 
@@ -63,25 +67,34 @@ class Renderer
 
     public function blocks(array $blocks, int $depth = 0): string
     {
-        return $this->renderBlocks($blocks, $depth, true);
+        return $this->renderBlocks($blocks, $depth, true, true, false, null);
     }
 
     public function validateBuiltInBlocks(array $blocks): void
     {
-        $this->renderBlocks($blocks, 0, false);
+        $this->renderBlocks($blocks, 0, false, false, false, null);
     }
 
-    private function renderBlocks(array $blocks, int $depth, bool $allowExtensions): string
-    {
+    private function renderBlocks(
+        array $blocks,
+        int $depth,
+        bool $allowExtensions,
+        bool $validateExtensionProps,
+        bool $tolerateMissingBlocks,
+        ?int $recordId,
+        string $path = 'blocks',
+    ): string {
         abort_if($depth > 10, 422, 'Block nesting too deep');
         $registry = app(Registry::class);
-        $types = $registry->builtInBlocks();
-        if ($allowExtensions) {
-            $types += $registry->blocks();
-        }
+        $builtIn = $registry->builtInBlocks();
+        $types = $allowExtensions ? $builtIn + $registry->blocks() : $builtIn;
 
         $html = '';
-        foreach (array_slice($blocks, 0, 100) as $block) {
+        foreach (array_slice(array_values($blocks), 0, 100) as $index => $block) {
+            if (! is_array($block)) {
+                throw ValidationException::withMessages(['blocks' => 'Invalid block data']);
+            }
+
             $key = $block['type'] ?? null;
             $props = $block['props'] ?? [];
             $children = $block['children'] ?? [];
@@ -89,14 +102,95 @@ class Renderer
                 throw ValidationException::withMessages(['blocks' => 'Invalid block data']);
             }
 
-            $type = $types[$key] ?? throw ValidationException::withMessages(['blocks' => 'Unsupported block type']);
+            $type = $types[$key] ?? null;
+            if ($type === null) {
+                if ($tolerateMissingBlocks) {
+                    report(new RuntimeException(sprintf(
+                        'Missing Formaku block type [%s] on published record [%s].',
+                        $key,
+                        $recordId ?? 'unknown',
+                    )));
+                    continue;
+                }
+
+                throw ValidationException::withMessages(['blocks' => 'Unsupported block type']);
+            }
+
+            if ($validateExtensionProps && ! isset($builtIn[$key])) {
+                $this->validateExtensionProps($type, $props, $path.'.'.$index.'.props');
+            }
+
             if ($type instanceof PanelBlockType && $type->acceptsChildren()) {
-                $html .= $type->render($props, $this->renderBlocks($children, $depth + 1, $allowExtensions));
+                $childHtml = $this->renderBlocks(
+                    $children,
+                    $depth + 1,
+                    $allowExtensions,
+                    $validateExtensionProps,
+                    $tolerateMissingBlocks,
+                    $recordId,
+                    $path.'.'.$index.'.children',
+                );
+                $html .= $type->render($props, $childHtml);
             } else {
                 $html .= $type->render($props);
             }
         }
 
         return $html;
+    }
+
+    private function validateExtensionProps(BlockType $type, array $props, string $path): void
+    {
+        if ($type instanceof PanelBlockType) {
+            foreach ($type->panelSchema() as $field) {
+                if (! is_array($field) || ! is_string($field['key'] ?? null)) {
+                    continue;
+                }
+                $fieldKey = $field['key'];
+                if (! array_key_exists($fieldKey, $props) || $props[$fieldKey] === null) {
+                    continue;
+                }
+
+                $value = $props[$fieldKey];
+                $valid = match ($field['input'] ?? null) {
+                    'text', 'textarea' => is_string($value),
+                    'number' => ! is_bool($value) && ! is_array($value) && is_numeric($value),
+                    'boolean' => is_bool($value),
+                    'select' => $this->matchesSelectOption($value, $field['options'] ?? []),
+                    default => true,
+                };
+                if (! $valid) {
+                    throw ValidationException::withMessages([
+                        $path.'.'.$fieldKey => ['The '.$fieldKey.' field has an invalid value.'],
+                    ]);
+                }
+            }
+        }
+
+        if ($type instanceof ValidatedBlockType) {
+            $validator = Validator::make($props, $type->rules());
+            if ($validator->fails()) {
+                $messages = [];
+                foreach ($validator->errors()->messages() as $fieldKey => $errors) {
+                    $messages[$path.'.'.$fieldKey] = $errors;
+                }
+                throw ValidationException::withMessages($messages);
+            }
+        }
+    }
+
+    private function matchesSelectOption(mixed $value, mixed $options): bool
+    {
+        if (! is_array($options)) {
+            return false;
+        }
+        $allowed = [];
+        foreach ($options as $option) {
+            if (is_array($option) && array_key_exists('value', $option)) {
+                $allowed[] = $option['value'];
+            }
+        }
+
+        return in_array($value, $allowed, true);
     }
 }
