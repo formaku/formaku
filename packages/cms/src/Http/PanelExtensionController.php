@@ -6,14 +6,18 @@ use Formaku\Cms\Services\Registry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
+use ReflectionException;
 use ReflectionProperty;
 
 class PanelExtensionController
 {
     private const PAGE_SIZE = 25;
+
+    protected string $afterQueryCallbacksProperty = 'afterQueryCallbacks';
 
     public function resource(Request $request, Registry $registry, string $key): array
     {
@@ -100,12 +104,29 @@ class PanelExtensionController
         );
 
         $rowKey = $resolved['row_key'];
-        $models = (clone $builder)->where($rowKey, '=', $row)->limit(2)->getModels();
+        $column = str_contains($rowKey, '.') ? $rowKey : $builder->qualifyColumn($rowKey);
+        $attributeKey = str_contains($rowKey, '.') ? substr($rowKey, strrpos($rowKey, '.') + 1) : $rowKey;
+
+        if ($resolved['input_type'] === 'integer') {
+            if (is_int($row)) {
+                $lookup = $row;
+            } elseif (is_string($row) && preg_match('/\A-?\d+\z/', $row) === 1) {
+                $parsed = filter_var($row, FILTER_VALIDATE_INT);
+                abort_if($parsed === false, 404);
+                $lookup = $parsed;
+            } else {
+                abort(404);
+            }
+        } else {
+            $lookup = (string) $row;
+        }
+
+        $models = $this->fetchRowModels($builder, $column, $lookup);
         abort_if($models === [], 404);
         abort_if(count($models) > 1, 422, 'Row identifier matched multiple rows.');
         abort_unless($models[0] instanceof Model, 422, 'Panel resources must return a collection of models.');
 
-        $rawValue = $models[0]->getAttributes()[$rowKey] ?? null;
+        $rawValue = $models[0]->getAttributes()[$attributeKey] ?? null;
         if (! is_scalar($rawValue) || is_bool($rawValue)) {
             abort(422, 'Row identifier must be a scalar value.');
         }
@@ -113,14 +134,42 @@ class PanelExtensionController
         if ($resolved['input_type'] === 'integer') {
             $intValue = is_int($rawValue)
                 ? $rawValue
-                : (is_string($rawValue) && preg_match('/\A-?\d+\z/', $rawValue) === 1 ? (int) $rawValue : null);
-            abort_if($intValue === null, 422, 'Row identifier must be an integer.');
+                : (is_string($rawValue) && preg_match('/\A-?\d+\z/', $rawValue) === 1 ? filter_var($rawValue, FILTER_VALIDATE_INT) : false);
+            abort_if($intValue === false, 422, 'Row identifier must be an integer.');
+            abort_if($intValue !== $lookup, 404);
             $input[$inputKey] = $intValue;
         } else {
+            abort_if((string) $rawValue !== $lookup, 404);
             $input[$inputKey] = (string) $rawValue;
         }
 
         return ['result' => $registry->actions()[$action]->execute($user, $input)];
+    }
+
+    /** @return list<Model> */
+    private function fetchRowModels(Builder $builder, string $column, int|string $lookup): array
+    {
+        $connection = $builder->getConnection();
+        $run = static fn (): array => (clone $builder)->where($column, '=', $lookup)->limit(2)->getModels();
+
+        try {
+            return $connection->transactionLevel() > 0 ? $connection->transaction($run) : $run();
+        } catch (QueryException $exception) {
+            if ($this->isInvalidLookupException($exception)) {
+                abort(404);
+            }
+
+            throw $exception;
+        }
+    }
+
+    private function isInvalidLookupException(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? $exception->getCode());
+        $driverCode = (int) ($exception->errorInfo[1] ?? 0);
+
+        return in_array($sqlState, ['22P02', '22003', '22007'], true)
+            || ($sqlState === 'HY000' && in_array($driverCode, [1292, 1366], true));
     }
 
     /** @param list<array{key: string, label: string, type: string, required: bool}> $fields */
@@ -149,9 +198,20 @@ class PanelExtensionController
 
     private function hasAfterQueryCallbacks(Builder $builder, QueryBuilder $query): bool
     {
-        $eloquentCallbacks = (new ReflectionProperty($builder, 'afterQueryCallbacks'))->getValue($builder);
-        $baseCallbacks = (new ReflectionProperty($query, 'afterQueryCallbacks'))->getValue($query);
+        foreach ([$builder, $query] as $target) {
+            if (! property_exists($target, $this->afterQueryCallbacksProperty)) {
+                return true;
+            }
+            try {
+                $callbacks = (new ReflectionProperty($target, $this->afterQueryCallbacksProperty))->getValue($target);
+            } catch (ReflectionException) {
+                return true;
+            }
+            if (! is_array($callbacks) || $callbacks !== []) {
+                return true;
+            }
+        }
 
-        return $eloquentCallbacks !== [] || $baseCallbacks !== [];
+        return false;
     }
 }

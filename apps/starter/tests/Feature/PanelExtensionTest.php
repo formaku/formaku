@@ -5,10 +5,13 @@ namespace Tests\Feature;
 use App\Models\User;
 use Formaku\Cms\Contracts\ActionHandler;
 use Formaku\Cms\Contracts\ResourceAdapter;
+use Formaku\Cms\Http\PanelExtensionController;
+use Formaku\Cms\Models\Release;
 use Formaku\Cms\Services\Registry;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Tests\TestCase;
 
 class PanelExtensionTest extends TestCase
@@ -438,6 +441,164 @@ class PanelExtensionTest extends TestCase
         ]);
         $this->getJson(self::PREFIX.'bootstrap')->assertOk()->assertJsonPath('extensions.resources.0.row_actions', []);
         $this->postJson($url, ['row' => $owned->id, 'input' => (object) []])->assertNotFound();
+        $this->assertSame([], $action->calls);
+    }
+
+    public function test_row_action_returns_404_for_mismatched_numeric_and_uuid_identifiers_without_500(): void
+    {
+        $viewer = User::factory()->create(['role' => 'editor']);
+        $target = User::factory()->create(['name' => 'Team '.$viewer->id.' Numeric']);
+        $releaseId = (string) Str::uuid();
+        Release::create([
+            'id' => $releaseId,
+            'commit' => str_repeat('a', 40),
+            'state' => 'ready',
+            'manifest' => ['tag' => 'v0.1.0-alpha.80'],
+        ]);
+
+        $registry = app(Registry::class);
+        $action = $this->action();
+
+        $registry->resource($this->resource(), $this->rowResourceDefinition([
+            ['action' => 'mark_int', 'label' => 'Mark int', 'input_key' => 'member_id'],
+            ['action' => 'mark_text', 'label' => 'Mark text', 'input_key' => 'member_ref'],
+        ]));
+        $registry->action('mark_int', $action, [
+            'label' => 'Mark int',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true]],
+        ]);
+        $registry->action('mark_text', $action, [
+            'label' => 'Mark text',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [['key' => 'member_ref', 'label' => 'Member Ref', 'type' => 'text', 'required' => true]],
+        ]);
+
+        $this->actingAs($viewer);
+        $this->postJson(self::PREFIX.'extensions/resources/team-members/actions/mark_int', ['row' => 'not-a-number', 'input' => (object) []])
+            ->assertNotFound();
+        $this->postJson(self::PREFIX.'extensions/resources/team-members/actions/mark_int', ['row' => $target->id.'abc', 'input' => (object) []])
+            ->assertNotFound();
+        $this->postJson(self::PREFIX.'extensions/resources/team-members/actions/mark_text', ['row' => 'not-a-number', 'input' => (object) []])
+            ->assertNotFound();
+        $this->postJson(self::PREFIX.'extensions/resources/team-members/actions/mark_text', ['row' => $target->id.'abc', 'input' => (object) []])
+            ->assertNotFound();
+        $this->postJson(self::PREFIX.'extensions/resources/team-members/actions/mark_int', ['row' => $target->id, 'input' => (object) []])
+            ->assertOk()
+            ->assertExactJson(['result' => ['member_id' => $target->id]]);
+
+        $releaseResource = new class implements ResourceAdapter
+        {
+            public function key(): string
+            {
+                return 'releases';
+            }
+
+            public function query(object $user): Builder
+            {
+                return Release::query()->select(['id', 'state'])->orderBy('id');
+            }
+        };
+        $registry->resource($releaseResource, [
+            'label' => 'Releases',
+            'authorize' => static fn (User $user): bool => true,
+            'columns' => [['key' => 'id', 'label' => 'ID'], ['key' => 'state', 'label' => 'State']],
+            'row_key' => 'id',
+            'row_actions' => [['action' => 'release_note', 'label' => 'Note', 'input_key' => 'release_id']],
+        ]);
+        $registry->action('release_note', $action, [
+            'label' => 'Release note',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [['key' => 'release_id', 'label' => 'Release ID', 'type' => 'text', 'required' => true]],
+        ]);
+
+        $this->postJson(self::PREFIX.'extensions/resources/releases/actions/release_note', ['row' => 'not-a-uuid', 'input' => (object) []])
+            ->assertNotFound();
+        $this->postJson(self::PREFIX.'extensions/resources/releases/actions/release_note', ['row' => $releaseId, 'input' => (object) []])
+            ->assertOk()
+            ->assertExactJson(['result' => ['release_id' => $releaseId]]);
+
+        $this->assertSame([
+            [$viewer->id, ['member_id' => $target->id]],
+            [$viewer->id, ['release_id' => $releaseId]],
+        ], $action->calls);
+    }
+
+    public function test_row_action_qualifies_row_key_for_joined_resources_with_duplicate_id_columns(): void
+    {
+        $viewer = User::factory()->create(['role' => 'editor']);
+        $target = User::factory()->create(['name' => 'Team '.$viewer->id.' Joined']);
+        $registry = app(Registry::class);
+        $action = $this->action();
+
+        $joinedResource = new class implements ResourceAdapter
+        {
+            public function key(): string
+            {
+                return 'joined-members';
+            }
+
+            public function query(object $user): Builder
+            {
+                return User::query()
+                    ->leftJoin('users as peers', 'peers.id', '=', 'users.id')
+                    ->where('users.name', 'like', 'Team '.$user->id.' %')
+                    ->select(['users.id', 'users.name as display_name'])
+                    ->orderBy('users.id');
+            }
+        };
+
+        $registry->resource($joinedResource, $this->rowResourceDefinition([
+            ['action' => 'mark_member', 'label' => 'Mark', 'input_key' => 'member_id'],
+        ]));
+        $registry->action('mark_member', $action, [
+            'label' => 'Mark member',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true]],
+        ]);
+
+        $this->actingAs($viewer)
+            ->postJson(self::PREFIX.'extensions/resources/joined-members/actions/mark_member', [
+                'row' => $target->id,
+                'input' => (object) [],
+            ])
+            ->assertOk()
+            ->assertExactJson(['result' => ['member_id' => $target->id]]);
+        $this->assertSame([[$viewer->id, ['member_id' => $target->id]]], $action->calls);
+    }
+
+    public function test_row_action_fails_closed_with_422_when_after_query_property_is_missing(): void
+    {
+        $viewer = User::factory()->create(['role' => 'editor']);
+        $target = User::factory()->create(['name' => 'Team '.$viewer->id.' FailClosed']);
+        $registry = app(Registry::class);
+        $action = $this->action();
+
+        $registry->resource($this->resource(), $this->rowResourceDefinition([
+            ['action' => 'mark_member', 'label' => 'Mark', 'input_key' => 'member_id'],
+        ]));
+        $registry->action('mark_member', $action, [
+            'label' => 'Mark member',
+            'authorize' => static fn (User $user): bool => true,
+            'row_only' => true,
+            'fields' => [['key' => 'member_id', 'label' => 'Member ID', 'type' => 'integer', 'required' => true]],
+        ]);
+
+        $this->app->bind(PanelExtensionController::class, static fn () => new class extends PanelExtensionController
+        {
+            protected string $afterQueryCallbacksProperty = 'missingAfterQueryCallbacks';
+        });
+
+        $this->actingAs($viewer)
+            ->postJson(self::PREFIX.'extensions/resources/team-members/actions/mark_member', [
+                'row' => $target->id,
+                'input' => (object) [],
+            ])
+            ->assertUnprocessable();
         $this->assertSame([], $action->calls);
     }
 
