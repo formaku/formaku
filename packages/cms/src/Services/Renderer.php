@@ -5,6 +5,7 @@ namespace Formaku\Cms\Services;
 use Formaku\Cms\Contracts\BlockType;
 use Formaku\Cms\Contracts\PanelBlockType;
 use Formaku\Cms\Contracts\ValidatedBlockType;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use RuntimeException;
@@ -105,11 +106,14 @@ class Renderer
             $type = $types[$key] ?? null;
             if ($type === null) {
                 if ($tolerateMissingBlocks) {
-                    report(new RuntimeException(sprintf(
-                        'Missing Formaku block type [%s] on published record [%s].',
-                        $key,
-                        $recordId ?? 'unknown',
-                    )));
+                    $cacheKey = sprintf('formaku:missing-block:%s:%s', $recordId ?? 'unknown', sha1($key));
+                    if (Cache::add($cacheKey, true, now()->addHour())) {
+                        report(new RuntimeException(sprintf(
+                            'Missing Formaku block type [%s] on published record [%s].',
+                            $key,
+                            $recordId ?? 'unknown',
+                        )));
+                    }
                     continue;
                 }
 

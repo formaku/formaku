@@ -268,9 +268,17 @@ class BlockTypeTest extends TestCase
             ->assertDontSee('Removed extension')
             ->assertDontSee('Nested inside removed');
 
-        $this->assertNotEmpty($reported);
+        $this->assertCount(1, $reported);
         $this->assertStringContainsString('panel', $reported[0]);
         $this->assertStringContainsString((string) $record->id, $reported[0]);
+
+        $this->get('/p/offer')
+            ->assertOk()
+            ->assertSee('Visible')
+            ->assertDontSee('Removed extension')
+            ->assertDontSee('Nested inside removed');
+
+        $this->assertCount(1, $reported);
     }
 
     public function test_images_inside_an_uninstalled_extension_layout_block_remain_tracked_in_media_usage(): void
