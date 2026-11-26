@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.81 — 2026-11-26
+
 - Check the saved draft before publishing for image alt text, incomplete links, heading structure, missing SEO descriptions, and unpublished language versions. The report identifies the checked revision.
 - Build a B2B quote-request portal from an editable template or an AI proposal, review configuration changes and preview service pages before activating the form.
 - Share a saved staff reply with the customer, run portal acceptance checks, and transfer versioned configurations between installations.
@@ -12,7 +14,8 @@
 - Saving a draft validates the settings of extension blocks against their panel schema and the optional `ValidatedBlockType` rules. A published page skips a block whose extension is no longer installed and reports it to the application's exception handler.
 - Managed installations can bind one merchant to a hostname and a dedicated database, session cookie, cache, queue and file storage with `FORMAKU_MERCHANT_ID` and `FORMAKU_MERCHANT_HOST`.
 - The deployment guide describes monitoring of the running services with the optional Formaku Monitor package and its host probe.
-- Upgrade with the agency deployment and portal project migrations and refresh the panel assets.
+- Upgrade with the two new migrations, which add the agency deployment and portal project tables, and refresh the panel assets. Existing tables are unchanged.
+- Before reverting to alpha.80 on an installation with an activated B2B portal, read the rollback note in the deployment guide. Alpha.80 shows saved replies to the customer without the sharing step.
 
 ## 0.1.0-alpha.80 — 2026-11-13
 

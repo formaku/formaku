@@ -14,17 +14,17 @@ To dispatch the image build from the Formaku panel, configure `GITHUB_REPOSITORY
 
 ## Run the alpha locally with Docker Compose
 
-These instructions apply to `v0.1.0-alpha.80`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
+These instructions apply to `v0.1.0-alpha.81`. For an earlier release, see [its release notes](https://github.com/formaku/formaku/releases). The [first alpha instructions](#run-the-first-alpha-with-docker-compose) include its Compose override.
 
 ```sh
-git clone --branch v0.1.0-alpha.80 --single-branch https://github.com/formaku/formaku.git
+git clone --branch v0.1.0-alpha.81 --single-branch https://github.com/formaku/formaku.git
 cd formaku
 cp .env.docker.example .env.docker
 ```
 
 Set a persistent `APP_KEY` and a strong `DB_PASSWORD` in `.env.docker`. Generate the key with `openssl rand -base64 32` and prefix its output with `base64:`. Keep the file local.
 
-If the [alpha.80 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.80) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
+If the [alpha.81 release notes](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.81) list a verified Linux AMD64 image, copy the full `ghcr.io/formaku/formaku@sha256:…` reference. Export it as `FORMAKU_IMAGE` and pull it. Use the same shell for the Compose commands so they use that image.
 
 ```sh
 docker pull "$FORMAKU_IMAGE"
@@ -69,14 +69,14 @@ For new tagged releases, the release workflow runs the SQLite installation check
 Run the same installation check locally with the ZIP and its adjacent `.sha256` file. It needs PHP 8.4 or later with PDO SQLite, Composer, Python 3, ZIP support and access to Packagist for the test host.
 
 ```sh
-bash scripts/smoke-composer-package.sh --check-missing-chunk --check-missing-table /absolute/path/formaku-cms-v0.1.0-alpha.80.zip
+bash scripts/smoke-composer-package.sh --check-missing-chunk --check-missing-table --check-doctor-json /absolute/path/formaku-cms-v0.1.0-alpha.81.zip
 ```
 
-The check creates a temporary Laravel 13 application and installs the ZIP as a Composer distribution. It verifies Formaku migrations, panel configuration and published assets, plus the host’s existing route and a synthetic database record. For alpha.79 or later, `--check-missing-chunk` removes a published editor chunk inside the temporary host, verifies that `formaku:doctor` reports the missing file with exit code 1, and checks that `formaku:install` restores it. For alpha.80 or later, `--check-missing-table` renames a CMS table in the temporary SQLite database and verifies that the diagnostic reports it despite complete migration history and leaves the database untouched. For an archive that supports `formaku:doctor --json`, add `--check-doctor-json` to verify the JSON output and exit codes on both healthy and incomplete databases.
+The check creates a temporary Laravel 13 application and installs the ZIP as a Composer distribution. It verifies Formaku migrations, panel configuration and published assets, plus the host’s existing route and a synthetic database record. For alpha.79 or later, `--check-missing-chunk` removes a published editor chunk inside the temporary host, verifies that `formaku:doctor` reports the missing file with exit code 1, and checks that `formaku:install` restores it. For alpha.80 or later, `--check-missing-table` renames a CMS table in the temporary SQLite database and verifies that the diagnostic reports it despite complete migration history and leaves the database untouched. For alpha.81 or later, add `--check-doctor-json` to verify the JSON output and exit codes on both healthy and incomplete databases.
 
 ### Upgrade an existing alpha installation
 
-Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.80`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.80 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
+Back up the database and uploads and verify you can restore them. Keep the existing `.env.docker` and `APP_KEY`. Update the checkout to `v0.1.0-alpha.81`, clear any `COMPOSE_FILE` setting for the first alpha's health-check override, and pull or build the alpha.81 image as described above. Stop the web, worker and scheduler before applying pending migrations with the new image.
 
 ```sh
 docker compose --env-file .env.docker stop web worker scheduler
@@ -84,7 +84,7 @@ docker compose --env-file .env.docker run --rm web php artisan migrate --force
 docker compose --env-file .env.docker up -d --no-build --wait
 ```
 
-Alpha.57 adds no migrations. Alpha.37 adds the request attachments table. Back up the database and the private uploads volume together before upgrading. For a code rollback to alpha.36, retain the table and files for use after re-upgrading. Alpha.30 creates a table for page translation links. Existing page drafts and publications are preserved. Apply the migration before starting the updated services. Set `APP_URL` to the public base URL, including any subdirectory, for the absolute `hreflang` links. When upgrading from alpha.14 or earlier, apply the alpha.15 migration that creates the page templates table. After upgrading, verify that a saved draft can be used as a template for a new draft. If you are upgrading from alpha.12 or earlier, the alpha.13 site navigation migration still applies. Existing sites retain their default header and start with an empty footer. Upgrades from alpha.10 or earlier still require the alpha.11 media usage migration. It indexes existing references from current drafts and published revisions. Allow it to finish before starting the updated services and check **Media → Użycie pliku** for a file referenced by an existing record. Existing layouts without explicit column or stacking settings retain their automatic grid. Upgrades from before alpha.4 still apply its redirect table migration. Existing published addresses stay active, and Formaku records URL changes when pages are published after the upgrade. Upgrades from the first alpha also apply the assistant migration introduced in alpha.2. After the upgrade, verify that published pages load and that `APP_URL` is the public base URL for the sitemap.
+Alpha.81 adds the `formaku_agency_deployments`, `formaku_agency_package_head` and `formaku_portal_projects` tables and leaves existing tables unchanged. Apply the migrations before starting the updated services, then check **B2B portals** in the panel with Build access. Alpha.57 adds no migrations. Alpha.37 adds the request attachments table. Back up the database and the private uploads volume together before upgrading. For a code rollback to alpha.36, retain the table and files for use after re-upgrading. Alpha.30 creates a table for page translation links. Existing page drafts and publications are preserved. Apply the migration before starting the updated services. Set `APP_URL` to the public base URL, including any subdirectory, for the absolute `hreflang` links. When upgrading from alpha.14 or earlier, apply the alpha.15 migration that creates the page templates table. After upgrading, verify that a saved draft can be used as a template for a new draft. If you are upgrading from alpha.12 or earlier, the alpha.13 site navigation migration still applies. Existing sites retain their default header and start with an empty footer. Upgrades from alpha.10 or earlier still require the alpha.11 media usage migration. It indexes existing references from current drafts and published revisions. Allow it to finish before starting the updated services and check **Media → Użycie pliku** for a file referenced by an existing record. Existing layouts without explicit column or stacking settings retain their automatic grid. Upgrades from before alpha.4 still apply its redirect table migration. Existing published addresses stay active, and Formaku records URL changes when pages are published after the upgrade. Upgrades from the first alpha also apply the assistant migration introduced in alpha.2. After the upgrade, verify that published pages load and that `APP_URL` is the public base URL for the sitemap.
 
 The revision history index migration adds an index on PostgreSQL and SQLite. PostgreSQL blocks writes to the revisions table while building it. On a large installation, allow time for this step in the maintenance window. The migration leaves revision data in place.
 
@@ -93,6 +93,8 @@ When updating an existing Laravel host through Composer, [republish assets and a
 When upgrading to alpha.33, review public content models that have a private `slug` field. Their existing drafts and revisions are retained. To restore public visibility, make sure the stored URLs are safe to publish and clear the field’s Private setting in the model.
 
 Before rolling back from alpha.34 after activating field permissions, restrict affected collections to users allowed to see their full records. Verify collection access before starting the earlier version.
+
+Alpha.80 does not know the explicit sharing step of B2B portals. Its request API returns a saved reply to the request owner even when staff never shared it. Before reverting to alpha.80 after activating a B2B portal form, put the application in maintenance mode with a bypass secret (`php artisan down --secret=…`). Start alpha.80, open the panel through the bypass address, mark the `customer_reply` field as private in the requests model, then run `php artisan up`. For a code rollback, keep the three alpha.81 tables in place. Rolling back their migrations deletes saved portal projects and the history of applied packages.
 
 Before reverting to alpha.37, back up the site settings. Saving the menu in alpha.37 can discard the site name and logo selection.
 
@@ -233,7 +235,7 @@ A matching response means the status query succeeded. It can show that the host 
 
 ### Read deployment and rollback status
 
-On an existing deployment host, install the controller from the alpha.80 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
+On an existing deployment host, install the controller from the alpha.81 checkout with `sudo install -m 750 deploy/deployctl /usr/local/sbin/formaku-deployctl`. Run `sudo /usr/local/sbin/formaku-deployctl status` to read the current status. Add a release UUID to return status only for that attempt. The controller retains the latest attempt. The JSON reports the current attempt, including `deploying` while the controller is running. A failed attempt includes the requested release UUID and digest, plus one `rollback` value.
 
 | Value | Meaning |
 | --- | --- |
