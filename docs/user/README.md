@@ -4,7 +4,7 @@
 
 Zainstaluj starter według [instrukcji uruchomienia](../../README.md#run-locally). Utwórz administratora komendą `formaku:admin` i ustaw hasło o długości co najmniej 12 znaków. Na świeżej instalacji `formaku:demo` tworzy przykładowe kolekcje i publikuje stronę `/p/start`. Do panelu `/formaku` zaloguj się na własne konto administratora.
 
-W wydaniach po `0.1.0-alpha.81` panel pokazuje menu i pulpit, gdy wczyta Twoje kolekcje i uprawnienia. Do tego czasu widzisz komunikat **Wczytywanie panelu…**. Jeśli pojawi się **Nie udało się wczytać panelu**, kliknij **Spróbuj ponownie**. Gdy błąd wraca, przekaż administratorowi treść komunikatu.
+Od wydania `0.1.0-alpha.82` panel pokazuje menu i pulpit, gdy wczyta Twoje kolekcje i uprawnienia. Do tego czasu widzisz komunikat **Wczytywanie panelu…**. Jeśli pojawi się **Nie udało się wczytać panelu**, kliknij **Spróbuj ponownie**. Gdy błąd wraca, przekaż administratorowi treść komunikatu.
 
 ## Praca
 
@@ -186,7 +186,7 @@ Wskaż pełny SHA zatwierdzonego commita z gałęzi `main`. „Zbuduj wydanie”
 
 Work: create and edit collection records; save a draft, inspect its preview and publish explicitly. Build: define stable field keys, relations and workflow transitions, then activate the configuration. AI produces proposals which can be applied as a new page draft. Under **Releases**, request a build, click **Refresh status** and open the matching GitHub Actions run for the image digest. Deployment is a separate workflow. Customer portal access is scoped to the signed-in owner.
 
-In releases after `0.1.0-alpha.81` the panel shows its menu and dashboard once it has loaded your collections and permissions. Until then you see **Loading the panel…**. If **Could not load the panel** appears, click **Try again**. If the error returns, pass the message to your administrator.
+Starting with `0.1.0-alpha.82`, the panel shows its menu and dashboard once it has loaded your collections and permissions. Until then you see **Loading the panel…**. If **Could not load the panel** appears, click **Try again**. If the error returns, pass the message to your administrator.
 
 **Add record** and the collection picker in AI proposal review require permission to create records and edit all required fields in that collection.
 

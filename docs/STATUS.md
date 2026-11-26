@@ -1,10 +1,10 @@
 # Implementation status
 
-This is **0.1.0-alpha.81**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.82**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
-- After alpha.81: the panel draws its menu and dashboard once it has the user's collections and permissions, so its controls stay in place while it loads. A failed start shows the reason and a retry button.
+- The panel draws its menu and dashboard once it has the user's collections and permissions, so its controls stay in place while it loads. A failed start shows the reason and a retry button.
 
 - Agency B2B portals: build a quote-request portal from an editable template or an AI proposal, share a saved staff reply with the customer, check the portal and transfer versioned configurations between installations. The pilot comparison in the [benchmark](BENCHMARK.md) is still to be run with agencies.
 

@@ -2,8 +2,11 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.82 — 2026-11-26
+
 - The panel shows its menu and dashboard once it has the signed-in user's collections and permissions, and a loading message until then. Earlier it drew them first and they grew when the data arrived, so a click aimed at **Releases** or **Settings** could land on a collection.
 - If the panel cannot load that data, it shows the reason returned by the API and a **Try again** button.
+- No new migrations since alpha.81. Refresh the panel assets.
 
 ## 0.1.0-alpha.81 — 2026-11-26
 
