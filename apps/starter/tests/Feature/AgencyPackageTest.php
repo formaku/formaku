@@ -171,7 +171,8 @@ class AgencyPackageTest extends TestCase
         $this->assertSame(['type' => 'notice', 'props' => ['message' => 'Oferta drugiej firmy.']], $page->draft->data['blocks'][0]['children'][1]);
         $cfg = Collection::where('key', 'requests')->firstOrFail()->definition;
         $this->assertSame('assigned', $cfg['access']['editor']['scope']);
-        $this->assertContains(['from' => 'new', 'to' => 'closed'], $cfg['transitions']);
+        // MySQL reorders the keys of stored JSON objects, so compare the transition without key order.
+        $this->assertContainsEquals(['from' => 'new', 'to' => 'closed'], $cfg['transitions']);
         $this->assertSame(['admin', 'editor'], collect($cfg['fields'])->keyBy('key')['customer_reply']['access']['write']);
         $this->assertSame(['Montaż', 'Przegląd'], collect($cfg['fields'])->keyBy('key')['service']['options']);
         $this->assertTrue(collect($cfg['fields'])->keyBy('key')['service']['required']);
