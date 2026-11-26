@@ -76,6 +76,7 @@ class DoctorCommandTest extends TestCase
         $this->assertSame([
             'ok' => true,
             'checks' => ['authentication' => true, 'database' => true, 'assets' => true],
+            'errors' => [],
             'public_routes' => false,
         ], json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR));
     }
@@ -91,11 +92,17 @@ class DoctorCommandTest extends TestCase
 
         try {
             $this->assertSame(1, Artisan::call('formaku:doctor', ['--json' => true]));
+            $output = Artisan::output();
             $this->assertSame([
                 'ok' => false,
                 'checks' => ['authentication' => true, 'database' => false, 'assets' => false],
+                'errors' => [
+                    'Could not read migration history. Check the configured database connection.',
+                    'Published main.css is missing or unreadable. Run php artisan formaku:install.',
+                ],
                 'public_routes' => true,
-            ], json_decode(Artisan::output(), true, flags: JSON_THROW_ON_ERROR));
+            ], json_decode($output, true, flags: JSON_THROW_ON_ERROR));
+            $this->assertStringNotContainsString('synthetic-private-connection', $output);
         } finally {
             config(['database.default' => $default]);
         }

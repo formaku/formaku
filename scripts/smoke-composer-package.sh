@@ -208,9 +208,11 @@ from pathlib import Path
 import sys
 
 healthy = sys.argv[2] == "0"
+missing_table = "Missing Formaku tables: formaku_site_navigation. Check the database or restore a complete backup."
 expected = {
     "ok": healthy,
     "checks": {"authentication": True, "database": healthy, "assets": True},
+    "errors": [] if healthy else [missing_table],
     "public_routes": False,
 }
 actual = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))

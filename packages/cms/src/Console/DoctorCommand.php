@@ -14,6 +14,9 @@ class DoctorCommand extends Command
 
     protected $description = 'Check Formaku authentication, migrations and published panel assets';
 
+    /** @var list<string> */
+    private array $errors = [];
+
     private const REQUIRED_TABLES = [
         'formaku_agency_deployments',
         'formaku_agency_package_head',
@@ -39,6 +42,7 @@ class DoctorCommand extends Command
 
     public function handle(Migrator $migrator): int
     {
+        $this->errors = [];
         $checks = [
             'authentication' => $this->checkAuthentication(),
             'database' => $this->checkMigrations($migrator),
@@ -52,6 +56,7 @@ class DoctorCommand extends Command
             $this->line(json_encode([
                 'ok' => $passed,
                 'checks' => $checks,
+                'errors' => $this->errors,
                 'public_routes' => $publicRoutes,
             ], JSON_THROW_ON_ERROR));
         } else {
@@ -201,6 +206,7 @@ class DoctorCommand extends Command
 
     private function reportError(string $message): void
     {
+        $this->errors[] = $message;
         if (! $this->option('json')) {
             $this->error($message);
         }
