@@ -4,6 +4,18 @@ This is **0.1.0-alpha.80**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
+- Agency B2B portals: build a quote-request portal from an editable template or an AI proposal, share a saved staff reply with the customer, check the portal and transfer versioned configurations between installations. The pilot comparison in the [benchmark](BENCHMARK.md) is still to be run with agencies.
+
+- Check a saved public draft before publication for image alt text, incomplete links, heading structure, a missing SEO description and unpublished language versions.
+
+- `formaku:doctor --json` reports installation diagnostics with the reason for each failed check. `formaku:notify` delivers portal notifications from any host's scheduler.
+
+- Extension resources can offer actions for a single row through the API. Draft saves validate the settings of extension blocks, and published pages skip a block whose extension was removed.
+
+- The starter can run one managed merchant per process group, bound to a hostname and a dedicated database, with isolated sessions, cache, queues and files.
+
+- The optional [Formaku Monitor](https://github.com/formaku/monitor) package, kept in a private repository, watches the database, scheduler, queue worker and the installation check. Its readiness and status addresses and its host probe are described in the [deployment guide](DEPLOYMENT.md#monitor-the-running-services).
+
 - Browse revision history in pages of 25. Opening a record loads its current draft independently of the history. PostgreSQL and SQLite use a composite index to find revisions for one record.
 
 - Open saved records from a panel link and reopen the same record after refreshing.
@@ -101,6 +113,14 @@ The source is public in [`formaku/formaku`](https://github.com/formaku/formaku).
 The static project website and its bilingual documentation are maintained separately in Forgejo and published on OVH MultiSite. The [English](https://formaku.eu/docs/) and [Polish](https://formaku.eu/pl/docs/) guides link to the tagged alpha.
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
+
+## Integration of unreleased work — 2026-11-26
+
+- `main` now contains the work that waited on separate branches since alpha.80: JSON diagnostics, unique browser fixtures, row actions for extension resources, extension block validation, the publication check, managed merchant isolation ([#1](https://github.com/formaku/formaku/pull/1)) and the agency B2B portals. The B2B portal source is the candidate with manifest `3e4af512ba21b8ddb6a38e181f96b7e4db0d918e05876cf967c8daf5a1a4f1f1`, which passed its Compose acceptance scenario with PostgreSQL and mail delivery on a QA host on 2026-11-21.
+- The Brand Kit branch was not merged. It was written against alpha.24, and `main` has since gained its own accent, logo and theme settings that it would duplicate. Its style presets and font choice remain open.
+- Merging exposed one conflict that Git did not report. The publication check and the portal check translated the same Polish label differently, which broke the panel build. A failed portal check now has its own label.
+- The merged tree passed 223 starter tests on PHP 8.5.11 with SQLite, the panel type check and build, 23 Chromium browser tests and the agency acceptance spec. The Commerce suite passed against this tree's panel registry, and the two-merchant isolation test passed 90 assertions with the Commerce integration branch and Platform `75218f1` on PostgreSQL 14. The PostgreSQL and MySQL matrix, Firefox, WebKit, the deployment controller and the Compose jobs run in GitHub CI.
+- Live paid AI calls, SMTP delivery outside the QA host, the agency pilot and target VPS acceptance are still pending.
 
 ## Alpha.78 verification — 2026-11-13
 

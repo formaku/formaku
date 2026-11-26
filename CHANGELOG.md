@@ -5,6 +5,13 @@
 - Check the saved draft before publishing for image alt text, incomplete links, heading structure, missing SEO descriptions, and unpublished language versions. The report identifies the checked revision.
 - Build a B2B quote-request portal from an editable template or an AI proposal, review configuration changes and preview service pages before activating the form.
 - Share a saved staff reply with the customer, run portal acceptance checks, and transfer versioned configurations between installations.
+- Run `php artisan formaku:doctor --json` to read installation diagnostics in CI and deployment scripts. Its `errors` field gives the reason for each failed check. The Composer archive check verifies the JSON result and exit codes on complete and incomplete databases.
+- Composer hosts can schedule `formaku:notify` to deliver portal notifications, which only the starter did before. An event whose record or owner no longer exists is closed. Earlier it was queued again every minute and could keep newer notifications from being sent.
+- The starter's scheduler locks expire after five minutes. A run killed before releasing its lock no longer stops scheduled publication and notifications for a day.
+- Extension resources can offer actions for a single row through `POST /formaku/api/v1/extensions/resources/{resource}/actions/{action}`. The row is looked up through the resource's own query.
+- Saving a draft validates the settings of extension blocks against their panel schema and the optional `ValidatedBlockType` rules. A published page skips a block whose extension is no longer installed and reports it to the application's exception handler.
+- Managed installations can bind one merchant to a hostname and a dedicated database, session cookie, cache, queue and file storage with `FORMAKU_MERCHANT_ID` and `FORMAKU_MERCHANT_HOST`.
+- The deployment guide describes monitoring of the running services with the optional Formaku Monitor package and its host probe.
 - Upgrade with the agency deployment and portal project migrations and refresh the panel assets.
 
 ## 0.1.0-alpha.80 — 2026-11-13

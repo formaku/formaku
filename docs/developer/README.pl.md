@@ -191,6 +191,30 @@ Dla akcji podaj etykietę, listę pól z `key`, `label`, `type` i opcjonalnym `r
 
 Formaku sprawdza funkcję autoryzacji przy pobieraniu listy i przy wywołaniu rozszerzenia. Panel udostępnia rozszerzenia z jawną konfiguracją. Istniejące wpisy w rejestrze i trasy aplikacji nadal działają.
 
+### Uruchom akcję na jednym wierszu zasobu
+
+Od alpha.81 zasób może udostępniać akcje dla pojedynczego wiersza. Dodaj `row_key` i `row_actions` do konfiguracji zasobu, a akcję, która ma sens tylko dla wiersza, oznacz przez `row_only`.
+
+```php
+$registry->resource(new OrdersResource, [
+    'label' => 'Orders',
+    'columns' => [['key' => 'id', 'label' => 'ID'], ['key' => 'status', 'label' => 'Status']],
+    'authorize' => fn (object $user): bool => $user->can('orders.view'),
+    'row_key' => 'id',
+    'row_actions' => [['action' => 'cancel_order', 'label' => 'Cancel', 'input_key' => 'order_id']],
+]);
+$registry->action(new CancelOrderAction, [
+    'label' => 'Cancel order',
+    'fields' => [['key' => 'order_id', 'label' => 'Order', 'type' => 'integer', 'required' => true]],
+    'authorize' => fn (object $user): bool => $user->can('orders.cancel'),
+    'row_only' => true,
+]);
+```
+
+`row_key` wskazuje jedną z kolumn zasobu. Każda akcja wiersza wskazuje zarejestrowaną akcję oraz jej pole typu `text` albo `integer`, do którego trafia identyfikator wiersza. Wyślij `POST /formaku/api/v1/extensions/resources/{resource}/actions/{action}` z JSON-em zawierającym `row` i pozostałe pola akcji. Formaku wyszukuje wiersz przez zapytanie samego zasobu, więc wiersz niewidoczny dla zalogowanego użytkownika zwraca 404. Następnie przekazuje handlerowi zapisany identyfikator w polu `input_key`. Żądanie musi wskazywać dokładnie jeden wiersz.
+
+Akcja `row_only` nie pojawia się na liście samodzielnych akcji i nie można jej wywołać bez wiersza. API bootstrap zwraca `row_key` oraz akcje wiersza dostępne dla użytkownika. Zasób, którego zapytanie ustawia limit, przesunięcie albo filtruje wiersze po odczycie, zwraca 422 dla akcji wiersza. Panel pokazuje zasoby i samodzielne akcje. Przycisków akcji wiersza jeszcze nie wyświetla, więc wywołuj ten adres z własnego interfejsu.
+
 ## Wywołaj zasób i akcję z aplikacji
 
 Rejestr przechowuje [OwnProfileResource](examples/app/Formaku/OwnProfileResource.php) i [PreviewNoticeAction](examples/app/Formaku/PreviewNoticeAction.php). Opcjonalne trasy aplikacji udostępniają te same przykłady poza panelem. Skopiuj [przykładowe trasy](examples/routes/formaku-extension-examples.php) do katalogu `routes/` aplikacji i dodaj poniższy wiersz na końcu `routes/web.php`.
@@ -241,6 +265,10 @@ Do wartości tekstowych Laravel stosuje skonfigurowaną normalizację żądań. 
 
 Jeśli blok przyjmuje dzieci, w edytorze można dodawać i przenosić do niego inne bloki. Zapisane ustawienia o innych typach kontrolek oraz ustawienia bloków bez metadanych panelu pozostają w szkicu. Do ich edycji użyj API lub edytora w aplikacji Laravel.
 
+Od alpha.81 zapis szkicu sprawdza ustawienia bloków rozszerzeń. Wartość musi odpowiadać polu `input` z `panelSchema()`: tekst dla `text` i `textarea`, liczba dla `number`, wartość logiczna dla `boolean`, a dla `select` jedna z wartości opcji. Brak ustawienia albo wartość `null` są akceptowane. Aby dodać reguły walidacji Laravela, zaimplementuj `Formaku\Cms\Contracts\ValidatedBlockType` i zwróć je z metody `rules()`. Błędy są zgłaszane pod ścieżką bloku, na przykład `blocks.0.props.heading`.
+
+Opublikowana strona pomija blok, którego typ nie jest już zarejestrowany, na przykład po usunięciu rozszerzenia, i renderuje pozostałe. Formaku zgłasza brakujący typ do obsługi wyjątków aplikacji najwyżej raz na godzinę dla danego typu bloku i rekordu. Zapis szkicu z niezarejestrowanym typem bloku jest nadal odrzucany.
+
 `BlockType::schema()` pozostaje dostępna do walidacji w rozszerzeniu. Gdy `acceptsChildren()` zwraca `true`, Formaku przekazuje wyrenderowaną zawartość zagnieżdżoną jako drugi argument metody `render()`. Rozszerzenia służące do samego renderowania lub walidacji mogą nadal implementować `BlockType` lub `FieldType`.
 
 Interfejsy `AiProvider` i `PipelineDriver` nie mają metod rejestracji. Starter korzysta z konkretnych usług integrujących AI i GitHuba.
@@ -254,6 +282,20 @@ APP_KEY="base64:$(openssl rand -base64 32)" php artisan test --compact --filter=
 ```
 
 Test obejmuje zapis szkicu, podgląd, publikację, kodowanie znaków HTML oraz uwierzytelnienie, zakres zasobu i walidację akcji w API panelu i na trasach gospodarza.
+
+## Monitoruj instalację
+
+`php artisan formaku:doctor` sprawdza instalację w chwili uruchomienia. Aby obserwować działające usługi, zainstaluj w aplikacji opcjonalny pakiet [Formaku Monitor](https://github.com/formaku/monitor). Jego repozytorium jest prywatne, więc Composer potrzebuje dostępu SSH do GitHuba.
+
+```sh
+composer config repositories.formaku-monitor vcs git@github.com:formaku/monitor.git
+composer require formaku/monitor:dev-main
+php artisan migrate
+```
+
+Pakiet dodaje adresy `GET /health/live`, `/health/ready` i `/health/status`, polecenie `php artisan formaku:monitor` oraz alerty przez e-mail albo webhook. Sprawdza bazę danych, migracje, cache, katalogi zapisu, scheduler i workera kolejki oraz odczytuje `formaku:doctor --json` razem z przyczynami z pola `errors`. Gdy zainstalowano Formaku Commerce, odczytuje także diagnostykę sklepu. Kontrole schedulera i kolejki opierają się na sygnale, który pakiet dodaje do harmonogramu co minutę, dlatego scheduler i worker kolejki muszą działać. Konfigurację dla Docker Compose i sondę hosta opisuje [instrukcja wdrożenia](../DEPLOYMENT.md#monitor-the-running-services).
+
+W zarządzanej instalacji sprzedawcy wysyłaj w nagłówku `Host` żądań kontrolnych nazwę hosta sprzedawcy. Starter odpowiada innym hostom kodem HTTP 421, zanim uruchomi jakąkolwiek trasę.
 
 ## Uruchom odizolowaną instalację sprzedawcy
 

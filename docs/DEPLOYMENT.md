@@ -114,6 +114,39 @@ docker compose --env-file .env.docker exec web php artisan formaku:media-variant
 
 Check an existing published page that uses a public image. Its image block retains the original URL and includes the variants that were generated. On a custom Laravel host, enable GD with WebP support and the EXIF extension for JPEG handling. Files that cannot be resized without changing their appearance continue to use the original.
 
+## Monitor the running services
+
+The Compose health checks answer narrow questions. `web` is healthy when Laravel answers `/up`, which does not query the database. `worker` and `scheduler` are healthy while their process exists, also when the worker is stuck or the scheduler has stopped starting tasks. `formaku-deployctl runtime` reads the same health states. Use the checks below to see whether the services do their work.
+
+Run the installation check inside the web container. With `--json` it prints one object whose `errors` field gives the reason for each failed check.
+
+```sh
+docker compose --env-file .env.docker exec -T web php artisan formaku:doctor --json
+```
+
+For continuous monitoring, install the optional [Formaku Monitor](https://github.com/formaku/monitor) package in the application as described in the [developer guide](developer/README.md#monitor-the-installation), then rebuild the image. The repository is private, so the image build needs Composer credentials for it.
+
+| Address | Use |
+| --- | --- |
+| `/health/live` | Container liveness. Answers `204`, also in maintenance mode. |
+| `/health/ready` | Readiness of the web process: database, migrations, cache and writable directories. Suitable for the `web` health check and for a load balancer. |
+| `/health/status` | State of the whole installation, including the scheduler and the queue worker. Point an external uptime monitor here. |
+
+`/ready` and `/status` answer `503` when a check fails. Set `FORMAKU_MONITOR_TOKEN` in `.env.docker` and send it as a bearer token to read the reasons. The scheduler and queue checks need up to two minutes after a start to receive their first heartbeat. Right after a deployment, check the web process alone:
+
+```sh
+docker compose --env-file .env.docker exec -T web php artisan formaku:monitor --group=ready
+```
+
+To check the server from outside the application, install the package's `bin/formaku-probe` on the host and run it from cron. It fails when a Compose service is missing, stopped or unhealthy, when the status address reports a failure or does not answer, when a volume fills up, or when the TLS certificate is about to expire.
+
+```sh
+sudo install -m 755 bin/formaku-probe /usr/local/sbin/formaku-probe
+formaku-probe --project formaku --url https://example.com/health/status --disk / --cert example.com
+```
+
+Scheduled publication, portal notifications and the heartbeat hold a scheduler lock for at most five minutes. If a run is killed before it releases its lock, the task resumes after that time.
+
 ## Run the first alpha with Docker Compose
 
 The [v0.1.0-alpha source](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha) includes the Compose configuration. After preparing it, use the public Linux AMD64 image from GHCR or build the tagged source locally.

@@ -68,6 +68,10 @@ npx playwright test
 
 CI exercises PHP 8.4/8.5 against PostgreSQL 17 and MySQL 8.4. Browser tests require an explicitly created disposable local account described in `tests/browser/cms.spec.ts`.
 
+## Monitoring
+
+`php artisan formaku:doctor` checks an installation on demand, and `--json` gives the reason for each failed check. The optional [Formaku Monitor](https://github.com/formaku/monitor) package, kept in a private repository, adds readiness and status addresses, heartbeats for the scheduler and the queue worker, alerts and a host probe for Docker Compose services. See [Monitor the running services](docs/DEPLOYMENT.md#monitor-the-running-services).
+
 ## AI
 
 Set `OPENAI_API_KEY` / `OPENAI_MODEL`, or `GEMINI_API_KEY` / `GEMINI_MODEL` on the server. Both providers return proposals, never automatic publication. Models are configurable. No API key or paid account is required to use the CMS.

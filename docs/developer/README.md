@@ -191,6 +191,30 @@ For an action, provide a label, a list of fields with `key`, `label`, `type`, an
 
 The callback runs for discovery and for requests to the extension. Only extensions with explicit panel configuration can be accessed from the panel. Existing registrations and host routes keep working.
 
+### Run an action on one row of a resource
+
+Starting with alpha.81, a resource can offer actions for a single row. Add `row_key` and `row_actions` to the resource configuration, and mark an action that only makes sense for a row with `row_only`.
+
+```php
+$registry->resource(new OrdersResource, [
+    'label' => 'Orders',
+    'columns' => [['key' => 'id', 'label' => 'ID'], ['key' => 'status', 'label' => 'Status']],
+    'authorize' => fn (object $user): bool => $user->can('orders.view'),
+    'row_key' => 'id',
+    'row_actions' => [['action' => 'cancel_order', 'label' => 'Cancel', 'input_key' => 'order_id']],
+]);
+$registry->action(new CancelOrderAction, [
+    'label' => 'Cancel order',
+    'fields' => [['key' => 'order_id', 'label' => 'Order', 'type' => 'integer', 'required' => true]],
+    'authorize' => fn (object $user): bool => $user->can('orders.cancel'),
+    'row_only' => true,
+]);
+```
+
+`row_key` names one of the resource columns. Each row action names a registered action and the `text` or `integer` field of that action that receives the row identifier. Send `POST /formaku/api/v1/extensions/resources/{resource}/actions/{action}` with JSON that contains `row` and the remaining fields of the action. Formaku looks the row up through the resource's own query, so a row the signed-in user cannot list returns 404. It then passes the stored identifier to the handler in `input_key`. The request must match exactly one row.
+
+A `row_only` action is left out of the list of standalone actions and cannot be called without a row. The bootstrap API lists `row_key` and the row actions the user may run. A resource whose query sets a limit, an offset or filters rows after reading them returns 422 for row actions. The panel lists resources and standalone actions. It does not show buttons for row actions yet, so call the address from your own interface.
+
 ## Call a resource and an action from the host
 
 The registry stores [OwnProfileResource](examples/app/Formaku/OwnProfileResource.php) and [PreviewNoticeAction](examples/app/Formaku/PreviewNoticeAction.php). The optional host routes expose the same examples outside the panel. Copy [the example routes](examples/routes/formaku-extension-examples.php) into the host's `routes/` directory and add the following line to the end of `routes/web.php`.
@@ -241,6 +265,10 @@ The Laravel host applies its request normalization to text values. Use strings f
 
 If your block accepts children, authors can add and move blocks inside it in the editor. Existing settings with other input types and settings from blocks without panel metadata remain in the draft. Use the API or a host editor to edit those settings.
 
+Starting with alpha.81, saving a draft checks the settings of extension blocks. A value must match the `input` declared in `panelSchema()`: a string for `text` and `textarea`, a number for `number`, a boolean for `boolean`, and one of the option values for `select`. A missing or null setting is accepted. To add Laravel validation rules, implement `Formaku\Cms\Contracts\ValidatedBlockType` and return them from `rules()`. Errors are reported under the block's path, for example `blocks.0.props.heading`.
+
+A published page skips a block whose type is no longer registered, for example after its extension was removed, and renders the rest. Formaku reports the missing type to the application's exception handler at most once an hour for each block type and record. Saving a draft with an unregistered block type is still rejected.
+
 `BlockType::schema()` remains available for extension-defined validation. If `acceptsChildren()` returns true, Formaku passes the rendered children as the second argument to `render()`. The existing `BlockType` and `FieldType` interfaces remain available for extensions that only provide rendering or validation.
 
 `AiProvider` and `PipelineDriver` are interfaces without registry registration methods. The starter uses its concrete AI and GitHub integration services.
@@ -254,6 +282,20 @@ APP_KEY="base64:$(openssl rand -base64 32)" php artisan test --compact --filter=
 ```
 
 The test covers draft creation, preview, publication, HTML escaping, and extension authentication, resource scope, and action validation in both the panel API and host routes.
+
+## Monitor the installation
+
+`php artisan formaku:doctor` checks one installation when you run it. To watch the running services, install the optional [Formaku Monitor](https://github.com/formaku/monitor) package in the host application. Its repository is private, so Composer needs SSH access to GitHub.
+
+```sh
+composer config repositories.formaku-monitor vcs git@github.com:formaku/monitor.git
+composer require formaku/monitor:dev-main
+php artisan migrate
+```
+
+The package adds `GET /health/live`, `/health/ready` and `/health/status`, the command `php artisan formaku:monitor`, and alerts by e-mail or webhook. It checks the database, migrations, cache, writable directories, the scheduler and the queue worker, and it reads `formaku:doctor --json`, including the reasons listed in `errors`. With Formaku Commerce installed it also reads the store's diagnostics. The scheduler and queue checks rely on a heartbeat that the package schedules every minute, so keep the scheduler and a queue worker running. See the [deployment guide](../DEPLOYMENT.md#monitor-the-running-services) for the Docker Compose setup and the host probe.
+
+In a managed merchant installation, send the merchant's hostname in the `Host` header of health requests. The starter answers other hosts with HTTP 421 before any route runs.
 
 ## Run an isolated merchant installation
 
