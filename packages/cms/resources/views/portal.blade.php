@@ -1,11 +1,15 @@
 @extends('formaku::layout')
 
 @section('content')
-    <h1 class="text-4xl tracking-tight mb-8">Moje zgłoszenia</h1>
+    <h1 class="text-4xl tracking-tight mb-8">{{ isset($previewFormUrl) ? 'Podgląd formularza zapytania' : 'Moje zgłoszenia' }}</h1>
+    @if ($previewValidated ?? false)
+        <p role="status" class="text-success mb-4">Próbne dane przeszły walidację.</p>
+    @endif
     @if (session('status'))
         <p role="status" class="text-success">{{ session('status') }}</p>
     @endif
-    <div class="grid md:grid-cols-2 gap-8">
+    <div @class(['grid gap-8', 'md:grid-cols-2' => !isset($previewFormUrl)])>
+        @unless (isset($previewFormUrl))
         <section>
             <h2 class="text-xl mb-4">Historia zgłoszeń</h2>
             <form method="get" action="{{ url('/portal') }}" class="mb-4 space-y-3" aria-label="Filtry historii zgłoszeń">
@@ -53,7 +57,8 @@
             @endforelse
             {{ $records->links() }}
         </section>
-        <form method="post" action="/portal/requests"
+        @endunless
+        <form method="post" action="{{ $previewFormUrl ?? '/portal/requests' }}"
             @if ($portalAttachmentsEnabled ?? false) enctype="multipart/form-data" @endif
             class="bg-base-100 p-6 border border-base-300 rounded-xl">
             @csrf
@@ -148,7 +153,7 @@
                     @endif
                 </div>
             @endif
-            <button type="submit" class="btn btn-primary mt-1">Wyślij zgłoszenie</button>
+            <button type="submit" class="btn btn-primary mt-1">{{ isset($previewFormUrl) ? 'Sprawdź próbne dane' : 'Wyślij zgłoszenie' }}</button>
         </form>
     </div>
 @endsection

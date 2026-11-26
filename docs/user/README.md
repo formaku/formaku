@@ -116,6 +116,14 @@ Odczyt można ograniczyć dla pól prywatnych innych niż `slug`. Pola niewidocz
 
 Kolekcje z regułami pól są niedostępne dla sparowanego asystenta. Szablony wymagają prawa do zapisu bloków. Lista użycia pliku pomija kolekcję, jeśli użytkownik nie może odczytać któregoś pola przechowującego odnośniki do mediów. Dla kolekcji `requests` uprawnienia do zapisu tematu i opisu wpływają także na formularz portalu.
 
+## Portale B2B dla agencji
+
+1. W panelu z uprawnieniem **Buduj** otwórz **Portale B2B**. Wpisz brief oraz zatwierdzony opis usług. Wybierz edytowalny wzorzec albo skonfigurowany model OpenAI lub Gemini. Wzorzec jest stałym przykładem, który redagujesz samodzielnie. Przy generowaniu modelem CMS wysyła brief i materiały do wybranego dostawcy.
+2. Sprawdź strony, pola i kolejność stanów. Uzupełnij fakty z klientem, zapisz poprawki i obejrzyj podgląd. Rozwiń elementy w **Zmiany po aktywacji**, aby porównać je z bieżącą konfiguracją. **Aktywuj formularz i zapisz szkice stron** włącza konfigurację zgłoszeń w tej instalacji. Każdą stronę możesz potem otworzyć w edytorze i opublikować osobno.
+3. Klient otwiera formularz ze strony usługowej i po zalogowaniu składa zapytanie. Handlowiec w kolekcji zgłoszeń zmienia stan i przypisanie. Wpisuje odpowiedź, zapisuje szkic i wybiera **Udostępnij zapisaną odpowiedź klientowi**. Notatka wewnętrzna służy personelowi.
+4. **Sprawdź portal** ocenia formularz i zapisane strony. Wynik przeglądarkowy dotyczy konkretnej konfiguracji. Na instalacji odbiorowej z kodem startera i bazą testową można dodatkowo uruchomić próbę z dwoma kontami klientów i pracownikiem. Aktualizacja strony albo konfiguracji wymaga nowej próby.
+5. W **Pakiety wdrożeniowe** wybierz wersję i eksportuj plik JSON. Na drugiej instalacji wczytaj plik, wpisz nazwę firmy i opis usług, porównaj zmiany i zastosuj pakiet. Konta, zapytania i klucze dostawców pozostają w instalacji źródłowej. Kolejną aktualizację oznacz wyższym numerem. Po jej cofnięciu sprawdź portal ponownie.
+
 ## Portal
 
 Po włączeniu rejestracji użytkownik tworzy konto klienta i potwierdza e-mail. Klient składa zgłoszenie w `/portal` i widzi własne zgłoszenia. Personel obsługuje je w panelu i może przypisać zgłoszenie pracownikowi w trakcie zmiany statusu. Notatki prywatne nie trafiają do odpowiedzi klienta. Poczta wymaga skonfigurowanego transportu oraz działającej kolejki i schedulera.

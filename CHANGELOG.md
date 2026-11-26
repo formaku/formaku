@@ -3,6 +3,9 @@
 ## Unreleased
 
 - Check the saved draft before publishing for image alt text, incomplete links, heading structure, missing SEO descriptions, and unpublished language versions. The report identifies the checked revision.
+- Build a B2B quote-request portal from an editable template or an AI proposal, review configuration changes and preview service pages before activating the form.
+- Share a saved staff reply with the customer, run portal acceptance checks, and transfer versioned configurations between installations.
+- Upgrade with the agency deployment and portal project migrations and refresh the panel assets.
 
 ## 0.1.0-alpha.80 — 2026-11-13
 

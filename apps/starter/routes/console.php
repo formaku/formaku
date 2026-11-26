@@ -4,6 +4,7 @@ use App\Models\User;
 use Formaku\Cms\Jobs\NotifyRecordOwner;
 use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Record;
+use Formaku\Cms\Services\PortalReplies;
 use Formaku\Cms\Services\RecordService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
@@ -43,7 +44,7 @@ Schedule::command('formaku:publish-scheduled')
     ->withoutOverlapping();
 
 Schedule::call(function () {
-    foreach (DB::table('formaku_events')->whereNull('notified_at')->whereIn('type', ['saved', 'transitioned'])->limit(100)->get() as $event) {
+    foreach (DB::table('formaku_events')->whereNull('notified_at')->whereIn('type', ['saved', 'transitioned', PortalReplies::EVENT])->limit(100)->get() as $event) {
         NotifyRecordOwner::dispatch($event->id);
     }
 })->everyMinute()->name('formaku:notifications')->withoutOverlapping();
