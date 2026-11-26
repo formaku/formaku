@@ -116,6 +116,15 @@ The static project website and its bilingual documentation are maintained separa
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
 
+## Alpha.82 verification — 2026-11-26
+
+- The [prerelease](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.82) and [release workflow](https://github.com/formaku/formaku/actions/runs/45899942370) identify source commit `48fae0df911a87aa93c3ba9c155926d88cdfb65e` and public image `ghcr.io/formaku/formaku@sha256:652300cf2f1c66ae54b46dbbf33d126d464ffc6816e30236b47b1a0708b13546`.
+- The release differs from alpha.81 in the panel sources, the browser tests and the documentation. PHP sources, migrations and Composer requirements are unchanged.
+- [CI for that commit on `main`](https://github.com/formaku/formaku/actions/runs/45899357483) passed PHP 8.4 and 8.5 with PostgreSQL 17 and MySQL 8.4, the panel build with the Composer archive check, the deployment controller tests and the Compose stack. The browser job passed 72 tests in Chromium, Firefox and WebKit, including the panel loading spec in each, and the agency acceptance spec. The three tests that write shared site settings run in Chromium only and were skipped in the other two browsers.
+- The Composer archive built locally from the tagged commit is byte-identical to the published one. Both have the SHA-256 given in the release notes, `fb0d1393e0f452c1fce90e14d551eefc19c19bb86cf4922ca218e08083e6f90a`. Before the tag was pushed, an archive with the same bytes passed the installation check with `--check-missing-chunk`, `--check-missing-table` and `--check-doctor-json`.
+- The image index was read from GHCR without credentials. Its SHA-256 equals the published digest. The image configuration names version `0.1.0-alpha.82` and the tagged commit.
+- The [manual Compose test](https://github.com/formaku/formaku/actions/runs/45900358369) ran from the tag. It pulled the released image by digest, checked the installation against a fresh SQLite database and started the Compose services against a fresh PostgreSQL database. `formaku:doctor`, `/up` and `/login` passed. The controller reported `verified`, `mismatch` after stopping the scheduler, and `verified` after restarting it. CI removed its test stack.
+
 ## Panel start after alpha.81 — 2026-11-26
 
 - The alpha.81 panel drew its menu and dashboard before it had the user's collections and permissions. With the bootstrap response held back in the browser test installation, **Media** moved 176 px, **Releases** and **Settings** 264 px and the dashboard's **Open builder** 130 px when the response arrived. Chromium, Firefox and WebKit gave the same figures at 1280 px. At 390 px every control below the menu moved, by up to 718 px.
