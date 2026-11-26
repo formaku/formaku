@@ -740,6 +740,9 @@ test("system theme follows visitor preferences while manual themes take preceden
   await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
   await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  // Wait for the panel to receive its collections and permissions. The sidebar grows when they
+  // arrive, and a click made at that moment misses the button.
+  await expect(page.getByRole("button", { name: "Asystent witryny", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Ustawienia", exact: true }).click();
 
   const theme = page.getByLabel("Motyw witryny");
@@ -799,6 +802,9 @@ test("site color accents apply to the public page in both system schemes", async
   await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
   await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
   await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  // Wait for the panel to receive its collections and permissions. The sidebar grows when they
+  // arrive, and a click made at that moment misses the button.
+  await expect(page.getByRole("button", { name: "Asystent witryny", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Ustawienia", exact: true }).click();
 
   const accent = page.getByLabel("Akcent kolorystyczny");
@@ -879,6 +885,9 @@ test("site branding uses the selected public logo and can restore the default", 
   await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
   await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
   await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
+  // Wait for the panel to receive its collections and permissions. The sidebar grows when they
+  // arrive, and a click made at that moment misses the button.
+  await expect(page.getByRole("button", { name: "Asystent witryny", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Media", exact: true }).click();
   await page.getByLabel("Prześlij plik").setInputFiles({
     name: imageName,
