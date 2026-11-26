@@ -8,6 +8,7 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::prefix('api/v1')->middleware(Access::class.':work')->group(function(){
   Route::get('/bootstrap',[ApiController::class,'bootstrap']);Route::get('/collections',[ApiController::class,'collections']);
   Route::get('/extensions/resources/{key}', [PanelExtensionController::class, 'resource'])->where('key', Registry::PANEL_KEY_PATTERN);
+  Route::post('/extensions/resources/{key}/actions/{action}', [PanelExtensionController::class, 'rowAction'])->where(['key' => Registry::PANEL_KEY_PATTERN, 'action' => Registry::PANEL_KEY_PATTERN]);
   Route::post('/extensions/actions/{key}', [PanelExtensionController::class, 'action'])->where('key', Registry::PANEL_KEY_PATTERN);
   Route::post('/collections',[ApiController::class,'schema'])->middleware(Access::class.':build');
   Route::get('/site-navigation',[SiteNavigationController::class,'show'])->middleware(Access::class.':build');
