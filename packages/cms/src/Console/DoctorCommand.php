@@ -10,7 +10,7 @@ use Throwable;
 
 class DoctorCommand extends Command
 {
-    protected $signature = 'formaku:doctor';
+    protected $signature = 'formaku:doctor {--json : Print the diagnostic result as JSON}';
 
     protected $description = 'Check Formaku authentication, migrations and published panel assets';
 
@@ -37,14 +37,25 @@ class DoctorCommand extends Command
     public function handle(Migrator $migrator): int
     {
         $checks = [
-            $this->checkAuthentication(),
-            $this->checkMigrations($migrator),
-            $this->checkAssets(),
+            'authentication' => $this->checkAuthentication(),
+            'database' => $this->checkMigrations($migrator),
+            'assets' => $this->checkAssets(),
         ];
 
-        $this->line(config('formaku.public_routes') ? 'Public routes are enabled.' : 'Public routes are disabled.');
+        $passed = ! in_array(false, $checks, true);
+        $publicRoutes = (bool) config('formaku.public_routes');
 
-        return in_array(false, $checks, true) ? self::FAILURE : self::SUCCESS;
+        if ($this->option('json')) {
+            $this->line(json_encode([
+                'ok' => $passed,
+                'checks' => $checks,
+                'public_routes' => $publicRoutes,
+            ], JSON_THROW_ON_ERROR));
+        } else {
+            $this->line($publicRoutes ? 'Public routes are enabled.' : 'Public routes are disabled.');
+        }
+
+        return $passed ? self::SUCCESS : self::FAILURE;
     }
 
     private function checkAuthentication(): bool
@@ -55,15 +66,15 @@ class DoctorCommand extends Command
         $authorizationConfigured = is_callable(config('formaku.authorize'));
 
         if ($guardExists) {
-            $this->info('Authentication guard is configured.');
+            $this->reportInfo('Authentication guard is configured.');
         } else {
-            $this->error('Set formaku.guard to a guard defined in auth.guards.');
+            $this->reportError('Set formaku.guard to a guard defined in auth.guards.');
         }
 
         if ($authorizationConfigured) {
-            $this->info('Authorization callback is callable.');
+            $this->reportInfo('Authorization callback is callable.');
         } else {
-            $this->error('Configure a callable formaku.authorize policy.');
+            $this->reportError('Configure a callable formaku.authorize policy.');
         }
 
         return $guardExists && $authorizationConfigured;
@@ -73,14 +84,14 @@ class DoctorCommand extends Command
     {
         $path = FormakuServiceProvider::MIGRATION_PATH;
         if (! in_array($path, $migrator->paths(), true)) {
-            $this->error('Formaku migrations are not registered. Check the package service provider.');
+            $this->reportError('Formaku migrations are not registered. Check the package service provider.');
 
             return false;
         }
 
         $migrations = $migrator->getMigrationFiles($path);
         if ($migrations === []) {
-            $this->error('No Formaku migration files were found. Reinstall the package.');
+            $this->reportError('No Formaku migration files were found. Reinstall the package.');
 
             return false;
         }
@@ -88,36 +99,36 @@ class DoctorCommand extends Command
         try {
             $ran = $migrator->repositoryExists() ? $migrator->getRepository()->getRan() : [];
         } catch (Throwable) {
-            $this->error('Could not read migration history. Check the configured database connection.');
+            $this->reportError('Could not read migration history. Check the configured database connection.');
 
             return false;
         }
 
         $pending = count(array_diff(array_keys($migrations), $ran));
         if ($pending > 0) {
-            $this->error("Pending Formaku migrations: {$pending}. Run php artisan migrate.");
+            $this->reportError("Pending Formaku migrations: {$pending}. Run php artisan migrate.");
 
             return false;
         }
 
-        $this->info('Applied Formaku migrations: '.count($migrations).'.');
+        $this->reportInfo('Applied Formaku migrations: '.count($migrations).'.');
 
         try {
             $schema = $migrator->resolveConnection(null)->getSchemaBuilder();
             $missing = array_filter(self::REQUIRED_TABLES, fn (string $table): bool => ! $schema->hasTable($table));
         } catch (Throwable) {
-            $this->error('Could not inspect Formaku tables. Check the configured database connection.');
+            $this->reportError('Could not inspect Formaku tables. Check the configured database connection.');
 
             return false;
         }
 
         if ($missing !== []) {
-            $this->error('Missing Formaku tables: '.implode(', ', $missing).'. Check the database or restore a complete backup.');
+            $this->reportError('Missing Formaku tables: '.implode(', ', $missing).'. Check the database or restore a complete backup.');
 
             return false;
         }
 
-        $this->info('All required Formaku tables exist.');
+        $this->reportInfo('All required Formaku tables exist.');
 
         return true;
     }
@@ -126,7 +137,7 @@ class DoctorCommand extends Command
     {
         $paths = FormakuServiceProvider::pathsToPublish(FormakuServiceProvider::class, 'formaku-assets');
         if ($paths === []) {
-            $this->error('Formaku panel assets are not registered for publishing. Check the package service provider.');
+            $this->reportError('Formaku panel assets are not registered for publishing. Check the package service provider.');
 
             return false;
         }
@@ -144,7 +155,7 @@ class DoctorCommand extends Command
                         }
                     }
                 } catch (Throwable) {
-                    $this->error('Could not list the bundled panel assets. Check the package installation.');
+                    $this->reportError('Could not list the bundled panel assets. Check the package installation.');
                     $passed = false;
                 }
             }
@@ -154,14 +165,14 @@ class DoctorCommand extends Command
                 $published = $this->assetHash($target.'/'.$asset);
 
                 if ($bundle === false) {
-                    $this->error("Bundled {$asset} is missing or unreadable. Install a packaged release or build the assets from source.");
+                    $this->reportError("Bundled {$asset} is missing or unreadable. Install a packaged release or build the assets from source.");
                 } elseif ($published === false) {
-                    $this->error("Published {$asset} is missing or unreadable. Run php artisan formaku:install.");
+                    $this->reportError("Published {$asset} is missing or unreadable. Run php artisan formaku:install.");
                 } elseif ($published !== $bundle) {
-                    $this->error("Published {$asset} does not match the bundle. Run php artisan formaku:install.");
+                    $this->reportError("Published {$asset} does not match the bundle. Run php artisan formaku:install.");
                 } else {
                     if (in_array($asset, $entrypoints, true)) {
-                        $this->info("Published {$asset} matches the bundle.");
+                        $this->reportInfo("Published {$asset} matches the bundle.");
                     }
 
                     continue;
@@ -172,10 +183,24 @@ class DoctorCommand extends Command
         }
 
         if ($passed) {
-            $this->info('All published Formaku panel assets match the bundle.');
+            $this->reportInfo('All published Formaku panel assets match the bundle.');
         }
 
         return $passed;
+    }
+
+    private function reportInfo(string $message): void
+    {
+        if (! $this->option('json')) {
+            $this->info($message);
+        }
+    }
+
+    private function reportError(string $message): void
+    {
+        if (! $this->option('json')) {
+            $this->error($message);
+        }
     }
 
     private function assetHash(string $path): string|false
