@@ -19,6 +19,12 @@
                 @endforeach
             </dl>
         @endif
+        @if (isset($sharedReply))
+            <section aria-labelledby="portal-reply-heading" class="mt-6">
+                <h2 id="portal-reply-heading" class="text-lg">Odpowiedź na zgłoszenie</h2>
+                <p class="mt-2 whitespace-pre-wrap wrap-anywhere">{{ $sharedReply }}</p>
+            </section>
+        @endif
         @if (! empty($portalAttachments))
             <section aria-labelledby="portal-request-attachments-heading" class="mt-6 border-t border-base-300 pt-6">
                 <h2 id="portal-request-attachments-heading" class="text-lg">Załączniki do zgłoszenia</h2>

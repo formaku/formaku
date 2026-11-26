@@ -11,6 +11,7 @@ use Formaku\Cms\Services\FieldAccess;
 use Formaku\Cms\Services\MediaVariants;
 use Formaku\Cms\Services\PortalAttachments;
 use Formaku\Cms\Services\PortalFields;
+use Formaku\Cms\Services\PortalReplies;
 use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
 use Formaku\Cms\Services\Renderer;
@@ -248,6 +249,17 @@ class PublicController
         $allowed = collect($collection->definition['fields'])->reject(fn ($field) => $field['private'] ?? false)->pluck('key')->all();
         $result = ['id' => $record->id, 'state' => $record->state, 'data' => array_intersect_key($data, array_flip($allowed))];
 
+        if ($collection->definition['portal_reply'] ?? false) {
+            unset($result['data']['customer_reply'], $result['data']['internal_note']);
+            $field = collect($collection->definition['fields'])->firstWhere('key', 'customer_reply');
+            if ($field && ! ($field['private'] ?? false) && $access->canRead($collection, $field, $user)) {
+                $shared = app(PortalReplies::class)->visible($record);
+                if ($shared !== null) {
+                    $result['data']['customer_reply'] = $shared;
+                }
+            }
+        }
+
         if ($request->expectsJson()) {
             return $result;
         }
@@ -264,6 +276,7 @@ class PublicController
 
         return view('formaku::request', [
             'record' => $result,
+            'sharedReply' => ($collection->definition['portal_reply'] ?? false) ? ($result['data']['customer_reply'] ?? null) : null,
             'portalFields' => $portalFields,
             'portalAttachments' => $portalAttachments,
         ]);

@@ -46,3 +46,22 @@ git archive "$revision" | docker build -f docker/Dockerfile \
   -t "formaku-benchmark:$revision" -
 bash scripts/benchmark.sh "formaku-benchmark:$revision" > benchmark-source.json
 ```
+
+## Agency delivery pilot
+
+Measure active work from opening an approved brief to accepting a working B2B service portal on a client-hosted installation. Run both Formaku and self-hosted WordPress with Gravity Forms, Gravity Flow and the AI tools normally used by the agency. Give both operators the same source materials, machine profile, mail test account, familiar reusable templates and access to their normal extensions. Record exact versions, model, templates and extensions in each run's `stack`.
+
+### Two synthetic client briefs
+
+| Brief | Approved material and required behaviour |
+| --- | --- |
+| **Meris** | Meris Serwis offers industrial pump inspection and valve maintenance. Build one service page with an entry point to its quote-request portal. A logged-in buyer submits the service, a subject, a description and a preferred date. The coordinator assigns a salesperson who writes an internal note and shares a reply. The buyer sees the response and the request status. Use the three stages received, in progress and closed. The response time and prices are unknown. Request these details for review before making a commercial promise. |
+| **Lumet** | Lumet Instalacje offers lighting surveys and lighting retrofits for warehouses. Deliver one service page and an account-based quote portal for facilities managers. Collect service, subject, project description and desired date. A coordinator assigns an estimator who adds an internal note and explicitly shares a response. Show the requester their status through received, in progress and closed. Materials give neither a response deadline nor prices. Record both questions for the reviewer. |
+
+### Run and score the comparison
+
+1. Generate the blank local worksheet with `python3 scripts/benchmark-agency.py template > pilot.json`. Three agencies each complete both briefs on both systems. Run the rows in their generated order, with a fresh site for each delivery. The first platform alternates between briefs and agencies. Use the same operator for a matched pair. Start timing at the brief. Include configuration, fixes, repeated tests, client review and handover in active person-minutes. Sum concurrent participants' time. Record each cycle of corrections in `correction_rounds`.
+2. Require an independent reviewer to submit a request on a phone, navigate the form with a keyboard, assign it to a salesperson and receive an explicitly shared reply as the original buyer. Check that the buyer cannot see the private note, an unshared reply or a second buyer's request. Confirm delivery to an actual test mailbox. Restore on a separate installation and verify the page, open request and shared reply there. Record unresolved checks as false and missing evidence as null. Store a non-identifying private receipt reference. Preserve failed checks in the receipt after a successful retest.
+3. Record AI, allocated license and hosting costs per run in the same currency. For both tools use the same allocation convention, for example one month of license/hosting cost divided by the number of applicable client installations. Enter zero for a measured zero. Leave unavailable costs blank. Keep the worksheet and receipts private if they include operator or commercial information.
+4. After the comparison, record whether each agency used Formaku for another genuine client engagement and a receipt identifier. Set `evidence` to `pilot` for observed agency work or `synthetic` for a rehearsal. Run `python3 scripts/benchmark-agency.py score pilot.json`. The report computes the median active person-minutes across the six accepted deliveries for each platform, percentage reduction against WordPress, total correction rounds, and costs by category. An incomplete or failed final acceptance does not produce a comparable delivery-time result.
+5. The proposed pilot threshold is at least a **40% reduction in median active time**, all twelve deliveries accepted and documented repeat use by **at least two agencies**. This small paired pilot supports a decision about the next release. Use a broader independent sample before generalising the result to the market.

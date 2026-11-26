@@ -39,12 +39,23 @@ laravel source_fixture <<'PHP' > "$scratch/media-id"
 
 use App\Models\User;
 use Formaku\Cms\Models\Media;
+use Formaku\Cms\Models\Collection;
+use Formaku\Cms\Models\PortalProject;
+use Formaku\Cms\Services\PortalBlueprint;
+use Formaku\Cms\Services\PortalProjectInstaller;
+use Formaku\Cms\Services\PortalReplies;
+use Formaku\Cms\Services\RecordService;
 use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\Storage;
 
 require 'apps/starter/vendor/autoload.php';
 $app = require 'apps/starter/bootstrap/app.php';
 $app->make(Kernel::class)->bootstrap();
+
+set_exception_handler(static function (Throwable $failure): never {
+    fwrite(STDERR, $failure->getMessage().PHP_EOL);
+    exit(1);
+});
 
 config(['filesystems.disks.public.root' => getenv('RECOVERY_SCRATCH').'/uploads/public']);
 $content = "Synthetic upload\n";
@@ -60,6 +71,24 @@ echo Media::create([
     'size' => strlen($content),
     'visibility' => 'public',
 ])->id;
+
+$staff = User::sole();
+$installer = app(PortalProjectInstaller::class);
+$project = PortalProject::create([
+    'actor_id' => $staff->id, 'provider' => 'reference', 'brief' => 'Synthetic rehearsal', 'materials' => '',
+    'state' => 'review', 'proposal' => app(PortalBlueprint::class)->reference(), 'snapshot' => $installer->snapshot(),
+]);
+$installer->apply($project, 1, $staff);
+$owner = new User(['name' => 'Test owner', 'email' => 'owner@example.invalid', 'password' => bin2hex(random_bytes(24))]);
+$owner->role = 'client';
+$owner->save();
+$requests = Collection::where('key', 'requests')->sole();
+$records = app(RecordService::class);
+$fields = ['title' => 'Recovery inquiry', 'description' => 'Synthetic description'];
+$case = $records->save($requests, null, $fields, 0, $owner->id, actorUser: $owner);
+$case = $records->save($requests, $case, $fields + ['internal_note' => 'Staff only', 'customer_reply' => 'Reviewed offer'], $case->version, $staff->id, actorUser: $staff);
+app(PortalReplies::class)->share($case, $staff, $case->version);
+$records->transition($case, $case->version, 'in_progress', $staff->id, $staff->id);
 PHP
 printf 'APP_ENV=testing\n' > "$scratch/stage/runtime.env"
 "$pg/pg_dump" -h "$scratch" -U rehearsal source_fixture > "$scratch/stage/database.sql"
@@ -82,6 +111,10 @@ laravel recovery_fixture apps/starter/artisan formaku:doctor --no-interaction
 laravel recovery_fixture <<'PHP'
 <?php
 
+use Formaku\Cms\Models\Collection;
+use Formaku\Cms\Models\PortalProject;
+use Formaku\Cms\Models\Record;
+use Formaku\Cms\Services\PortalReplies;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 
@@ -89,12 +122,25 @@ require 'apps/starter/vendor/autoload.php';
 $app = require 'apps/starter/bootstrap/app.php';
 $kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
+
+set_exception_handler(static function (Throwable $failure): never {
+    fwrite(STDERR, $failure->getMessage().PHP_EOL);
+    exit(1);
+});
+
 $scratch = getenv('RECOVERY_SCRATCH');
 config(['filesystems.disks.public.root' => $scratch.'/recovered/public']);
 $response = $kernel->handle(Request::create('/p/start'));
 if ($response->getStatusCode() !== 200 || ! str_contains($response->getContent(), 'Od pomysłu do własnej aplikacji.')) {
     fwrite(STDERR, "The restored database did not render the published page.\n");
     exit(1);
+}
+
+$requests = Collection::where('key', 'requests')->sole();
+$case = Record::where('collection_id', $requests->id)->sole();
+if ($case->state !== 'in_progress' || $case->draft->data['internal_note'] !== 'Staff only'
+    || app(PortalReplies::class)->visible($case) !== 'Reviewed offer' || PortalProject::sole()->state !== 'applied') {
+    throw new RuntimeException('The restored installation did not recover the open request and its explicitly shared reply.');
 }
 
 $mediaId = file_get_contents($scratch.'/media-id');
@@ -107,4 +153,4 @@ if ($download->getStatusCode() !== 200 || $contents !== "Synthetic upload\n") {
     exit(1);
 }
 PHP
-echo 'Verified recovery of the published page, upload and runtime settings.'
+echo 'Verified recovery of the published page, upload, portal project, open case, shared reply and runtime settings.'

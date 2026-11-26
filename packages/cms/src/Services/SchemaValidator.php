@@ -33,6 +33,7 @@ class SchemaValidator
             'definition.portal_attachment_limits.types' => ['sometimes', 'array', 'list', 'min:1', 'max:'.count(PortalAttachments::supportedTypes())],
             'definition.portal_attachment_limits.types.*' => ['required', 'string', 'distinct:strict', Rule::in(PortalAttachments::supportedTypes())],
             'definition.portal_fields' => 'sometimes|array|list|max:50',
+            'definition.portal_reply' => 'sometimes|boolean',
             'definition.portal_fields.*' => 'required|string|distinct:strict',
             'definition.seo' => 'sometimes|array:title,description',
             'definition.seo.title' => 'nullable|string|max:49',
@@ -40,6 +41,15 @@ class SchemaValidator
         ])->validate();
         $this->validateFieldAccess($d['definition']['fields'], $input['definition']['fields'], $old['fields'] ?? []);
         $this->validatePortalFields($d['key'], $d['kind'], $d['definition']);
+        if (($old['portal_reply'] ?? false) && ! array_key_exists('portal_reply', $d['definition'])) {
+            $d['definition']['portal_reply'] = true;
+        }
+        if (($old['portal_reply'] ?? false) && ! $d['definition']['portal_reply']) {
+            throw ValidationException::withMessages(['definition.portal_reply' => 'Keep explicit sharing enabled to protect existing reply drafts.']);
+        }
+        if ($d['definition']['portal_reply'] ?? false) {
+            PortalReplies::validate($d['key'], $d['kind'], $d['definition']);
+        }
         if (array_key_exists('portal_attachments', $d['definition'])) {
             if (! PortalFields::supportsCollection($d['key'], $d['kind'])) {
                 throw ValidationException::withMessages([

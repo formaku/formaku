@@ -15,6 +15,8 @@ class DoctorCommand extends Command
     protected $description = 'Check Formaku authentication, migrations and published panel assets';
 
     private const REQUIRED_TABLES = [
+        'formaku_agency_deployments',
+        'formaku_agency_package_head',
         'formaku_ai_tasks',
         'formaku_assistant_creates',
         'formaku_assistants',
@@ -24,6 +26,7 @@ class DoctorCommand extends Command
         'formaku_media_usages',
         'formaku_page_templates',
         'formaku_portal_attachments',
+        'formaku_portal_projects',
         'formaku_record_translations',
         'formaku_records',
         'formaku_relations',

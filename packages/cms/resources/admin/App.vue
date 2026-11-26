@@ -33,6 +33,8 @@ import MediaPicker from "./MediaPicker.vue";
 import MediaUsage from "./MediaUsage.vue";
 import RelationPicker from "./RelationPicker.vue";
 import AssistantConnection from "./AssistantConnection.vue";
+import AgencyProjects from "./AgencyProjects.vue";
+import SharePortalReply from "./SharePortalReply.vue";
 import SiteNavigation from "./SiteNavigation.vue";
 import PageTranslations from "./PageTranslations.vue";
 import PanelExtensions from "./PanelExtensions.vue";
@@ -182,6 +184,7 @@ type Collection = {
     seo?: CollectionSeo;
     access?: CollectionRoleRules | CollectionRoleRule[];
     portal_fields?: string[];
+    portal_reply?: boolean;
     portal_attachments?: boolean;
     portal_attachment_limits?: PortalAttachmentLimits | [];
   };
@@ -1276,6 +1279,7 @@ const title = computed(
       media: t("Biblioteka mediów"),
       ai: t("Asystent AI"),
       assistant: t("Asystent witryny"),
+      agency: t("Portale B2B"),
       extensions: t("Rozszerzenia"),
       releases: t("Wydania aplikacji"),
       settings: t("Ustawienia"),
@@ -1359,6 +1363,9 @@ const title = computed(
               <Sparkles :size="17" />{{ t("Asystent AI") }}
             </button></template
           >
+          <button v-if="boot?.abilities?.build" class="btn btn-ghost justify-start" @click="navigate('agency')">
+            <Layers :size="17" />{{ t("Portale B2B") }}
+          </button>
           <button
             v-if="panelExtensions"
             class="btn btn-ghost justify-start"
@@ -2251,6 +2258,12 @@ const title = computed(
                   </div>
                 </div>
               </section>
+              <SharePortalReply
+                v-if="portalRecordId && selected.definition.portal_reply && selected.definition.fields.some(f => f.key === 'customer_reply' && f.writable !== false)"
+                :key="portalRecordId" :record-id="portalRecordId" :version="record.version" :request="request"
+                :disabled="busy || dirty || draftSaveConflict || !record.data.customer_reply?.trim()"
+                @shared="version => { record.version = version; }"
+              />
               <PageTranslations
                 v-if="translationsRecordId"
                 :key="translationsRecordId"
@@ -2609,10 +2622,10 @@ const title = computed(
                   )"
                   :key="transition.to"
                   class="btn"
-                  :disabled="busy || draftSaveConflict"
+                  :disabled="dirty || busy || draftSaveConflict"
                   @click="
                     run(async () => {
-                      record = await request(
+                      Object.assign(record, await request(
                         '/records/' + record.id + '/transition',
                         'POST',
                         {
@@ -2620,7 +2633,7 @@ const title = computed(
                           state: transition.to,
                           assignee_id: record.assignee_id,
                         },
-                      );
+                      ));
                     })
                   "
                 >
@@ -3063,6 +3076,9 @@ const title = computed(
             :extensions="panelExtensions"
             :request="request"
           />
+          <AgencyProjects v-if="section === 'agency' && boot?.abilities?.build"
+            :base="base" :providers="boot.providers" :request="request"
+            @dirty="dirty = $event" @applied="run(load)" />
           <AssistantConnection
             v-if="section === 'assistant' && boot?.abilities?.build"
             :base="base"

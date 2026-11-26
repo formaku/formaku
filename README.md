@@ -74,6 +74,12 @@ Set `OPENAI_API_KEY` / `OPENAI_MODEL`, or `GEMINI_API_KEY` / `GEMINI_MODEL` on t
 
 Set `OPENAI_MAX_OUTPUT_TOKENS` or `GEMINI_MAX_OUTPUT_TOKENS` on the server to limit the output of each proposal request. Each provider defaults to 3000 and accepts an integer from 16 to 3000. The limit applies to output tokens per request. Rebuild the configuration cache if used and restart long-running queue workers after changing these settings.
 
+### Agency B2B portals
+
+In the panel, open **B2B portals** with build permission to review a brief, configure the quote-request workflow, preview service pages and save them as drafts. The editable reference template works offline. Generate a tailored proposal by selecting OpenAI or Gemini, setting the provider key and model above, and running the queue worker. Configure the selected model’s input and output prices in **US cents per million tokens** using `FORMAKU_OPENAI_INPUT_CENTS_PER_MILLION` and `FORMAKU_OPENAI_OUTPUT_CENTS_PER_MILLION`, or the corresponding `FORMAKU_GEMINI_*` variables. The project budget is in US cents. Token usage from the provider and configured rates determine the displayed estimate.
+
+Run migrations and republish panel assets when upgrading. The [agency workflow](docs/user/README.md#portale-b2b-dla-agencji) covers sharing replies, checking the portal and transferring a reusable package to a second installation. The [benchmark](docs/BENCHMARK.md) describes the agency pilot.
+
 ## License and provenance
 
 MIT. Laravel skeleton: Laravel contributors, MIT. The CMS is a new implementation based on patterns audited in DrPrep; no DrPrep code, medical assets or private data were copied. Third-party fonts retain their OFL notices. Existing Commerce documents are a separate planned extension, outside this alpha.

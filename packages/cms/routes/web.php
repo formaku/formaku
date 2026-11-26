@@ -6,6 +6,9 @@ Route::middleware('web')->prefix(config('formaku.prefix'))->group(function(){
  Route::get('/media/{media}',[PublicController::class,'file']);
  Route::get('/media/{media}/variants/{width}',[PublicController::class,'mediaVariant'])->whereIn('width', ['480', '960']);
  Route::prefix('api/v1')->middleware(Access::class.':work')->group(function(){
+  require __DIR__.'/agency-builder.php';
+  require __DIR__.'/agency-packages.php';
+  require __DIR__.'/agency-checks.php';
   Route::get('/bootstrap',[ApiController::class,'bootstrap']);Route::get('/collections',[ApiController::class,'collections']);
   Route::get('/extensions/resources/{key}', [PanelExtensionController::class, 'resource'])->where('key', Registry::PANEL_KEY_PATTERN);
   Route::post('/extensions/actions/{key}', [PanelExtensionController::class, 'action'])->where('key', Registry::PANEL_KEY_PATTERN);

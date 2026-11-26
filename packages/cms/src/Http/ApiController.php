@@ -15,6 +15,7 @@ use Formaku\Cms\Services\PortalAttachments;
 use Formaku\Cms\Services\PortalFields;
 use Formaku\Cms\Services\PublicPages;
 use Formaku\Cms\Services\RecordService;
+use Formaku\Cms\Services\PortalProjectGeneration;
 use Formaku\Cms\Services\Registry;
 use Formaku\Cms\Services\Renderer;
 use Formaku\Cms\Services\RevisionChanges;
@@ -45,6 +46,8 @@ class ApiController
         $bootstrap['blockTypes'] = $registry->blockTypes();
 
         if ($bootstrap['abilities']['build']) {
+            $portalGeneration = app(PortalProjectGeneration::class);
+            $bootstrap['providers'] = $bootstrap['providers']->map(fn ($provider, $key) => $provider + ['portal_configured' => $portalGeneration->configurationError($key) === null]);
             $bootstrap['roles'] = $this->roleCatalog();
             $runtimeWorkflowUrl = RuntimeObservation::workflowUrl(config('formaku.github.repository'));
             if ($runtimeWorkflowUrl !== null) {
