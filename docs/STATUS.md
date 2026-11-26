@@ -114,6 +114,15 @@ The static project website and its bilingual documentation are maintained separa
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
 
+## Alpha.81 verification — 2026-11-26
+
+- The [prerelease](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.81) and [release workflow](https://github.com/formaku/formaku/actions/runs/45868495742) identify source commit `3706411062b61c611fc3d850969a0333cf73c01e` and public image `ghcr.io/formaku/formaku@sha256:8459c6bf2705ff7ed7788eb37d87206d877d5e6be84915730558199d61a13231`.
+- [CI for that commit on `main`](https://github.com/formaku/formaku/actions/runs/45867676610) passed PHP 8.4 and 8.5 with PostgreSQL 17 and MySQL 8.4, the panel build with the Composer archive check, the browser tests in Chromium, Firefox and WebKit with the agency acceptance spec, the deployment controller tests and the Compose stack.
+- The run for the preceding commit, which prepared the release, failed once in Firefox. The deployment receipt test clicked the sidebar while the panel was still receiving its collections and permissions, and the click missed the button. With a randomly delayed bootstrap response the test failed in 2 of 60 local runs. With the wait added in the tagged commit it passed 120 of 120. The settings and media tests clicked the sidebar the same way and wait as well.
+- The Composer archive built locally from the tagged commit is byte-identical to the published one. Both have the SHA-256 given in the release notes, `dc0801570ba69c3d520990bdab266e1935f688045758efb6370d4175312c23e6`. Before the tag was pushed, that archive passed the installation check with `--check-missing-chunk`, `--check-missing-table` and `--check-doctor-json`.
+- The image index was read from GHCR without credentials. Its SHA-256 equals the published digest.
+- The [manual Compose test](https://github.com/formaku/formaku/actions/runs/45869088563) pulled the released image by digest, checked the installation against a fresh SQLite database and started the Compose services against a fresh PostgreSQL database. `formaku:doctor`, `/up` and `/login` passed. The controller reported `verified`, `mismatch` after stopping the scheduler, and `verified` after restarting it. CI removed its test stack.
+
 ## Integration of unreleased work — 2026-11-26
 
 - `main` now contains the work that waited on separate branches since alpha.80: JSON diagnostics, unique browser fixtures, row actions for extension resources, extension block validation, the publication check, managed merchant isolation ([#1](https://github.com/formaku/formaku/pull/1)) and the agency B2B portals. The B2B portal source is the candidate with manifest `3e4af512ba21b8ddb6a38e181f96b7e4db0d918e05876cf967c8daf5a1a4f1f1`, which passed its Compose acceptance scenario with PostgreSQL and mail delivery on a QA host on 2026-11-21.
