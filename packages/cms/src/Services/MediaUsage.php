@@ -108,8 +108,8 @@ class MediaUsage
             $type = is_string($key) ? ($types[$key] ?? null) : null;
             if ($key === 'image') {
                 $this->addReference($ids, $block['props']['media_id'] ?? null);
-            } elseif ($type instanceof PanelBlockType && $type->acceptsChildren()) {
-                $this->collectBlockReferences($ids, $block['children'] ?? [], $depth + 1);
+            } elseif (is_array($block['children'] ?? null) && ($type === null || ($type instanceof PanelBlockType && $type->acceptsChildren()))) {
+                $this->collectBlockReferences($ids, $block['children'], $depth + 1);
             }
         }
     }

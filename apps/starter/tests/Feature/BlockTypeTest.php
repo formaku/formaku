@@ -6,6 +6,7 @@ use App\Formaku\NoticeBlock;
 use App\Models\User;
 use Formaku\Cms\Blocks\Block;
 use Formaku\Cms\Blocks\Hero;
+use Formaku\Cms\Contracts\ValidatedBlockType;
 use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Media;
 use Formaku\Cms\Services\RecordService;
@@ -150,5 +151,154 @@ class BlockTypeTest extends TestCase
     {
         $this->expectException(InvalidArgumentException::class);
         app(Registry::class)->block(new Hero);
+    }
+
+    public function test_extension_block_panel_schema_and_optional_rules_are_validated_on_publish(): void
+    {
+        $schemaCalls = 0;
+        $register = function (array $selectOptions) use (&$schemaCalls): void {
+            app(Registry::class)->block(new class($schemaCalls, $selectOptions) extends Block implements ValidatedBlockType
+            {
+                public function __construct(private int &$schemaCalls, private array $selectOptions) {}
+
+                public function key(): string
+                {
+                    return 'promo_box';
+                }
+
+                public function label(): string
+                {
+                    return 'Promo box';
+                }
+
+                public function schema(): array
+                {
+                    $this->schemaCalls++;
+
+                    return ['heading' => ['required']];
+                }
+
+                public function panelSchema(): array
+                {
+                    return [
+                        ['key' => 'heading', 'label' => 'Heading', 'input' => 'text'],
+                        ['key' => 'body', 'label' => 'Body', 'input' => 'textarea'],
+                        ['key' => 'limit', 'label' => 'Limit', 'input' => 'number'],
+                        ['key' => 'featured', 'label' => 'Featured', 'input' => 'boolean'],
+                        ['key' => 'variant', 'label' => 'Variant', 'input' => 'select', 'options' => $this->selectOptions],
+                    ];
+                }
+
+                public function rules(): array
+                {
+                    return ['heading' => ['nullable', 'string', 'max:20']];
+                }
+
+                public function render(array $props, string $children = ''): string
+                {
+                    return '<aside class="promo">'.e((string) ($props['heading'] ?? '')).'</aside>';
+                }
+            });
+        };
+
+        $register([
+            ['label' => 'One', 'value' => 1],
+            ['label' => 'Flag', 'value' => true],
+            ['label' => 'Wide', 'value' => 'wide'],
+        ]);
+
+        $admin = $this->admin();
+        $records = app(RecordService::class);
+        $pages = $this->pages();
+
+        // Optional fields, unknown keys, and strict select option types are accepted on publish.
+        $record = $records->save($pages, null, ['title' => 'Offer', 'slug' => 'promo-offer', 'blocks' => [
+            ['type' => 'promo_box', 'props' => ['variant' => 1, 'unknown_extra' => 'kept']],
+        ]], 0, $admin->id);
+        $published = $records->publish($record, 1, $admin->id);
+        $this->assertNotNull($published->published_id);
+        $this->assertSame(0, $schemaCalls);
+
+        // Narrowing panelSchema() does not break rendering of an already published page.
+        $register([['label' => 'Wide', 'value' => 'wide']]);
+        $this->get('/p/promo-offer')->assertOk()->assertSee('<aside class="promo"></aside>', false);
+
+        // Re-publishing with a value rejected by the narrowed panelSchema() or ValidatedBlockType::rules() fails with 422.
+        $this->actingAs($admin)->postJson('/formaku/api/v1/records/'.$published->id.'/publish', ['version' => $published->version])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['blocks.0.props.variant']);
+
+        $bad = $records->save($pages, null, ['title' => 'Bad', 'slug' => 'bad-offer', 'blocks' => [
+            ['type' => 'promo_box', 'props' => [
+                'heading' => str_repeat('a', 25),
+                'limit' => 'not-a-number',
+                'featured' => 'true',
+                'variant' => '1',
+            ]],
+        ]], 0, $admin->id);
+        $this->actingAs($admin)->postJson('/formaku/api/v1/records/'.$bad->id.'/publish', ['version' => $bad->version])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['blocks.0.props.limit']);
+        $this->assertSame(0, $schemaCalls);
+    }
+
+    public function test_public_page_skips_uninstalled_extension_block_and_children_and_reports_it(): void
+    {
+        $this->registerPanel();
+        $admin = $this->admin();
+        $records = app(RecordService::class);
+        $record = $records->save($this->pages(), null, ['title' => 'Offer', 'slug' => 'offer', 'blocks' => [
+            ['type' => 'hero', 'props' => ['title' => 'Visible']],
+            ['type' => 'panel', 'props' => ['heading' => 'Removed extension'], 'children' => [
+                ['type' => 'hero', 'props' => ['title' => 'Nested inside removed']],
+            ]],
+        ]], 0, $admin->id);
+        $records->publish($record, 1, $admin->id);
+
+        app()->instance(Registry::class, new Registry);
+        $reported = [];
+        $handler = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class);
+        $handler->reportable(function (\Throwable $e) use (&$reported): void {
+            $reported[] = $e->getMessage();
+        });
+
+        $this->get('/p/offer')
+            ->assertOk()
+            ->assertSee('Visible')
+            ->assertDontSee('Removed extension')
+            ->assertDontSee('Nested inside removed');
+
+        $this->assertCount(1, $reported);
+        $this->assertStringContainsString('panel', $reported[0]);
+        $this->assertStringContainsString((string) $record->id, $reported[0]);
+
+        $this->get('/p/offer')
+            ->assertOk()
+            ->assertSee('Visible')
+            ->assertDontSee('Removed extension')
+            ->assertDontSee('Nested inside removed');
+
+        $this->assertCount(1, $reported);
+    }
+
+    public function test_images_inside_an_uninstalled_extension_layout_block_remain_tracked_in_media_usage(): void
+    {
+        $this->registerPanel();
+        $admin = $this->admin();
+        $media = Media::create(['owner_id' => $admin->id, 'disk' => 'public', 'path' => 'photo.jpg', 'name' => 'photo.jpg', 'mime' => 'image/jpeg', 'visibility' => 'public', 'size' => 1]);
+        $pages = $this->pages();
+        $records = app(RecordService::class);
+        $record = $records->save($pages, null, ['title' => 'Gallery', 'blocks' => [
+            ['type' => 'panel', 'children' => [['type' => 'image', 'props' => ['media_id' => $media->id]]]],
+        ]], 0, $admin->id);
+
+        $this->assertDatabaseHas('formaku_media_usages', ['revision_id' => $record->draft_id, 'media_id' => $media->id]);
+
+        app()->instance(Registry::class, new Registry);
+        $updated = $records->save($pages, $record, ['title' => 'Gallery updated', 'blocks' => [
+            ['type' => 'panel', 'children' => [['type' => 'image', 'props' => ['media_id' => $media->id]]]],
+        ]], 1, $admin->id);
+
+        $this->assertDatabaseHas('formaku_media_usages', ['revision_id' => $updated->draft_id, 'media_id' => $media->id]);
     }
 }

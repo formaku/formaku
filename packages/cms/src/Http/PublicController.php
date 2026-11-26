@@ -68,7 +68,7 @@ class PublicController
         }
 
         $data = PublicPages::data($c->definition, $revision->data);
-        $page = $renderer->page($c->definition, $data, PublicPages::title($data, $slug), $slug);
+        $page = $renderer->page($c->definition, $data, PublicPages::title($data, $slug), $slug, true, $r->id);
 
         $translations = $this->publishedTranslations($r);
         $page['pageLanguage'] = $translations->firstWhere('record_id', $r->id)?->locale;
