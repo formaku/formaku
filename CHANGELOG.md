@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Check the saved draft before publishing for image alt text, incomplete links, heading structure, missing SEO descriptions, and unpublished language versions. The report identifies the checked revision.
+
 ## 0.1.0-alpha.80 — 2026-11-13
 
 - `formaku:doctor` reports missing CMS tables even when migration history is complete.
