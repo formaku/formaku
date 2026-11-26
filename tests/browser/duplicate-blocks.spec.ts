@@ -5,7 +5,7 @@ test("duplicate page blocks stay independent through saving and publication", as
   request: guest,
 }, info) => {
   test.setTimeout(90_000);
-  const slug = "duplicate-blocks-" + info.project.name + "-" + Date.now();
+  const slug = "duplicate-blocks-" + info.project.name + "-" + crypto.randomUUID();
   const title = "Duplicating blocks " + slug;
   await page.goto("/login");
   await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
