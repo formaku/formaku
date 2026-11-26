@@ -36,6 +36,8 @@ Polecenie sprawdza ustawienia mechanizmu sesji i funkcji autoryzacji, historię 
 
 Jeśli brakuje plików panelu w kopii źródeł, zbuduj je w głównym katalogu repozytorium Formaku. Brakujące lub nieaktualne pliki publiczne odśwież przez `php artisan formaku:install`. Przy zaległych migracjach postępuj zgodnie z [instrukcją aktualizacji](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). Aby sprawdzić uprawnienia konkretnej roli, zaloguj się w aplikacji jako użytkownik tej roli i otwórz panel.
 
+W wydaniach po alpha.81 panel rysuje menu i ekrany dopiero wtedy, gdy `GET /formaku/api/v1/bootstrap` zwróci kolekcje i uprawnienia użytkownika. Jeśli to żądanie się nie powiedzie, panel pokazuje komunikat **Nie udało się wczytać panelu**, treść odpowiedzi API i przycisk **Spróbuj ponownie**. Żądanie wywołuje funkcje `authorize` i `staff` z `config/formaku.php` oraz funkcje `authorize` zarejestrowanych rozszerzeń panelu, dlatego przyczyny szukaj w logu Laravel aplikacji gospodarza.
+
 W CI i skryptach wdrożeniowych uruchom `php artisan formaku:doctor --json` w wersji alpha.81 lub nowszej. Polecenie zwraca jeden obiekt JSON z polem `ok` i wynikami logicznymi `authentication`, `database` i `assets` w polu `checks`. Pole `errors` zawiera komunikat każdej nieudanej kontroli w kolejności zwykłego wyniku. Gdy wszystkie kontrole przeszły, lista jest pusta. Komunikaty podają nazwy tabel i plików, bez danych połączenia. Pole `public_routes` podaje stan konfiguracji tras publicznych. Kod wyjścia to 0, jeśli wszystkie kontrole przeszły, albo 1, jeśli któraś wykryła problem. Błąd uruchamiania Laravel może wystąpić przed wypisaniem JSON.
 
 ### Aktualizacja istniejącej instalacji Composer

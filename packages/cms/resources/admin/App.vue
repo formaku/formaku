@@ -228,6 +228,10 @@ const boot = ref<any>(null),
   provider = ref("openai"),
   commit = ref(""),
   search = ref("");
+// The panel is drawn only after the first bootstrap response. Its menu and dashboard depend on the
+// collections and permissions in it; drawn earlier, they grew when the response arrived and moved
+// controls under the pointer. This holds the reason that request failed, and null otherwise.
+const bootFailure = ref<string | null>(null);
 const reviewTaskId = ref<number | null>(null);
 const proposalCollectionId = ref<number | null>(null);
 function proposalField(collection: Collection, key: string, type: string): boolean {
@@ -589,7 +593,13 @@ async function load() {
   }
 }
 async function loadPanel() {
-  await load();
+  bootFailure.value = null;
+  try {
+    await load();
+  } catch (failure) {
+    bootFailure.value = failure instanceof Error ? failure.message : "";
+    return;
+  }
   const id = new URL(window.location.href).searchParams.get("record");
   if (id === null || section.value !== "dashboard") return;
   const stillOpening = () =>
@@ -1289,7 +1299,7 @@ const title = computed(
 </script>
 <template>
   <TooltipProvider
-    ><div class="min-h-screen lg:grid lg:grid-cols-[244px_1fr]">
+    ><div v-if="boot" class="min-h-screen lg:grid lg:grid-cols-[244px_1fr]">
       <aside
         class="bg-base-100 border-r border-base-300 p-6 lg:fixed lg:inset-y-0 lg:w-[244px] lg:overflow-y-auto lg:overscroll-contain flex flex-col gap-8"
       >
@@ -3129,6 +3139,17 @@ const title = computed(
         </div>
       </main>
     </div>
+    <main v-else class="min-h-screen grid place-items-center p-6">
+      <div v-if="bootFailure !== null" class="max-w-md space-y-4 text-center">
+        <p role="alert" class="p-4 border border-error text-error rounded-lg">
+          {{ t("Nie udało się wczytać panelu.") }} {{ bootFailure }}
+        </p>
+        <button class="btn btn-primary" @click="run(loadPanel)">{{ t("Spróbuj ponownie") }}</button>
+      </div>
+      <p v-else role="status" class="panel-loading text-sm text-base-content/70">
+        {{ t("Wczytywanie panelu…") }}
+      </p>
+    </main>
     <Teleport to="body">
       <dialog
         ref="comparisonDialog"

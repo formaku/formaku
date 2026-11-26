@@ -37,9 +37,6 @@ test("reads deployment receipts independently of application builds", async ({ p
   await page.getByLabel("E-mail", { exact: true }).fill("admin@formaku.test");
   await page.getByLabel("Hasło", { exact: true }).fill("Local-Test-Formaku-2026!");
   await page.getByRole("button", { name: "Otwórz swoją przestrzeń" }).click();
-  // The Releases button is visible before the panel receives its collections and permissions.
-  // The sidebar grows when they arrive, and a click made at that moment misses the button.
-  await expect(page.getByRole("button", { name: "Website assistant", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Releases", exact: true }).click();
   await expect(page.getByRole("button", { name: "Build release" })).toBeVisible();
 

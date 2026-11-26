@@ -36,6 +36,8 @@ The command checks the configured guard and authorization callback, Formaku’s 
 
 If the frontend files are missing from a source checkout, build them from the Formaku repository root. If the published files are missing or outdated, run `php artisan formaku:install` again. For pending migrations, follow the [upgrade guide](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). To verify access for a particular role, sign in to the host app and open the panel as a user with that role.
 
+In releases after alpha.81 the panel draws its menu and screens once `GET /formaku/api/v1/bootstrap` has returned the user's collections and permissions. If that request fails, the panel shows **Could not load the panel**, the message from the API response, and **Try again**. The request runs the `authorize` and `staff` callbacks from `config/formaku.php` and the `authorize` callbacks of registered panel extensions, so look for the cause in the host application's Laravel log.
+
 For CI and deployment scripts, run `php artisan formaku:doctor --json` with alpha.81 or later. It emits one JSON object with `ok` and the boolean checks `authentication`, `database`, and `assets`. Its `errors` field lists the message of every failed check in the order of the plain output, and is empty when all checks pass. The messages name tables and files and leave out connection details. The separate `public_routes` field reports the route setting. The exit code is 0 when the checks pass and 1 when any check fails. A Laravel boot failure can occur before the command emits JSON.
 
 ### Upgrade an existing Composer installation

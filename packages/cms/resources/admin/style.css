@@ -92,6 +92,15 @@ button {
 .mono {
   font-family: "JetBrains Mono", monospace;
 }
+/* The panel usually loads within this delay, so a quick start shows no flash of loading text. */
+.panel-loading {
+  animation: panel-loading 0.2s ease-out 0.4s backwards;
+}
+@keyframes panel-loading {
+  from {
+    opacity: 0;
+  }
+}
 .brand-mark {
   display: inline-grid;
   width: 34px;

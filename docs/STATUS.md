@@ -4,6 +4,8 @@ This is **0.1.0-alpha.81**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
+- After alpha.81: the panel draws its menu and dashboard once it has the user's collections and permissions, so its controls stay in place while it loads. A failed start shows the reason and a retry button.
+
 - Agency B2B portals: build a quote-request portal from an editable template or an AI proposal, share a saved staff reply with the customer, check the portal and transfer versioned configurations between installations. The pilot comparison in the [benchmark](BENCHMARK.md) is still to be run with agencies.
 
 - Check a saved public draft before publication for image alt text, incomplete links, heading structure, a missing SEO description and unpublished language versions.
@@ -113,6 +115,15 @@ The source is public in [`formaku/formaku`](https://github.com/formaku/formaku).
 The static project website and its bilingual documentation are maintained separately in Forgejo and published on OVH MultiSite. The [English](https://formaku.eu/docs/) and [Polish](https://formaku.eu/pl/docs/) guides link to the tagged alpha.
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
+
+## Panel start after alpha.81 — 2026-11-26
+
+- The alpha.81 panel drew its menu and dashboard before it had the user's collections and permissions. With the bootstrap response held back in the browser test installation, **Media** moved 176 px, **Releases** and **Settings** 264 px and the dashboard's **Open builder** 130 px when the response arrived. Chromium, Firefox and WebKit gave the same figures at 1280 px. At 390 px every control below the menu moved, by up to 718 px.
+- The panel now draws after the first bootstrap response and shows a loading message until then. If the request fails, it shows the message from the API and **Try again**.
+- `tests/browser/panel-loading.spec.ts` holds the response back at both widths and compares where each visible control sits before and after. It fails against the alpha.81 panel in the three browsers and passes with the change.
+- The deployment receipt, runtime observation, settings and media tests waited for the menu to settle before a sidebar click. Those waits are removed. With the bootstrap response delayed by a random 0 to 400 ms, the receipt and observation tests and the new spec passed 75 of 75 runs across the three browsers.
+- The lost click itself is rare. Without the wait, the receipt test still passed 60 of 60 Firefox runs against the alpha.81 panel with the same delay.
+- With the change, the browser suite passed locally in Chromium, Firefox and WebKit together with the agency acceptance spec. The panel type check and build passed, and the Composer archive built from this tree passed its installation check.
 
 ## Alpha.81 verification — 2026-11-26
 
