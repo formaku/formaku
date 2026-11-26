@@ -1,13 +1,10 @@
 <?php
 
 use App\Models\User;
-use Formaku\Cms\Jobs\NotifyRecordOwner;
 use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Record;
-use Formaku\Cms\Services\PortalReplies;
 use Formaku\Cms\Services\RecordService;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schedule;
 
@@ -38,13 +35,14 @@ Artisan::command('formaku:demo', function () {
         $s->publish($rec, $rec->version, $actor);
     }$this->info('Demo ready. No accounts or passwords were seeded.');
 });
+// Both commands are safe to repeat, so their locks expire after five minutes. Laravel's default lock
+// lasts a day and would stop the task that long after a run that was killed without cleanup.
 Schedule::command('formaku:publish-scheduled')
     ->everyMinute()
     ->name('formaku:publish-scheduled')
-    ->withoutOverlapping();
+    ->withoutOverlapping(5);
 
-Schedule::call(function () {
-    foreach (DB::table('formaku_events')->whereNull('notified_at')->whereIn('type', ['saved', 'transitioned', PortalReplies::EVENT])->limit(100)->get() as $event) {
-        NotifyRecordOwner::dispatch($event->id);
-    }
-})->everyMinute()->name('formaku:notifications')->withoutOverlapping();
+Schedule::command('formaku:notify')
+    ->everyMinute()
+    ->name('formaku:notify')
+    ->withoutOverlapping(5);

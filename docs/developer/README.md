@@ -36,7 +36,7 @@ The command checks the configured guard and authorization callback, Formaku’s 
 
 If the frontend files are missing from a source checkout, build them from the Formaku repository root. If the published files are missing or outdated, run `php artisan formaku:install` again. For pending migrations, follow the [upgrade guide](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). To verify access for a particular role, sign in to the host app and open the panel as a user with that role.
 
-For CI and deployment scripts, run `php artisan formaku:doctor --json` from a checkout that supports the flag. It emits one JSON object with `ok` and the boolean checks `authentication`, `database`, and `assets`. The separate `public_routes` field reports the route setting. The exit code is 0 when the checks pass and 1 when any check fails. A Laravel boot failure can occur before the command emits JSON.
+For CI and deployment scripts, run `php artisan formaku:doctor --json` from a checkout that supports the flag. It emits one JSON object with `ok` and the boolean checks `authentication`, `database`, and `assets`. Starting with alpha.81, `errors` lists the message of every failed check in the order of the plain output, and is empty when all checks pass. The messages name tables and files and leave out connection details. The separate `public_routes` field reports the route setting. The exit code is 0 when the checks pass and 1 when any check fails. A Laravel boot failure can occur before the command emits JSON.
 
 ### Upgrade an existing Composer installation
 
@@ -58,10 +58,17 @@ Add the following to the host application’s `routes/console.php` after install
 ```php
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('formaku:publish-scheduled')->everyMinute()->withoutOverlapping();
+Schedule::command('formaku:publish-scheduled')->everyMinute()->withoutOverlapping(5);
+Schedule::command('formaku:notify')->everyMinute()->withoutOverlapping(5);
 ```
 
-Run `php artisan schedule:list` to check the registration, then run Laravel’s scheduler in your environment. The command publishes saved content whose publication time has passed. If your host already invokes a custom Formaku publication callback, replace that registration with this command. The Formaku starter registers it for you.
+Run `php artisan schedule:list` to check the registration, then run Laravel’s scheduler in your environment. The first command publishes saved content whose publication time has passed. If your host already invokes a custom Formaku publication callback, replace that registration with this command. The Formaku starter registers both commands for you.
+
+Pass the lock time in minutes to `withoutOverlapping`. Without it, Laravel keeps the lock for a day. If a run is killed before it releases the lock, for example when its container is stopped, the task then stays idle until the lock expires. Both commands are safe to repeat after five minutes.
+
+### Deliver portal notifications in a Composer host
+
+`formaku:notify`, available from alpha.81, queues an e-mail to the record owner for saved records, state changes and shared replies in data collections. It needs a configured mail transport and a running queue worker. Each run queues the 100 oldest waiting events. Use `--limit` to queue from 1 to 1000. An event whose record or owner no longer exists is closed without a message. If your host copied the notification callback from an earlier starter, replace it with this command.
 
 Run `php artisan formaku:publish-scheduled` manually to see the counts. A failed draft stays scheduled, and the command returns a nonzero exit code after processing the rest. Use the record ID in the output and the application log to diagnose the failure. Fix the draft and set a new publication time, or cancel the schedule. Concurrent version changes are skipped.
 

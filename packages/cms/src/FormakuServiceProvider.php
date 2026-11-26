@@ -37,6 +37,7 @@ class FormakuServiceProvider extends ServiceProvider
                 Console\DoctorCommand::class,
                 Console\InstallCommand::class,
                 Console\MediaVariantsCommand::class,
+                Console\NotifyCommand::class,
                 Console\PublishScheduledCommand::class,
             ]);
         }

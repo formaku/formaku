@@ -36,7 +36,7 @@ Polecenie sprawdza ustawienia mechanizmu sesji i funkcji autoryzacji, historię 
 
 Jeśli brakuje plików panelu w kopii źródeł, zbuduj je w głównym katalogu repozytorium Formaku. Brakujące lub nieaktualne pliki publiczne odśwież przez `php artisan formaku:install`. Przy zaległych migracjach postępuj zgodnie z [instrukcją aktualizacji](../DEPLOYMENT.md#upgrade-an-existing-alpha-installation). Aby sprawdzić uprawnienia konkretnej roli, zaloguj się w aplikacji jako użytkownik tej roli i otwórz panel.
 
-W CI i skryptach wdrożeniowych uruchom `php artisan formaku:doctor --json` z wersji kodu obsługującej tę opcję. Polecenie zwraca jeden obiekt JSON z polem `ok` i wynikami logicznymi `authentication`, `database` i `assets` w polu `checks`. Pole `public_routes` podaje stan konfiguracji tras publicznych. Kod wyjścia to 0, jeśli wszystkie kontrole przeszły, albo 1, jeśli któraś wykryła problem. Błąd uruchamiania Laravel może wystąpić przed wypisaniem JSON.
+W CI i skryptach wdrożeniowych uruchom `php artisan formaku:doctor --json` z wersji kodu obsługującej tę opcję. Polecenie zwraca jeden obiekt JSON z polem `ok` i wynikami logicznymi `authentication`, `database` i `assets` w polu `checks`. Od alpha.81 pole `errors` zawiera komunikat każdej nieudanej kontroli w kolejności zwykłego wyniku. Gdy wszystkie kontrole przeszły, lista jest pusta. Komunikaty podają nazwy tabel i plików, bez danych połączenia. Pole `public_routes` podaje stan konfiguracji tras publicznych. Kod wyjścia to 0, jeśli wszystkie kontrole przeszły, albo 1, jeśli któraś wykryła problem. Błąd uruchamiania Laravel może wystąpić przed wypisaniem JSON.
 
 ### Aktualizacja istniejącej instalacji Composer
 
@@ -58,10 +58,17 @@ Po instalacji Formaku dodaj poniższy wpis w pliku `routes/console.php` aplikacj
 ```php
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('formaku:publish-scheduled')->everyMinute()->withoutOverlapping();
+Schedule::command('formaku:publish-scheduled')->everyMinute()->withoutOverlapping(5);
+Schedule::command('formaku:notify')->everyMinute()->withoutOverlapping(5);
 ```
 
-Sprawdź wpis poleceniem `php artisan schedule:list` i uruchom scheduler Laravel w swoim środowisku. Komenda publikuje zapisane treści, których termin już nadszedł. Jeśli aplikacja ma własny wpis publikujący treści Formaku, zastąp go tą komendą. Starter Formaku ma gotowy wpis.
+Sprawdź wpisy poleceniem `php artisan schedule:list` i uruchom scheduler Laravel w swoim środowisku. Pierwsza komenda publikuje zapisane treści, których termin już nadszedł. Jeśli aplikacja ma własny wpis publikujący treści Formaku, zastąp go tą komendą. Starter Formaku ma oba wpisy.
+
+Podaj w `withoutOverlapping` czas blokady w minutach. Bez niego Laravel utrzymuje blokadę przez dobę. Jeśli uruchomienie zostanie przerwane przed jej zwolnieniem, na przykład przy zatrzymaniu kontenera, zadanie nie ruszy do wygaśnięcia blokady. Obie komendy można bezpiecznie powtórzyć po pięciu minutach.
+
+### Włącz powiadomienia portalu w aplikacji Laravel
+
+Komenda `formaku:notify`, dostępna od alpha.81, kolejkuje e-mail do właściciela rekordu po zapisie, zmianie stanu i udostępnieniu odpowiedzi w kolekcjach danych. Wymaga skonfigurowanej poczty i działającej kolejki. Jedno uruchomienie kolejkuje 100 najstarszych oczekujących zdarzeń. Opcja `--limit` przyjmuje wartość od 1 do 1000. Zdarzenie, którego rekord albo właściciel już nie istnieje, zostaje zamknięte bez wysyłki. Jeśli aplikacja skopiowała wpis powiadomień z wcześniejszego startera, zastąp go tą komendą.
 
 Uruchom ręcznie `php artisan formaku:publish-scheduled`, aby zobaczyć podsumowanie. Po błędzie szkic zachowuje termin, a komenda zwraca niezerowy kod po przetworzeniu pozostałych szkiców. Użyj identyfikatora z wyniku i logu aplikacji, aby ustalić przyczynę. Popraw szkic i ustaw nowy termin albo anuluj publikację. Zmiana wersji w trakcie pracy powoduje pominięcie rekordu.
 
