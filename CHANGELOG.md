@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- The **Extensions** section shows a button for each row action of a resource. The button opens a dialog with the values of the row and the remaining fields of the action. After confirmation the dialog shows the returned data and the list is read again. Earlier a row action could only be called through the API.
+- If an action refuses the row with a 4xx response, the dialog shows the message of that response.
+- The bootstrap API lists, with each row action, the fields the panel asks for.
+
 ## 0.1.0-alpha.82 — 2026-11-26
 
 - The panel shows its menu and dashboard once it has the signed-in user's collections and permissions, and a loading message until then. Earlier it drew them first and they grew when the data arrived, so a click aimed at **Releases** or **Settings** could land on a collection.

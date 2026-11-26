@@ -269,8 +269,11 @@ class PanelExtensionTest extends TestCase
             ->assertJsonPath('extensions.actions.0.key', 'shared_action')
             ->assertJsonPath('extensions.resources.0.row_key', 'id')
             ->assertJsonPath('extensions.resources.0.row_actions', [
-                ['action' => 'row_only_action', 'label' => 'Row only', 'input_key' => 'member_id'],
-                ['action' => 'shared_action', 'label' => 'Shared', 'input_key' => 'member_id'],
+                [
+                    'action' => 'row_only_action', 'label' => 'Row only', 'input_key' => 'member_id',
+                    'fields' => [['key' => 'note', 'label' => 'Note', 'type' => 'text', 'required' => false]],
+                ],
+                ['action' => 'shared_action', 'label' => 'Shared', 'input_key' => 'member_id', 'fields' => []],
             ]);
 
         $this->postJson(self::PREFIX.'extensions/actions/row_only_action', ['input' => ['member_id' => $target->id]])

@@ -12,7 +12,7 @@ This is **0.1.0-alpha.82**. The remaining v1 work is listed below.
 
 - `formaku:doctor --json` reports installation diagnostics with the reason for each failed check. `formaku:notify` delivers portal notifications from any host's scheduler.
 
-- Extension resources can offer actions for a single row through the API. Draft saves validate the settings of extension blocks, and published pages skip a block whose extension was removed.
+- Extension resources can offer actions for a single row. After alpha.82 the panel shows a button for each of them and asks for a confirmation and the remaining fields in a dialog. Draft saves validate the settings of extension blocks, and published pages skip a block whose extension was removed.
 
 - The starter can run one managed merchant per process group, bound to a hostname and a dedicated database, with isolated sessions, cache, queues and files.
 
@@ -115,6 +115,15 @@ The source is public in [`formaku/formaku`](https://github.com/formaku/formaku).
 The static project website and its bilingual documentation are maintained separately in Forgejo and published on OVH MultiSite. The [English](https://formaku.eu/docs/) and [Polish](https://formaku.eu/pl/docs/) guides link to the tagged alpha.
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
+
+## Row action buttons after alpha.82 — 2026-11-26
+
+- The alpha.81 and alpha.82 panels list extension resources without their row actions. The API accepts a row action, but a user cannot reach it from the panel.
+- The resource table now ends with an **Actions** column. A button opens a dialog with the values of the row and the remaining fields of the action. The action runs after the user confirms it. The dialog then shows the returned data and the row as the reloaded list returns it. A 4xx refusal shows the message of the response.
+- The bootstrap API gives each row action the fields the panel asks for. The panel could not take them from the list of standalone actions, which leaves out a `row_only` action.
+- `tests/browser/panel-extensions.spec.ts` runs an action without further fields, an action with a required field and an action that the handler refuses. Each browser changes a row of its own. A second test submits the standalone action form, whose fields moved into a component shared with the dialog, and checks the types of the values sent.
+- Chromium and Firefox return the focus to the row's button when the dialog closes. WebKit does not, so the panel sets it. Without that call the test fails in WebKit only.
+- With the change, the browser suite passed locally in Chromium, Firefox and WebKit together with the agency acceptance spec, and the PHP suite passed on SQLite. The panel type check and build passed, and the Composer archive built from this tree passed its installation check.
 
 ## Alpha.82 verification — 2026-11-26
 

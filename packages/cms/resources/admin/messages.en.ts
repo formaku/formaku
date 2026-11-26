@@ -512,6 +512,8 @@ export const messages: Record<string, string> = {
   "Sprawdź wartości pól akcji.": "Check the action field values.",
   "Nie udało się wykonać akcji.": "Could not run the action.",
   "Wynik akcji": "Action result",
+  "Akcja wykonana.": "Action completed.",
+  "Ten wiersz albo ta akcja nie są już dostępne.": "This row or this action is no longer available.",
   "Zachowaj zatwierdzone etykiety i opcje formularza": "Include approved form labels and choices",
   "Usunięcie konfiguracji": "Remove configuration",
   "Szacowany koszt projektu": "Estimated project cost",

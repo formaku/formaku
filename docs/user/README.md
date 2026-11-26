@@ -108,7 +108,7 @@ Od wersji `0.1.0-alpha.3` starter udostępnia `/sitemap.xml` ze stroną główn�
 
 ## Rozszerzenia aplikacji
 
-Od alpha.32 aplikacja Laravel może udostępnić w panelu własne zasoby i akcje. Otwórz **Rozszerzenia**, wybierz zasób, aby przejrzeć rekordy, lub wybierz akcję, uzupełnij pola i wybierz **Uruchom akcję**. Dostęp do każdej pozycji określa aplikacja gospodarza. Konfigurację opisuje [przewodnik integracji](../developer/README.pl.md#pokaż-zasoby-i-akcje-laravel-w-panelu).
+Od alpha.32 aplikacja Laravel może udostępnić w panelu własne zasoby i akcje. Otwórz **Rozszerzenia**, wybierz zasób, aby przejrzeć rekordy, lub wybierz akcję, uzupełnij pola i wybierz **Uruchom akcję**. W wydaniach po `0.1.0-alpha.82` zasób może mieć w kolumnie **Akcje** przyciski dla pojedynczego wiersza. Przycisk otwiera okno z danymi tego wiersza. Uzupełnij pola, jeśli akcja o nie pyta, i wybierz **Uruchom akcję**. Okno pokaże wynik, a lista odświeży się sama. Dostęp do każdej pozycji określa aplikacja gospodarza. Konfigurację opisuje [przewodnik integracji](../developer/README.pl.md#pokaż-zasoby-i-akcje-laravel-w-panelu).
 
 ### Uprawnienia do odczytu i zapisu pól
 
@@ -280,7 +280,7 @@ The starter serves published public pages at `/sitemap.xml`. Set `APP_URL` to th
 
 Starting with `0.1.0-alpha.4`, publishing a public page under a new URL creates a 301 redirect from its previous URL. Earlier URLs point straight to the current publication. An active publication takes precedence when an old URL is reused. Redirects are unavailable while the collection is private.
 
-Starting with alpha.32, the **Extensions** section lists resources and actions enabled for you by the host Laravel application. Choose a resource to browse its rows or choose an action, enter its fields, and select **Run action**. See the [integration guide](../developer/README.md#show-laravel-resources-and-actions-in-the-panel) for setup.
+Starting with alpha.32, the **Extensions** section lists resources and actions enabled for you by the host Laravel application. Choose a resource to browse its rows or choose an action, enter its fields, and select **Run action**. In releases after `0.1.0-alpha.82` a resource can offer buttons for a single row in its **Actions** column. A button opens a dialog with the values of that row. Enter the fields the action asks for and select **Run action**. The dialog shows the result, and the list refreshes. See the [integration guide](../developer/README.md#show-laravel-resources-and-actions-in-the-panel) for setup.
 
 Starting with alpha.33, **Private** fields are filtered from public pages, catalogs and cards. Private page blocks remain available in the editor preview. Set file visibility separately in the media library. The URL slug is part of the public address. In **Build → Edit model**, clear **Private** for `slug` to make the addresses public, or turn off **Public content collection** to keep them private. The upgrade hides collections with private slugs until you review their configuration and preserves their drafts and revisions.
 

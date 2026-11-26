@@ -5,9 +5,11 @@ use Formaku\Cms\Models\Collection;
 use Formaku\Cms\Models\Record;
 use Formaku\Cms\Services\RecordService;
 use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 
 require __DIR__.'/../apps/starter/vendor/autoload.php';
 $app = require __DIR__.'/../apps/starter/bootstrap/app.php';
@@ -67,3 +69,15 @@ DB::transaction(function () use ($user) {
     $closed = $records->save($queue, null, ['name' => 'Queue closed'], 0, $user->id);
     $records->transition($closed, $closed->version, 'closed', $user->id, null);
 });
+
+// The row action test of each browser project changes the row named after that project.
+if (! Schema::hasTable('qa_row_items')) {
+    Schema::create('qa_row_items', function (Blueprint $table): void {
+        $table->string('code')->primary();
+        $table->string('status');
+        $table->string('note')->nullable();
+    });
+}
+foreach (['chromium', 'firefox', 'webkit'] as $code) {
+    DB::table('qa_row_items')->updateOrInsert(['code' => $code], ['status' => 'open', 'note' => null]);
+}

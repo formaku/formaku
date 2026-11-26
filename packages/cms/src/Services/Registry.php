@@ -164,6 +164,32 @@ class Registry
         return $this->actions;
     }
 
+    /**
+     * Lists the resources and standalone actions the user may open in the panel.
+     *
+     * A row action carries the fields the panel asks for before running it. The field named by
+     * input_key is left out, because the row supplies its value.
+     *
+     * @return array{
+     *   resources: list<array{
+     *     key: string,
+     *     label: string,
+     *     columns: list<array{key: string, label: string}>,
+     *     row_key?: string,
+     *     row_actions?: list<array{
+     *       action: string,
+     *       label: string,
+     *       input_key: string,
+     *       fields: list<array{key: string, label: string, type: string, required: bool}>,
+     *     }>,
+     *   }>,
+     *   actions: list<array{
+     *     key: string,
+     *     label: string,
+     *     fields: list<array{key: string, label: string, type: string, required: bool}>,
+     *   }>,
+     * }
+     */
     public function panelExtensions(object $user): array
     {
         $resources = [];
@@ -174,10 +200,19 @@ class Registry
             }
 
             if (isset($visible['row_actions'])) {
-                $visible['row_actions'] = array_values(array_filter(
-                    $visible['row_actions'],
-                    fn (array $rowAction): bool => $this->resolveRowAction($rowAction, $user) !== null,
-                ));
+                $rowActions = [];
+                foreach ($visible['row_actions'] as $rowAction) {
+                    $resolved = $this->resolveRowAction($rowAction, $user);
+                    if ($resolved === null) {
+                        continue;
+                    }
+
+                    $rowActions[] = $rowAction + ['fields' => array_values(array_filter(
+                        $resolved['action']['fields'],
+                        static fn (array $field): bool => $field['key'] !== $rowAction['input_key'],
+                    ))];
+                }
+                $visible['row_actions'] = $rowActions;
             }
             $resources[] = $visible;
         }
