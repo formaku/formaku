@@ -2,10 +2,13 @@
 
 ## Unreleased
 
+## 0.1.0-alpha.83 — 2026-11-27
+
 - The **Extensions** section shows a button for each row action of a resource. The button opens a dialog with the values of the row and the remaining fields of the action. After confirmation the dialog shows the returned data and the list is read again. Earlier a row action could only be called through the API.
 - If an action refuses the row with a 4xx response, the dialog shows the message of that response.
 - The bootstrap API lists, with each row action, the fields the panel asks for.
 - On the **Extensions** screen the action form appears together with the first page of the resource list, and the list stays in place while it is read again. Earlier the form moved down when the list arrived, so a click aimed at **Run action** could miss the button.
+- No new migrations since alpha.82. Refresh the panel assets.
 
 ## 0.1.0-alpha.82 — 2026-11-26
 

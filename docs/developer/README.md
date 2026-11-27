@@ -10,7 +10,7 @@ On Laravel 13 with PHP 8.4 or newer, add the [Formaku Composer repository](https
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.82' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.83' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -42,7 +42,7 @@ For CI and deployment scripts, run `php artisan formaku:doctor --json` with alph
 
 ### Upgrade an existing Composer installation
 
-After updating to alpha.82, run these commands from the host Laravel app before serving traffic.
+After updating to alpha.83, run these commands from the host Laravel app before serving traffic.
 
 ```sh
 php artisan formaku:install
@@ -76,12 +76,12 @@ Run `php artisan formaku:publish-scheduled` manually to see the counts. A failed
 
 ### Install from a local ZIP
 
-On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.82.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.82). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
+On Laravel 13 with PHP 8.4 or newer, download `formaku-cms-v0.1.0-alpha.83.zip` and its `.sha256` file from [GitHub release assets](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.83). Put both files in a `formaku-packages` directory at the application root. Verify the checksum, then register the directory as a [Composer artifact repository](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.82.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.83.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.82' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.83' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -217,7 +217,7 @@ $registry->action(new CancelOrderAction, [
 
 A `row_only` action is left out of the list of standalone actions and cannot be called without a row. The bootstrap API lists `row_key` and the row actions the user may run. A resource whose query sets a limit, an offset or filters rows after reading them returns 422 for row actions.
 
-In releases after alpha.82 the panel shows a button for each row action in the **Actions** column of the resource. The button opens a dialog with the values of the row and the fields of the action other than `input_key`. The action runs when the user selects **Run action**. The dialog then shows the returned data, and the panel reads the list again. A row gets its buttons when the `row_key` value is an integer or a non-empty string of up to 255 characters. If the handler refuses the request with a 4xx response, the dialog shows the `message` of that response, so throw a `ValidationException` with a message the user can act on. For a 404 response the dialog says that the row or the action is no longer available. In these releases each row action in the bootstrap API also carries `fields`, the fields the panel asks for. The panel of alpha.81 and alpha.82 shows no buttons for row actions. With those releases, call the address from your own interface.
+Starting with alpha.83, the panel shows a button for each row action in the **Actions** column of the resource. The button opens a dialog with the values of the row and the fields of the action other than `input_key`. The action runs when the user selects **Run action**. The dialog then shows the returned data, and the panel reads the list again. A row gets its buttons when the `row_key` value is an integer or a non-empty string of up to 255 characters. If the handler refuses the request with a 4xx response, the dialog shows the `message` of that response, so throw a `ValidationException` with a message the user can act on. For a 404 response the dialog says that the row or the action is no longer available. From that release each row action in the bootstrap API also carries `fields`, the fields the panel asks for. The panel of alpha.81 and alpha.82 shows no buttons for row actions. With those releases, call the address from your own interface.
 
 ## Call a resource and an action from the host
 

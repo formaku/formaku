@@ -10,7 +10,7 @@ W aplikacji Laravel 13 z PHP 8.4 lub nowszym dodaj [repozytorium Composer Formak
 
 ```sh
 composer config repositories.formaku composer https://formaku.eu/composer
-composer require 'formaku/cms:0.1.0-alpha.82' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.83' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -42,7 +42,7 @@ W CI i skryptach wdrożeniowych uruchom `php artisan formaku:doctor --json` w we
 
 ### Aktualizacja istniejącej instalacji Composer
 
-Po aktualizacji do alpha.82 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
+Po aktualizacji do alpha.83 wykonaj te polecenia w aplikacji Laravel przed przywróceniem ruchu.
 
 ```sh
 php artisan formaku:install
@@ -76,12 +76,12 @@ Uruchom ręcznie `php artisan formaku:publish-scheduled`, aby zobaczyć podsumow
 
 ### Instalacja z lokalnego ZIP-u
 
-Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.82.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.82). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
+Dla Laravel 13 i PHP 8.4 lub nowszego pobierz `formaku-cms-v0.1.0-alpha.83.zip` i plik `.sha256` z [załączników wydania na GitHubie](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.83). Umieść oba w katalogu `formaku-packages` w głównym katalogu aplikacji. Sprawdź sumę kontrolną i zarejestruj katalog jako [repozytorium artefaktów Composer](https://getcomposer.org/doc/05-repositories.md#artifact).
 
 ```sh
-(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.82.zip.sha256)
+(cd formaku-packages && sha256sum -c formaku-cms-v0.1.0-alpha.83.zip.sha256)
 composer config repositories.formaku-artifacts artifact ./formaku-packages
-composer require 'formaku/cms:0.1.0-alpha.82' --prefer-dist
+composer require 'formaku/cms:0.1.0-alpha.83' --prefer-dist
 php artisan formaku:install
 php artisan migrate
 ```
@@ -217,7 +217,7 @@ $registry->action(new CancelOrderAction, [
 
 Akcja `row_only` nie pojawia się na liście samodzielnych akcji i nie można jej wywołać bez wiersza. API bootstrap zwraca `row_key` oraz akcje wiersza dostępne dla użytkownika. Zasób, którego zapytanie ustawia limit, przesunięcie albo filtruje wiersze po odczycie, zwraca 422 dla akcji wiersza.
 
-W wydaniach po alpha.82 panel pokazuje przycisk każdej akcji wiersza w kolumnie **Akcje** zasobu. Przycisk otwiera okno z wartościami wiersza i polami akcji innymi niż `input_key`. Akcja uruchamia się, gdy użytkownik wybierze **Uruchom akcję**. Okno pokazuje wtedy zwrócone dane, a panel ponownie wczytuje listę. Wiersz ma przyciski, gdy wartość `row_key` jest liczbą całkowitą albo niepustym tekstem o długości do 255 znaków. Jeśli handler odrzuci żądanie odpowiedzią 4xx, okno pokazuje `message` z tej odpowiedzi, dlatego zgłaszaj `ValidationException` z komunikatem, na podstawie którego użytkownik może działać. Przy odpowiedzi 404 okno informuje, że wiersz albo akcja nie są już dostępne. W tych wydaniach każda akcja wiersza w API bootstrap ma też `fields`, czyli pola, o które pyta panel. Panel w alpha.81 i alpha.82 nie pokazuje przycisków akcji wiersza. W tych wydaniach wywołuj ten adres z własnego interfejsu.
+Od alpha.83 panel pokazuje przycisk każdej akcji wiersza w kolumnie **Akcje** zasobu. Przycisk otwiera okno z wartościami wiersza i polami akcji innymi niż `input_key`. Akcja uruchamia się, gdy użytkownik wybierze **Uruchom akcję**. Okno pokazuje wtedy zwrócone dane, a panel ponownie wczytuje listę. Wiersz ma przyciski, gdy wartość `row_key` jest liczbą całkowitą albo niepustym tekstem o długości do 255 znaków. Jeśli handler odrzuci żądanie odpowiedzią 4xx, okno pokazuje `message` z tej odpowiedzi, dlatego zgłaszaj `ValidationException` z komunikatem, na podstawie którego użytkownik może działać. Przy odpowiedzi 404 okno informuje, że wiersz albo akcja nie są już dostępne. Od tego wydania każda akcja wiersza w API bootstrap ma też `fields`, czyli pola, o które pyta panel. Panel w alpha.81 i alpha.82 nie pokazuje przycisków akcji wiersza. W tych wydaniach wywołuj ten adres z własnego interfejsu.
 
 ## Wywołaj zasób i akcję z aplikacji
 

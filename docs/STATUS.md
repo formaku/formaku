@@ -1,6 +1,6 @@
 # Implementation status
 
-This is **0.1.0-alpha.82**. The remaining v1 work is listed below.
+This is **0.1.0-alpha.83**. The remaining v1 work is listed below.
 
 ## Implemented and locally exercised
 
@@ -12,7 +12,7 @@ This is **0.1.0-alpha.82**. The remaining v1 work is listed below.
 
 - `formaku:doctor --json` reports installation diagnostics with the reason for each failed check. `formaku:notify` delivers portal notifications from any host's scheduler.
 
-- Extension resources can offer actions for a single row. After alpha.82 the panel shows a button for each of them and asks for a confirmation and the remaining fields in a dialog. Draft saves validate the settings of extension blocks, and published pages skip a block whose extension was removed.
+- Extension resources can offer actions for a single row. The panel shows a button for each of them and asks for a confirmation and the remaining fields in a dialog. Draft saves validate the settings of extension blocks, and published pages skip a block whose extension was removed.
 
 - The starter can run one managed merchant per process group, bound to a hostname and a dedicated database, with isolated sessions, cache, queues and files.
 
