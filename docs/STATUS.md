@@ -116,6 +116,15 @@ The static project website and its bilingual documentation are maintained separa
 
 The pre-existing docs/commerce documents were preserved unchanged and remain outside this alpha implementation.
 
+## Alpha.83 verification — 2026-11-27
+
+- The [prerelease](https://github.com/formaku/formaku/releases/tag/v0.1.0-alpha.83) and [release workflow](https://github.com/formaku/formaku/actions/runs/45971454446) identify source commit `9bdd3d4092c268c0c1ef85d96088a99a6a29bbea` and public image `ghcr.io/formaku/formaku@sha256:a189e534d86c0358cf245f7d861cfcf16c97202364d6eeff30f5386d8c05ff4d`.
+- The release differs from alpha.82 in the panel sources, the list of row actions in the bootstrap API, the tests and the documentation. Migrations and Composer requirements are unchanged.
+- [CI for that commit on `main`](https://github.com/formaku/formaku/actions/runs/45970643992) passed PHP 8.4 and 8.5 with PostgreSQL 17 and MySQL 8.4, the panel build with the Composer archive check, the deployment controller tests and the Compose stack. The browser job passed 81 tests in Chromium, Firefox and WebKit, including the extensions screen spec in each, and the agency acceptance spec. The three tests that write shared site settings run in Chromium only and were skipped in the other two browsers.
+- The Composer archive built locally from the tagged commit is byte-identical to the published one. Both have the SHA-256 given in the release notes, `64f7b9fb8fbf256bc41c04c4c512239a2c37371ad1f77a240bd8b19dfa75d5cd`. Before the tag was pushed, an archive with the same bytes passed the installation check with `--check-missing-chunk`, `--check-missing-table` and `--check-doctor-json`.
+- The image index was read from GHCR without credentials. Its SHA-256 equals the published digest. The image configuration names version `0.1.0-alpha.83` and the tagged commit.
+- The [manual Compose test](https://github.com/formaku/formaku/actions/runs/45971960242) ran from the tag. It pulled the released image by digest, checked the installation against a fresh SQLite database and started the Compose services against a fresh PostgreSQL database. `formaku:doctor`, `/up` and `/login` passed. The controller reported `verified`, `mismatch` after stopping the scheduler, and `verified` after restarting it. CI removed its test stack.
+
 ## Row action buttons after alpha.82 — 2026-11-27
 
 - The alpha.81 and alpha.82 panels list extension resources without their row actions. The API accepts a row action, but a user cannot reach it from the panel.
