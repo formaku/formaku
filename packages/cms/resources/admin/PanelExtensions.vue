@@ -44,6 +44,9 @@ const resource = computed(() =>
 const resourcePage = ref<ResourcePage | null>(null);
 const resourceLoading = ref(false);
 const resourceError = ref(false);
+// The list grows when its first page arrives. The action form below it is drawn after that request
+// has finished, so the form does not move under the pointer.
+const resourceSettled = ref(false);
 let resourceRequest = 0;
 let requestedPage = 1;
 
@@ -71,6 +74,7 @@ async function loadResource(page: number) {
   } finally {
     if (requestId === resourceRequest) {
       resourceLoading.value = false;
+      resourceSettled.value = true;
     }
   }
 }
@@ -262,9 +266,9 @@ async function runAction() {
           <span>{{ t("Nie udało się wczytać zasobu.") }}</span>
           <button type="button" class="btn btn-sm" @click="loadResource(requestedPage)">{{ t("Spróbuj ponownie") }}</button>
         </div>
-        <p v-if="resourceLoading" aria-live="polite">{{ t("Wczytywanie zasobu…") }}</p>
+        <p v-if="resourceLoading && !resourcePage" aria-live="polite">{{ t("Wczytywanie zasobu…") }}</p>
         <template v-if="resourcePage">
-          <div v-if="resourcePage.data.length" class="overflow-x-auto">
+          <div v-if="resourcePage.data.length" class="overflow-x-auto" :aria-busy="resourceLoading">
             <table class="table" :aria-label="resource.label">
               <thead>
                 <tr>
@@ -318,7 +322,11 @@ async function runAction() {
       </div>
     </section>
 
-    <section v-if="action" class="card card-border bg-base-100" aria-labelledby="extension-actions-title">
+    <section
+      v-if="action && (!resource || resourceSettled)"
+      class="card card-border bg-base-100"
+      aria-labelledby="extension-actions-title"
+    >
       <div class="card-body min-w-0">
         <h2 id="extension-actions-title" class="card-title">{{ t("Akcje") }}</h2>
         <label class="block">
